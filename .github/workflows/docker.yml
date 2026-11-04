@@ -62,6 +62,7 @@ jobs:
           REF: ${{ github.ref }}
           SHA: ${{ github.sha }}
         run: |
+          [[ "$TAG" == v* ]] || TAG="v$TAG"   # accept "0.0.3" as well as "v0.0.3"
           image="ghcr.io/${OWNER,,}/projectlist"
           if [[ "$EVENT" != "workflow_dispatch" && "$REF" == "refs/heads/main" ]]; then
             {

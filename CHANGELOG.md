@@ -8,6 +8,8 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unveröffentlicht]
 
+## [0.0.4] – 2026-11-04
+
 ### Hinzugefügt
 
 - GitHub-Release wird bei jedem Versions-Tag automatisch angelegt, mit den Notizen aus dieser Datei
@@ -16,6 +18,11 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 ### Geändert
 
 - GitHub Actions auf aktuelle Versionen (keine Node-20-Warnungen mehr)
+- Testdaten und Code-Beispiele verwenden nur noch neutrale Beispielnamen
+
+### Behoben
+
+- Workflows akzeptieren beim manuellen Start das Tag mit oder ohne „v“ (`0.0.3` wie `v0.0.3`)
 
 ## [0.0.3] – 2026-11-04
 
@@ -122,7 +129,8 @@ Erste Version.
   Code in JetBrains Mono; keine externen Anfragen
 - Checkbox links oder rechts, eckig oder rund; Codeblock-Hintergrund Hellgrau, Dunkelgrau oder Schwarz
 
-[Unveröffentlicht]: https://github.com/seals187/projectList/compare/v0.0.3...HEAD
+[Unveröffentlicht]: https://github.com/seals187/projectList/compare/v0.0.4...HEAD
+[0.0.4]: https://github.com/seals187/projectList/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/seals187/projectList/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/seals187/projectList/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/seals187/projectList/releases/tag/v0.0.1
