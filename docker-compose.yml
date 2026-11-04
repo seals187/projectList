@@ -5,7 +5,7 @@ services:
     build:
       context: .
       args:
-        VERSION: ${VERSION:-0.0.1} # Versionsnummer im Binary (projectlist version, Log beim Start)
+        VERSION: ${VERSION:-0.0.2} # Versionsnummer im Binary (projectlist version, Log beim Start)
     image: projectlist:latest
     container_name: projectlist
     restart: unless-stopped

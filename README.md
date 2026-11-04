@@ -2,6 +2,7 @@
 
 Schlankes, selbst gehostetes Projektmanagement-Tool: **Kunden → Projekte → Checklisten**.
 Checklisten lassen sich aus wiederverwendbaren Templates erzeugen (als unabhängige Kopie).
+Änderungen pro Version: siehe [CHANGELOG.md](CHANGELOG.md).
 
 - Ein einziges Go-Binary mit eingebettetem SvelteKit-Frontend, SQLite (pure Go, kein CGO)
 - Ein Container, Ziel < 50 MB RAM
@@ -24,6 +25,26 @@ docker compose ps                     # Healthcheck-Status
 curl http://localhost:8080/healthz    # {"status":"ok"}
 docker compose logs -f projectlist    # strukturierte JSON-Logs
 ```
+
+### Fertiges Image von GitHub (ghcr.io)
+
+Zu jedem Release gibt es ein Image für **linux/amd64** und **linux/arm64** (z. B. Raspberry Pi):
+
+```bash
+docker pull ghcr.io/seals187/projectlist:latest   # oder eine feste Version, z. B. :0.0.2
+```
+
+Ohne eigenen Build: in `docker-compose.yml` die Zeile `build:` (samt `context`/`args`) entfernen und
+`image: ghcr.io/seals187/projectlist:latest` setzen, dann `docker compose up -d`. Oder direkt:
+
+```bash
+docker run -d --name projectlist -p 8080:8080 --env-file .env \
+  -v projectlist-data:/data --memory 128m ghcr.io/seals187/projectlist:latest
+```
+
+Veröffentlicht wird automatisch per GitHub Actions (`.github/workflows/docker.yml`), sobald ein Tag
+`vX.Y.Z` gepusht wird – mit den Tags `:X.Y.Z`, `:X.Y` und `:latest`. Ein bestehendes Tag lässt sich unter
+*Actions → CI und Container-Image → Run workflow* nachträglich veröffentlichen.
 
 ## Umgebungsvariablen
 

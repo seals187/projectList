@@ -1,0 +1,17 @@
+# Zeilenenden: im Repository und im Arbeitsverzeichnis immer LF
+# (auch unter Windows; Go, Node und Docker arbeiten durchgehend mit LF).
+* text=auto eol=lf
+
+# Binärdateien nie umwandeln
+*.png    binary
+*.jpg    binary
+*.jpeg   binary
+*.gif    binary
+*.ico    binary
+*.webp   binary
+*.woff   binary
+*.woff2  binary
+*.ttf    binary
+*.otf    binary
+*.db     binary
+*.sqlite binary
