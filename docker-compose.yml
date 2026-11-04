@@ -1,6 +1,3 @@
-# Fixed project name: keeps the volume name (projectlist_projectlist-data) independent of the folder name
-name: projectlist
-
 services:
   projectlist:
     # Version via PROJECTLIST_VERSION in .env (latest = newest release, edge = development state)

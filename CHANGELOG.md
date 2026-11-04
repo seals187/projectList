@@ -8,6 +8,8 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unveröffentlicht]
 
+## [0.0.3] – 2026-11-04
+
 ### Hinzugefügt
 
 - Image `:edge` mit dem aktuellen Entwicklungsstand, bei jedem Push auf `main` nach grünen Tests
@@ -111,6 +113,7 @@ Erste Version.
   Code in JetBrains Mono; keine externen Anfragen
 - Checkbox links oder rechts, eckig oder rund; Codeblock-Hintergrund Hellgrau, Dunkelgrau oder Schwarz
 
-[Unveröffentlicht]: https://github.com/seals187/projectList/compare/v0.0.2...HEAD
+[Unveröffentlicht]: https://github.com/seals187/projectList/compare/v0.0.3...HEAD
+[0.0.3]: https://github.com/seals187/projectList/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/seals187/projectList/compare/v0.0.1...v0.0.2
 [0.0.1]: https://github.com/seals187/projectList/releases/tag/v0.0.1
