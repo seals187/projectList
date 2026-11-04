@@ -116,7 +116,7 @@ func serve(cfg config.Config, log *slog.Logger) error {
 			DB: database, DBPath: cfg.DBPath, Sessions: sessions, Logger: log, Static: staticHandler, Subtitle: cfg.AppSubtitle,
 		}),
 		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       30 * time.Second,
+		ReadTimeout:       3 * time.Minute, // file uploads (max. 25 MB) on slow connections
 		WriteTimeout:      5 * time.Minute, // backup download
 		IdleTimeout:       2 * time.Minute,
 		MaxHeaderBytes:    64 << 10,

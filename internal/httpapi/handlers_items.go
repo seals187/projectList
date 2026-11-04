@@ -245,7 +245,27 @@ func (s *Server) setItemDone(w http.ResponseWriter, r *http.Request, u authz.Use
 	if err := s.q.SetItemDone(r.Context(), p); err != nil {
 		return err
 	}
+	if *req.Done {
+		s.logItemDone(r.Context(), u, it.ChecklistID, id)
+	}
 	return s.itemResponse(w, r, http.StatusOK, id)
+}
+
+// logItemDone records a checked-off item and, if it was the last open one,
+// the completed checklist.
+func (s *Server) logItemDone(ctx context.Context, u authz.User, checklistID, itemID int64) {
+	cl, err := s.q.GetChecklistWithCustomer(ctx, checklistID)
+	if err != nil {
+		return
+	}
+	title, err := s.q.ItemTitle(ctx, itemID)
+	if err != nil {
+		return
+	}
+	s.logActivity(ctx, cl.ProjectID, u.ID, actItemDone, cl.Title, title)
+	if prog, err := s.q.ChecklistProgress(ctx, checklistID); err == nil && prog.Total > 0 && prog.Done == prog.Total {
+		s.logActivity(ctx, cl.ProjectID, u.ID, actChecklistDone, cl.Title, "")
+	}
 }
 
 func (s *Server) deleteItem(w http.ResponseWriter, r *http.Request, u authz.User) error {

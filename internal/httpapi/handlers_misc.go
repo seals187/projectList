@@ -38,8 +38,14 @@ type sidebarProject struct {
 	ID         int64              `json:"id"`
 	Name       string             `json:"name"`
 	Status     string             `json:"status"`
+	StartDate  *string            `json:"start_date"`
 	DueDate    *string            `json:"due_date"`
+	CreatedAt  string             `json:"created_at"` // YYYY-MM-DD
 	InProgress bool               `json:"include_in_customer_progress"`
+	TagIDs     []int64            `json:"tag_ids"`
+	OwnerID    *int64             `json:"owner_id"`
+	OwnerName  string             `json:"owner_name"`
+	BoardPos   int64              `json:"board_position"`
 	Total      int64              `json:"total"`
 	Done       int64              `json:"done"`
 	Checklists []sidebarChecklist `json:"checklists"`
@@ -48,11 +54,13 @@ type sidebarProject struct {
 type sidebarCustomer struct {
 	ID       int64            `json:"id"`
 	Name     string           `json:"name"`
+	Location string           `json:"location"`
 	Projects []sidebarProject `json:"projects"`
 }
 
 // sidebar returns the tree customers → projects → checklists incl. progress
-// plus the number of the user's own open tasks – with four queries in total.
+// plus the number of the user's own open tasks, favorites, saved settings,
+// the tag catalog and the custom status names.
 func (s *Server) sidebar(w http.ResponseWriter, r *http.Request, u authz.User) error {
 	ctx, filter := r.Context(), u.VisibilityFilter()
 	customers, err := s.q.ListCustomers(ctx, filter)
@@ -71,6 +79,30 @@ func (s *Server) sidebar(w http.ResponseWriter, r *http.Request, u authz.User) e
 	if err != nil {
 		return err
 	}
+	projectTags, err := s.q.ListProjectTags(ctx, filter)
+	if err != nil {
+		return err
+	}
+	tags, err := s.q.ListTags(ctx)
+	if err != nil {
+		return err
+	}
+	statuses, err := s.statusSettings(ctx)
+	if err != nil {
+		return err
+	}
+	prefs, err := s.clientPrefs(ctx, u.ID)
+	if err != nil {
+		return err
+	}
+	boardHidden, err := s.boardHidden(ctx, u.ID)
+	if err != nil {
+		return err
+	}
+	tagsByProject := make(map[int64][]int64, len(projects))
+	for _, pt := range projectTags {
+		tagsByProject[pt.ProjectID] = append(tagsByProject[pt.ProjectID], pt.TagID)
+	}
 
 	byProject := make(map[int64][]sidebarChecklist, len(projects))
 	for _, c := range checklists {
@@ -82,8 +114,12 @@ func (s *Server) sidebar(w http.ResponseWriter, r *http.Request, u authz.User) e
 		if cls == nil {
 			cls = []sidebarChecklist{}
 		}
+		tagIDs := tagsByProject[p.ID]
+		if tagIDs == nil {
+			tagIDs = []int64{}
+		}
 		byCustomer[p.CustomerID] = append(byCustomer[p.CustomerID], sidebarProject{
-			ID: p.ID, Name: p.Name, Status: p.Status, DueDate: p.DueDate, InProgress: p.IncludeInCustomerProgress, Total: p.Total, Done: p.Done, Checklists: cls,
+			ID: p.ID, Name: p.Name, Status: p.Status, StartDate: p.StartDate, DueDate: p.DueDate, CreatedAt: p.CreatedAt.Format("2006-01-02"), InProgress: p.IncludeInCustomerProgress, TagIDs: tagIDs, OwnerID: p.OwnerID, OwnerName: p.OwnerName, BoardPos: p.BoardPosition, Total: p.Total, Done: p.Done, Checklists: cls,
 		})
 	}
 	out := make([]sidebarCustomer, len(customers))
@@ -92,23 +128,16 @@ func (s *Server) sidebar(w http.ResponseWriter, r *http.Request, u authz.User) e
 		if ps == nil {
 			ps = []sidebarProject{}
 		}
-		out[i] = sidebarCustomer{ID: c.ID, Name: c.Name, Projects: ps}
+		out[i] = sidebarCustomer{ID: c.ID, Name: c.Name, Location: c.Location, Projects: ps}
 	}
-	names := sidebarNames{customers: map[int64]string{}, projects: map[int64][2]string{}, checklists: map[int64][2]string{}}
-	for _, c := range customers {
-		names.customers[c.ID] = c.Name
-	}
-	for _, p := range projects {
-		names.projects[p.ID] = [2]string{p.Name, names.customers[p.CustomerID]}
-	}
-	for _, c := range checklists {
-		names.checklists[c.ID] = [2]string{c.Title, names.projects[c.ProjectID][0]}
-	}
-	favorites, recent, err := s.navLists(ctx, u, names)
+	favorites, err := s.q.ListFavorites(ctx, u.ID)
 	if err != nil {
 		return err
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"customers": out, "my_tasks": myTasks, "favorites": favorites, "recent": recent})
+	writeJSON(w, http.StatusOK, map[string]any{"customers": out, "my_tasks": myTasks, "favorites": favorites,
+		"tags": tags, "status_labels": statuses.Labels, "status_colors": statuses.Colors, "status_wip": statuses.WIP,
+		"board_hidden": boardHidden, "prefs": prefs,
+	})
 	return nil
 }
 
@@ -118,14 +147,28 @@ type overviewPerson struct {
 }
 
 type overviewProject struct {
-	Team     []overviewPerson `json:"team"`
-	NextStep string           `json:"next_step"` // rich-text HTML of the first open entry
+	Team       []overviewPerson            `json:"team"`
+	NextStep   string                      `json:"next_step"`  // rich-text HTML of the first open entry
+	UpdatedAt  *time.Time                  `json:"updated_at"` // latest activity, null = none logged
+	Checklists map[int64]overviewChecklist `json:"checklists"` // per checklist ID
+}
+
+type overviewChecklist struct {
+	AssigneeID   *int64 `json:"assignee_id"`
+	AssigneeName string `json:"assignee_name"`
+	Overdue      int64  `json:"overdue"` // open items with a due date before today
 }
 
 // overview supplements the sidebar data for the overview: per project the team
-// (assigned people) and the next open step.
+// (assigned people), the next open step, the latest activity and per checklist
+// the person responsible and overdue items. ?today=YYYY-MM-DD: the client's
+// date (time zone), default: today in UTC.
 func (s *Server) overview(w http.ResponseWriter, r *http.Request, u authz.User) error {
 	ctx, filter := r.Context(), u.VisibilityFilter()
+	today := r.URL.Query().Get("today")
+	if _, err := time.Parse("2006-01-02", today); err != nil {
+		today = time.Now().UTC().Format("2006-01-02")
+	}
 	teams, err := s.q.ListProjectTeams(ctx, filter)
 	if err != nil {
 		return err
@@ -134,14 +177,34 @@ func (s *Server) overview(w http.ResponseWriter, r *http.Request, u authz.User) 
 	if err != nil {
 		return err
 	}
-	out := make(map[int64]*overviewProject, len(next))
+	checklists, err := s.q.ListOverviewChecklists(ctx, sqlc.ListOverviewChecklistsParams{Today: &today, UserID: filter})
+	if err != nil {
+		return err
+	}
+	last, err := s.q.ListProjectLastActivity(ctx, filter)
+	if err != nil {
+		return err
+	}
+	out := map[int64]*overviewProject{}
+	get := func(id int64) *overviewProject {
+		if out[id] == nil {
+			out[id] = &overviewProject{Team: []overviewPerson{}, Checklists: map[int64]overviewChecklist{}}
+		}
+		return out[id]
+	}
 	for _, n := range next {
-		out[n.ProjectID] = &overviewProject{Team: []overviewPerson{}, NextStep: n.NextStep}
+		get(n.ProjectID).NextStep = n.NextStep
 	}
 	for _, t := range teams {
-		if p := out[t.ProjectID]; p != nil {
-			p.Team = append(p.Team, overviewPerson{ID: t.UserID, Name: t.UserName})
-		}
+		p := get(t.ProjectID)
+		p.Team = append(p.Team, overviewPerson{ID: t.UserID, Name: t.UserName})
+	}
+	for _, c := range checklists {
+		get(c.ProjectID).Checklists[c.ID] = overviewChecklist{AssigneeID: c.AssigneeID, AssigneeName: c.AssigneeName, Overdue: c.Overdue}
+	}
+	for _, l := range last {
+		at := l.CreatedAt
+		get(l.ProjectID).UpdatedAt = &at
 	}
 	writeJSON(w, http.StatusOK, out)
 	return nil

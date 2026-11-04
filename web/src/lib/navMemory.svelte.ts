@@ -1,12 +1,8 @@
-// Sidebar: favorites (projects) and recently visited pages.
-// Stored in the database per user (API), loaded with /api/sidebar
-// (sidebar.favorites / sidebar.recent). Changes are shown immediately
-// and saved in the background.
+// Sidebar favorites (projects): stored in the database per user (API),
+// loaded with /api/sidebar (sidebar.favorites). Changes are shown
+// immediately and saved in the background.
 import { api, errorText } from './api';
-import { refreshSidebar, session, sidebar, toast } from './state.svelte';
-import type { RecentEntry } from './types';
-
-export type RecentKind = RecentEntry['kind'];
+import { session, sidebar, toast } from './state.svelte';
 
 export const isFavorite = (projectId: number) => sidebar.favorites.includes(projectId);
 
@@ -19,40 +15,6 @@ export async function toggleFavorite(projectId: number) {
     else await api.put(`/favorites/${projectId}`, null);
   } catch (e) {
     sidebar.favorites = prev;
-    toast(errorText(e));
-  }
-}
-
-let lastPosted = ''; // guard: don't send the same visit repeatedly (e.g. after reload)
-
-/** Put the visited page at the front and remember it on the server. */
-export function rememberVisit(kind: RecentKind, id: number) {
-  const idx = sidebar.recent.findIndex((r) => r.kind === kind && r.id === id);
-  if (idx === 0) return; // already at the front
-  const key = `${kind}:${id}`;
-  if (key === lastPosted) return;
-  lastPosted = key;
-  const post = api.post('/recent', { kind, id });
-  if (idx > 0) {
-    // known: move to the front immediately
-    const item = sidebar.recent[idx];
-    sidebar.recent = [item, ...sidebar.recent.filter((_, i) => i !== idx)];
-    post.catch(() => {});
-  } else {
-    // new: the server knows the title → reload the sidebar afterwards
-    post.then(() => refreshSidebar(0), () => {});
-  }
-}
-
-/** Clear "Recently visited". */
-export async function clearRecent() {
-  lastPosted = '';
-  const prev = sidebar.recent;
-  sidebar.recent = [];
-  try {
-    await api.del('/recent');
-  } catch (e) {
-    sidebar.recent = prev;
     toast(errorText(e));
   }
 }

@@ -8,9 +8,71 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unveröffentlicht]
 
+## [0.0.5] – 2026-11-04
+
+### Hinzugefügt
+
+- Übersicht: neue Ansichten **Kalender** (Projekte am Fälligkeitsdatum, per Drag & Drop umplanen) und
+  **Zeitachse** (Gantt: Balken vom Start bis zur Fälligkeit, ziehen verschiebt, Enden ziehen ändert
+  Start/Fälligkeit; Zoom Wochen/Monate); einheitlicher Ansichts-Umschalter Karten · Board · Liste ·
+  Kalender · Zeitachse
+- Startdatum pro Projekt (Projektseite, Kontextmenü „Zeitraum“, Zeitachse); ohne Startdatum gilt das
+  Erstelldatum
+- Filterleiste für alle Ansichten der Übersicht: Kunde (mit „Alle“/„Keine“), Label und Verantwortlich als
+  Dropdowns; im Board zusätzlich „Gruppieren“ nach Status, Kunde oder Verantwortlich und „Kompakt“.
+  Die Filter werden pro Benutzer in der Datenbank gespeichert und sind auf allen Geräten gleich
+- Gespeicherte Ansichten: aktuelle Ansicht mit Filtern unter einem Namen speichern; sie erscheinen in
+  der Seitenleiste
+- Board: ruhigere Karten (Labels als Farbpunkte, max. zwei plus „+N“; Fortschrittsbalken;
+  Fälligkeit, Anzahl Checklisten, Verantwortliche/r und Team unten), Schnellaktionen beim Überfahren
+  (Verantwortlich, Zeitraum, Favorit, Menü), „Projekt hinzufügen“ am Ende jeder Spalte
+- Board: WIP-Limit pro Status-Spalte (z. B. „WIP 2/2“, rot sobald erreicht)
+- Status (Planung, Aktiv, Review, Blockiert, Erledigt) für alle umbenennbar, mit eigener Farbe und
+  WIP-Limit: direkt im Board per Klick auf den Spaltentitel (nur Admins; zurücksetzbar auf Standard)
+- Tags (Labels) für Projekte mit frei wählbarer Farbe (54 vorgegebene Farben oder eine eigene): im
+  Projekt zuweisen oder direkt neu anlegen, sichtbar in allen Ansichten der Übersicht sowie in der
+  Projektliste des Kunden; Verwaltung (umbenennen, umfärben, löschen) unter Einstellungen → Projekte
+- Board und Karten der Übersicht: Rechtsklick auf ein Projekt öffnet ein Menü zum Öffnen, für Checklisten (öffnen oder neu
+  anlegen), Umbenennen, Status, Zeitraum, Verantwortliche Person, Tags und Favorit; auf Touch-Geräten
+  über den „…“-Knopf der Karte. Rechtsklick auf einen Kunden: Kunde öffnen, neues Projekt, nur diesen
+  Kunden anzeigen, ausblenden
+- Board: Karten lassen sich auch innerhalb einer Spalte verschieben (Reihenfolge wird gespeichert
+  und gilt für alle Benutzer)
+- Verantwortliche Person pro Projekt (Projektseite, Board-Karte und Kontextmenü)
+- Neue Projektseite: Kopfzeile mit Pfad, Status, Favorit und Aktionen (Duplizieren, Archivieren, Löschen,
+  „+ Checkliste“), Fortschritt mit Klartext („37 % · 19 von 31 Einträgen · noch 50 Tage“), Reiter Checklisten ·
+  Aktivität · Dateien · Notizen und rechts ein Eigenschaften-Panel (Status, Kunde, Verantwortlich, Start/Ende,
+  Labels, Beobachter, Easy Redmine) mit Bearbeitung direkt im Panel sowie „Letzte Aktivität“
+- Aktivitätsverlauf pro Projekt: erledigte Einträge (zusammengefasst), abgeschlossene/angelegte/gelöschte
+  Checklisten, Status, Zeitraum, Verantwortlich, Labels, Redmine-Ticket und Dateien; bereits erledigte Einträge
+  erscheinen rückwirkend
+- Dateien pro Projekt hochladen (auch per Drag & Drop, max. 25 MB pro Datei), herunterladen und löschen; die Dateien
+  liegen in der Datenbank und sind damit in jedem Backup enthalten
+- Projekt duplizieren: Kopie mit Beschreibung, Verantwortlich, Labels und allen Checklisten (Einträge nicht erledigt,
+  ohne Fälligkeiten), Status Planung
+- Beobachter pro Projekt (Personen mit Zugriff auf den Kunden)
+- Easy-Redmine-Ticket pro Projekt; die Redmine-Adresse stellt ein Admin unter Einstellungen → Projekte ein, daraus
+  wird der Link gebildet
+- Kartenansicht der Übersicht neu: eine Karte pro Kunde mit Ort, Fortschrittsring, Projekten (Status, Fortschritt,
+  Fälligkeit) und Fusszeile (überfällige bzw. offene Einträge, nächste Fälligkeit, Team); Kunden mit überfälligen
+  Einträgen stehen zuerst und sind rot umrandet; leere Kunden mit „+ Projekt aus Template“. Karten lassen sich
+  einzeln oder mit „Alle ein-/ausklappen“ einklappen; eingeklappt bleiben Kopf und Fusszeile als Zusammenfassung
+- Listenansicht der Übersicht neu: Kennzahlen (aktive Projekte, offene/überfällige Einträge, fällig in 14 Tagen,
+  im Verzug, blockiert), pro Projekt die Checklisten als Unterzeilen (Status „nicht begonnen/läuft/n überfällig/
+  fertig“, Fortschritt, Fälligkeit, Zuständig), Spalte **Zeit vs. Fortschritt** (Fortschrittsbalken mit Markierung
+  der verstrichenen Zeit, „im Plan“ / „x % im Verzug“ / „überfällig“) und „Aktualisiert“ (letzte Aktivität)
+
 ### Geändert
 
+- Seitenleiste: aufklappbarer Abschnitt „Kunden“ entfernt (Kunden über den Menüpunkt „Kunden“)
+- Seitenleiste: „Zuletzt besucht“ entfernt (inkl. Server-Schnittstelle `/api/recent` und Tabelle
+  `user_recent`, Migration 00017); stattdessen „Gespeicherte Ansichten“
+- Lange Status-Namen werden in den Board-Spalten nicht mehr abgeschnitten, sondern umgebrochen
 - README auf Englisch
+- Übersicht, Meine Aufgaben, Kunden und Templates haben denselben Seitenkopf (Titel, Untertitel, Aktionen rechts)
+  und dieselben Abstände; „Meine Aufgaben“ nutzt jetzt die volle Breite wie die anderen Seiten
+- Server: Lese-Timeout 3 Minuten statt 30 Sekunden, damit Datei-Uploads auch über langsame Leitungen klappen
+- Datenbank-Migrationen 00012–00018; sie werden beim Start automatisch angewendet (vorher ein Backup machen)
 
 ## [0.0.4] – 2026-11-04
 
@@ -133,7 +195,8 @@ Erste Version.
   Code in JetBrains Mono; keine externen Anfragen
 - Checkbox links oder rechts, eckig oder rund; Codeblock-Hintergrund Hellgrau, Dunkelgrau oder Schwarz
 
-[Unveröffentlicht]: https://github.com/seals187/projectList/compare/v0.0.4...HEAD
+[Unveröffentlicht]: https://github.com/seals187/projectList/compare/v0.0.5...HEAD
+[0.0.5]: https://github.com/seals187/projectList/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/seals187/projectList/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/seals187/projectList/compare/v0.0.2...v0.0.3
 [0.0.2]: https://github.com/seals187/projectList/compare/v0.0.1...v0.0.2

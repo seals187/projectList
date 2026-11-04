@@ -5,7 +5,7 @@
   import { api } from '$lib/api';
   import { canWrite, isAdmin, openNewProject, prefs, refreshSidebar, setPref, sidebar } from '$lib/state.svelte';
   import { fmtDate, t, todayISO, withoutText } from '$lib/i18n.svelte';
-  import { barCls, customerCode, customerTone, STATUS_BADGE } from '$lib/projectStatus';
+  import { barCls, customerCode, customerTone, statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
   import { dueUrgent, pct, segGrow } from '$lib/overview';
   import {
     buildCustomerRows,
@@ -21,6 +21,7 @@
   import NewCustomerDialog from '$lib/components/NewCustomerDialog.svelte';
   import ProgressToggle from '$lib/components/ProgressToggle.svelte';
   import Icon from '$lib/components/Icon.svelte';
+  import MainHeader from '$lib/components/MainHeader.svelte';
 
   const today = todayISO();
   let infos = $state<CustomerListItem[]>([]);
@@ -65,14 +66,11 @@
 <svelte:window onclick={() => (menuFor = null)} />
 <svelte:head><title>{t('nav.customers')} · ProjectList</title></svelte:head>
 
-<header class="mb-5 flex flex-wrap items-start justify-between gap-4">
-  <div>
-    <h1 class="font-serif text-[28px] leading-tight font-bold tracking-tight">{t('nav.customers')}</h1>
-    <p class="mt-1 text-sm text-zinc-500">
-      {t('overview.nCustomers', { n: totals.customers })} · {t('overview.nProjects', { n: totals.projects })} · {t('customers.nOpen', { n: totals.open })}
-    </p>
-  </div>
-  <div class="flex items-center gap-3">
+<MainHeader title={t('nav.customers')}>
+  {#snippet subtitle()}
+    {t('overview.nCustomers', { n: totals.customers })} · {t('overview.nProjects', { n: totals.projects })} · {t('customers.nOpen', { n: totals.open })}
+  {/snippet}
+  {#snippet actions()}
     <div class="inline-flex gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800/70" role="group" aria-label={t('overview.view')}>
       <button type="button" class={segCls(prefs.customersView === 'cards')} aria-pressed={prefs.customersView === 'cards'} onclick={() => setPref('customersView', 'cards')}>
         <Icon name="grid" size={14} />{t('overview.view.cards')}
@@ -84,11 +82,11 @@
     {#if isAdmin()}
       <button type="button" class="btn-primary" onclick={() => (adding = true)}><Icon name="plus" size={15} /> {t('customers.add')}</button>
     {/if}
-  </div>
-</header>
+  {/snippet}
+</MainHeader>
 
 <!-- Search, filter, sorting -->
-<div class="mb-4 flex flex-wrap items-center gap-2">
+<div class="mb-5 flex flex-wrap items-center gap-2">
   <label class="relative w-full sm:w-72">
     <Icon name="search" size={14} class="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-zinc-400" />
     <input class="input pl-8!" type="search" placeholder={t('customers.search')} bind:value={query} aria-label={t('customers.search')} />
@@ -261,7 +259,7 @@
                     <span class="truncate font-medium {p.include_in_customer_progress ? '' : 'text-zinc-400 dark:text-zinc-500'}">{p.name}</span>
                   </span>
                   <span class="text-xs text-zinc-500">{t('overview.nChecklists', { n: p.checklists.length })}</span>
-                  <span><span class="badge {STATUS_BADGE[p.status]}">{t(`status.${p.status}`)}</span></span>
+                  <span><span class="badge {statusBadgeCls(p.status)}" style={statusBadgeStyle(p.status)}>{statusLabel(p.status)}</span></span>
                   <span class="tabular-nums">{p.total - p.done}</span>
                   <span class="flex gap-1">
                     {#each p.checklists as cl (cl.id)}

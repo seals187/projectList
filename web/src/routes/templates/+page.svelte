@@ -4,7 +4,7 @@
   import { canWrite, toast } from '$lib/state.svelte';
   import { t } from '$lib/i18n.svelte';
   import type { Template, TemplateSummary } from '$lib/types';
-  import PageHeader from '$lib/components/PageHeader.svelte';
+  import MainHeader from '$lib/components/MainHeader.svelte';
   import Icon from '$lib/components/Icon.svelte';
 
   let templates = $state<TemplateSummary[] | null>(null);
@@ -31,10 +31,9 @@
 
 <svelte:head><title>{t('nav.templates')} · ProjectList</title></svelte:head>
 
-<PageHeader>
-  {#snippet title()}{t('nav.templates')}{/snippet}
-</PageHeader>
-<p class="-mt-4 mb-6 text-sm text-zinc-500">{t('templates.subtitle')}</p>
+<MainHeader title={t('nav.templates')}>
+  {#snippet subtitle()}{t('templates.subtitle')}{/snippet}
+</MainHeader>
 
 <ul>
   {#if templates === null}

@@ -2,7 +2,7 @@
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { api, errorText } from '$lib/api';
-  import { canWrite, isAdmin, refreshSidebar, toast } from '$lib/state.svelte';
+  import { canWrite, isAdmin, refreshSidebar, sidebar, toast } from '$lib/state.svelte';
   import { t } from '$lib/i18n.svelte';
   import type { Customer, Project, ProjectWithProgress } from '$lib/types';
   import PageHeader from '$lib/components/PageHeader.svelte';
@@ -11,7 +11,8 @@
   import Progress from '$lib/components/Progress.svelte';
   import SaveStatus from '$lib/components/SaveStatus.svelte';
   import Icon from '$lib/components/Icon.svelte';
-  import { STATUS_BADGE } from '$lib/projectStatus';
+  import TagChips from '$lib/components/TagChips.svelte';
+  import { statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
 
   let customer = $state<Customer | null>(null);
   let projects = $state<ProjectWithProgress[]>([]);
@@ -20,6 +21,8 @@
   let showArchived = $state(false);
 
   const id = $derived(Number(page.params.id));
+  // tags per project come with the sidebar data
+  const tagIds = $derived(new Map(sidebar.customers.find((c) => c.id === id)?.projects.map((p) => [p.id, p.tag_ids]) ?? []));
 
   $effect(() => {
     load(id);
@@ -113,7 +116,8 @@
           <a href="/projects/{p.id}" class="row-link">
             <Icon name="folder" class="text-zinc-400" />
             <span class="flex-1 truncate font-medium {p.status === 'archived' ? 'text-zinc-400 line-through' : ''}">{p.name}</span>
-            {#if p.status !== 'active'}<span class="badge {STATUS_BADGE[p.status]}">{t(`status.${p.status}`)}</span>{/if}
+            <TagChips ids={tagIds.get(p.id)} class="hidden shrink-0 flex-nowrap! sm:flex" />
+            {#if p.status !== 'active'}<span class="badge {statusBadgeCls(p.status)}" style={statusBadgeStyle(p.status)}>{statusLabel(p.status)}</span>{/if}
             <Progress done={p.done} total={p.total} width="w-16" compact />
           </a>
         </li>

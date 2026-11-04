@@ -1,10 +1,17 @@
 // Project status (phases on the board) and customer codes/colors for the overview.
 // All classes written out so Tailwind finds them.
 import type { ProjectStatus } from './types';
+import { t } from './i18n.svelte';
+import { sidebar } from './state.svelte';
 
 /** Order of the columns on the board (without "archived"). */
 export const BOARD_STATUSES = ['planning', 'active', 'review', 'blocked', 'done'] as const satisfies readonly ProjectStatus[];
 export const ALL_STATUSES: readonly ProjectStatus[] = [...BOARD_STATUSES, 'archived'];
+
+/** Display name of a status: custom name from the settings, otherwise the translation. */
+export function statusLabel(s: ProjectStatus): string {
+  return sidebar.statusLabels[s] || t(`status.${s}`);
+}
 
 /** Dot (sidebar, board columns). */
 export const STATUS_DOT: Record<ProjectStatus, string> = {
@@ -25,6 +32,19 @@ export const STATUS_BADGE: Record<ProjectStatus, string> = {
   done: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400',
   archived: 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400'
 };
+
+/** Custom color of a status (#rrggbb, set on the board by admins), '' = default. */
+export const statusColor = (s: ProjectStatus): string => sidebar.statusColors[s] ?? '';
+
+// Dot and badge: default classes, or an inline style for a custom color.
+export const statusDotCls = (s: ProjectStatus) => (statusColor(s) ? '' : STATUS_DOT[s]);
+export const statusDotStyle = (s: ProjectStatus) => (statusColor(s) ? `background-color:${statusColor(s)}` : undefined);
+export const statusBadgeCls = (s: ProjectStatus) => (statusColor(s) ? '' : STATUS_BADGE[s]);
+/** Light background in the status color; text mixed with the page text color so it stays readable in both themes. */
+export function statusBadgeStyle(s: ProjectStatus) {
+  const c = statusColor(s);
+  return c ? `background-color:color-mix(in srgb, ${c} 16%, transparent);color:color-mix(in srgb, ${c} 75%, currentColor)` : undefined;
+}
 
 /** Progress bar: done = green, otherwise accent. */
 export const barCls = (done: number, total: number) => (total > 0 && done === total ? 'bg-emerald-500' : 'bg-accent-500');

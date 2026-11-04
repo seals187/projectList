@@ -82,6 +82,7 @@ func (s *Server) createChecklist(w http.ResponseWriter, r *http.Request, u authz
 	if err != nil {
 		return err
 	}
+	s.logActivity(r.Context(), projectID, u.ID, actChecklistCreated, cl.Title, "")
 	writeJSON(w, http.StatusCreated, toChecklistDTO(cl, nil))
 	return nil
 }
@@ -113,6 +114,7 @@ func (s *Server) createChecklistFromTemplate(w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		return err
 	}
+	s.logActivity(r.Context(), projectID, u.ID, actChecklistCreated, cl.Title, "")
 	dto, err := s.checklistDTO(r.Context(), cl)
 	if err != nil {
 		return err
@@ -260,12 +262,14 @@ func (s *Server) deleteChecklist(w http.ResponseWriter, r *http.Request, u authz
 	if err != nil {
 		return err
 	}
-	if _, err := s.loadChecklist(r.Context(), u, id); err != nil {
+	cl, err := s.loadChecklist(r.Context(), u, id)
+	if err != nil {
 		return err
 	}
 	if err := s.q.DeleteChecklist(r.Context(), id); err != nil {
 		return err
 	}
+	s.logActivity(r.Context(), cl.ProjectID, u.ID, actChecklistDeleted, cl.Title, "")
 	w.WriteHeader(http.StatusNoContent)
 	return nil
 }

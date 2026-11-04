@@ -1,9 +1,11 @@
 -- name: ListProjectsWithProgress :many
 -- Sidebar: all visible projects incl. progress in one query.
-SELECT p.id, p.customer_id, p.name, p.status, p.due_date, p.include_in_customer_progress,
+SELECT p.id, p.customer_id, p.name, p.status, p.start_date, p.due_date, p.created_at, p.include_in_customer_progress, p.owner_id, p.board_position,
+       CAST(COALESCE(o.name, '') AS TEXT) AS owner_name,
        CAST(COUNT(i.id) AS INTEGER) AS total,
        CAST(COUNT(i.done_at) AS INTEGER) AS done
 FROM projects p
+LEFT JOIN users o ON o.id = p.owner_id
 LEFT JOIN checklists c ON c.project_id = p.id
 LEFT JOIN checklist_items i ON i.checklist_id = c.id AND i.kind = 'item'
 WHERE (sqlc.narg(user_id) IS NULL
@@ -31,7 +33,7 @@ VALUES (?, ?, ?, ?, ?)
 RETURNING *;
 
 -- name: UpdateProject :one
-UPDATE projects SET name = ?, description = ?, status = ?, due_date = ?, include_in_customer_progress = ?
+UPDATE projects SET name = ?, description = ?, status = ?, start_date = ?, due_date = ?, include_in_customer_progress = ?, owner_id = ?, redmine_ticket = ?
 WHERE id = ?
 RETURNING *;
 
@@ -72,3 +74,7 @@ SELECT p.id AS project_id,
 FROM projects p
 WHERE (sqlc.narg(user_id) IS NULL
        OR p.customer_id IN (SELECT m.customer_id FROM memberships m WHERE m.user_id = sqlc.narg(user_id)));
+
+-- name: SetProjectBoardPlace :exec
+-- Board drag and drop: column (status) and position within the column.
+UPDATE projects SET status = ?, board_position = ? WHERE id = ?;

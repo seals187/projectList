@@ -6,7 +6,7 @@
   import { api, errorText } from '$lib/api';
   import { refreshSidebar, sidebar, toast } from '$lib/state.svelte';
   import { t } from '$lib/i18n.svelte';
-  import { ALL_STATUSES } from '$lib/projectStatus';
+  import { ALL_STATUSES, statusLabel } from '$lib/projectStatus';
   import type { Project, ProjectStatus, TemplateSummary } from '$lib/types';
   import Icon from './Icon.svelte';
 
@@ -84,7 +84,7 @@
       <label class="block">
         <span class="label">{t('common.status')}</span>
         <select class="input" bind:value={st}>
-          {#each ALL_STATUSES as s (s)}<option value={s}>{t(`status.${s}`)}</option>{/each}
+          {#each ALL_STATUSES as s (s)}<option value={s}>{statusLabel(s)}</option>{/each}
         </select>
       </label>
       <label class="block">

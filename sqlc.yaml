@@ -41,3 +41,19 @@ sql:
             go_type:
               type: "string"
               pointer: true
+          - column: "project_activity.user_id"
+            go_type:
+              type: "int64"
+              pointer: true
+          - column: "project_files.uploaded_by"
+            go_type:
+              type: "int64"
+              pointer: true
+          - column: "projects.start_date"
+            go_type:
+              type: "string"
+              pointer: true
+          - column: "projects.owner_id"
+            go_type:
+              type: "int64"
+              pointer: true

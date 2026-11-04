@@ -24,43 +24,20 @@ func (q *Queries) AddFavorite(ctx context.Context, arg AddFavoriteParams) error 
 	return err
 }
 
-const clearRecent = `-- name: ClearRecent :exec
-DELETE FROM user_recent WHERE user_id = ?
+const getUserPref = `-- name: GetUserPref :one
+SELECT value FROM user_prefs WHERE user_id = ? AND key = ?
 `
 
-func (q *Queries) ClearRecent(ctx context.Context, userID int64) error {
-	_, err := q.db.ExecContext(ctx, clearRecent, userID)
-	return err
+type GetUserPrefParams struct {
+	UserID int64  `json:"user_id"`
+	Key    string `json:"key"`
 }
 
-const deleteRecentBefore = `-- name: DeleteRecentBefore :exec
-DELETE FROM user_recent WHERE user_id = ? AND visited_at < ?
-`
-
-type DeleteRecentBeforeParams struct {
-	UserID    int64  `json:"user_id"`
-	VisitedAt string `json:"visited_at"`
-}
-
-// Pruning: the handler passes the visited_at of the 20th newest entry.
-func (q *Queries) DeleteRecentBefore(ctx context.Context, arg DeleteRecentBeforeParams) error {
-	_, err := q.db.ExecContext(ctx, deleteRecentBefore, arg.UserID, arg.VisitedAt)
-	return err
-}
-
-const deleteRecentEntry = `-- name: DeleteRecentEntry :exec
-DELETE FROM user_recent WHERE user_id = ? AND kind = ? AND target_id = ?
-`
-
-type DeleteRecentEntryParams struct {
-	UserID   int64  `json:"user_id"`
-	Kind     string `json:"kind"`
-	TargetID int64  `json:"target_id"`
-}
-
-func (q *Queries) DeleteRecentEntry(ctx context.Context, arg DeleteRecentEntryParams) error {
-	_, err := q.db.ExecContext(ctx, deleteRecentEntry, arg.UserID, arg.Kind, arg.TargetID)
-	return err
+func (q *Queries) GetUserPref(ctx context.Context, arg GetUserPrefParams) (string, error) {
+	row := q.db.QueryRowContext(ctx, getUserPref, arg.UserID, arg.Key)
+	var value string
+	err := row.Scan(&value)
+	return value, err
 }
 
 const listFavorites = `-- name: ListFavorites :many
@@ -90,44 +67,6 @@ func (q *Queries) ListFavorites(ctx context.Context, userID int64) ([]int64, err
 	return items, nil
 }
 
-const listRecent = `-- name: ListRecent :many
-SELECT kind, target_id, visited_at FROM user_recent
-WHERE user_id = ?
-ORDER BY visited_at DESC, rowid DESC
-LIMIT 20
-`
-
-type ListRecentRow struct {
-	Kind      string `json:"kind"`
-	TargetID  int64  `json:"target_id"`
-	VisitedAt string `json:"visited_at"`
-}
-
-// Newest first. rowid breaks ties between visits in the same millisecond:
-// TouchRecent re-inserts the row, so a later visit always has a larger rowid.
-func (q *Queries) ListRecent(ctx context.Context, userID int64) ([]ListRecentRow, error) {
-	rows, err := q.db.QueryContext(ctx, listRecent, userID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []ListRecentRow{}
-	for rows.Next() {
-		var i ListRecentRow
-		if err := rows.Scan(&i.Kind, &i.TargetID, &i.VisitedAt); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const removeFavorite = `-- name: RemoveFavorite :exec
 DELETE FROM user_favorites WHERE user_id = ? AND project_id = ?
 `
@@ -142,19 +81,18 @@ func (q *Queries) RemoveFavorite(ctx context.Context, arg RemoveFavoriteParams) 
 	return err
 }
 
-const touchRecent = `-- name: TouchRecent :exec
-INSERT INTO user_recent (user_id, kind, target_id, visited_at)
-VALUES (?, ?, ?, strftime('%Y-%m-%d %H:%M:%f', 'now'))
+const setUserPref = `-- name: SetUserPref :exec
+INSERT INTO user_prefs (user_id, key, value) VALUES (?, ?, ?)
+ON CONFLICT (user_id, key) DO UPDATE SET value = excluded.value
 `
 
-type TouchRecentParams struct {
-	UserID   int64  `json:"user_id"`
-	Kind     string `json:"kind"`
-	TargetID int64  `json:"target_id"`
+type SetUserPrefParams struct {
+	UserID int64  `json:"user_id"`
+	Key    string `json:"key"`
+	Value  string `json:"value"`
 }
 
-// Always called after DeleteRecentEntry in the same transaction (new rowid).
-func (q *Queries) TouchRecent(ctx context.Context, arg TouchRecentParams) error {
-	_, err := q.db.ExecContext(ctx, touchRecent, arg.UserID, arg.Kind, arg.TargetID)
+func (q *Queries) SetUserPref(ctx context.Context, arg SetUserPrefParams) error {
+	_, err := q.db.ExecContext(ctx, setUserPref, arg.UserID, arg.Key, arg.Value)
 	return err
 }

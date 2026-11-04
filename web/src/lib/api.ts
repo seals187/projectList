@@ -23,7 +23,8 @@ const silentWrites = new Set(['/auth/login', '/auth/logout']);
 
 async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
   const headers: Record<string, string> = {};
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  const form = body instanceof FormData; // file upload: the browser sets the multipart boundary
+  if (body !== undefined && !form) headers['Content-Type'] = 'application/json';
   if (method !== 'GET') headers['X-CSRF-Token'] = csrfToken;
 
   // "saved" indicator: count all writing requests.
@@ -36,7 +37,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
       res = await fetch('/api' + url, {
         method,
         headers,
-        body: body !== undefined ? JSON.stringify(body) : undefined,
+        body: form ? (body as FormData) : body !== undefined ? JSON.stringify(body) : undefined,
         credentials: 'same-origin'
       });
     } catch {

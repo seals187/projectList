@@ -31,9 +31,14 @@ type projectReq struct {
 	Name        *string     `json:"name"`
 	Description *string     `json:"description"`
 	Status      *string     `json:"status"`
-	DueDate     Opt[string] `json:"due_date"` // YYYY-MM-DD, null/"" = none
+	StartDate   Opt[string] `json:"start_date"` // YYYY-MM-DD, null/"" = none (timeline: creation date)
+	DueDate     Opt[string] `json:"due_date"`   // YYYY-MM-DD, null/"" = none
 	// whether the project counts towards the customer's overall progress
 	IncludeInCustomerProgress *bool `json:"include_in_customer_progress"`
+	// person responsible for the project, null = nobody
+	OwnerID Opt[int64] `json:"owner_id"`
+	// Easy Redmine ticket (number or full URL), "" = none
+	RedmineTicket *string `json:"redmine_ticket"`
 }
 
 func (s *Server) createProject(w http.ResponseWriter, r *http.Request, u authz.User) error {
@@ -63,6 +68,7 @@ func (s *Server) createProject(w http.ResponseWriter, r *http.Request, u authz.U
 	if err != nil {
 		return err
 	}
+	s.logActivity(r.Context(), pr.ID, u.ID, actProjectCreated, "", "")
 	writeJSON(w, http.StatusCreated, pr)
 	return nil
 }
@@ -96,16 +102,42 @@ func (s *Server) getProject(w http.ResponseWriter, r *http.Request, u authz.User
 	if err != nil {
 		return err
 	}
+	tagIDs, err := s.q.ListTagIDsByProject(r.Context(), id)
+	if err != nil {
+		return err
+	}
+	// people who can be made responsible (access to the customer)
+	assignees, err := s.q.ListUsersWithAccessToCustomer(r.Context(), p.CustomerID)
+	if err != nil {
+		return err
+	}
+	watchers, err := s.q.ListProjectWatchers(r.Context(), id)
+	if err != nil {
+		return err
+	}
+	files, err := s.q.CountProjectFiles(r.Context(), id)
+	if err != nil {
+		return err
+	}
+	redmine, err := s.redmineURL(r.Context())
+	if err != nil {
+		return err
+	}
 	var prog progress
 	for _, c := range checklists {
 		prog.Total += c.Total
 		prog.Done += c.Done
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
-		"project":    p,
-		"customer":   map[string]any{"id": customer.ID, "name": customer.Name},
-		"checklists": checklists,
-		"progress":   prog,
+		"project":     p,
+		"customer":    map[string]any{"id": customer.ID, "name": customer.Name},
+		"checklists":  checklists,
+		"progress":    prog,
+		"tag_ids":     tagIDs,
+		"assignees":   assignees,
+		"watchers":    nonNil(watchers),
+		"files_count": files,
+		"redmine_url": redmine,
 	})
 	return nil
 }
@@ -124,7 +156,7 @@ func (s *Server) updateProject(w http.ResponseWriter, r *http.Request, u authz.U
 		return err
 	}
 	v := validator{}
-	up := sqlc.UpdateProjectParams{ID: id, Name: p.Name, Description: p.Description, Status: p.Status, DueDate: p.DueDate, IncludeInCustomerProgress: p.IncludeInCustomerProgress}
+	up := sqlc.UpdateProjectParams{ID: id, Name: p.Name, Description: p.Description, Status: p.Status, StartDate: p.StartDate, DueDate: p.DueDate, IncludeInCustomerProgress: p.IncludeInCustomerProgress, OwnerID: p.OwnerID, RedmineTicket: p.RedmineTicket}
 	if req.Name != nil {
 		up.Name = v.text("name", *req.Name, 1, 200)
 	}
@@ -135,18 +167,70 @@ func (s *Server) updateProject(w http.ResponseWriter, r *http.Request, u authz.U
 		up.Status = v.oneOf("status", *req.Status, projectStatuses...)
 	}
 	up.DueDate = v.optDate("due_date", req.DueDate, up.DueDate)
+	up.StartDate = v.optDate("start_date", req.StartDate, up.StartDate)
+	if up.StartDate != nil && up.DueDate != nil && *up.StartDate > *up.DueDate && v["start_date"] == "" && v["due_date"] == "" {
+		v["start_date"] = "start_after_due"
+	}
 	if req.IncludeInCustomerProgress != nil {
 		up.IncludeInCustomerProgress = *req.IncludeInCustomerProgress
+	}
+	if req.OwnerID.Set {
+		up.OwnerID = nil
+		if !req.OwnerID.Null {
+			owner := req.OwnerID.V
+			ov := validator{}
+			if err := s.validateAssignee(r.Context(), ov, owner, p.CustomerID); err != nil {
+				return err
+			}
+			if msg, bad := ov["assignee_id"]; bad {
+				v["owner_id"] = msg
+			}
+			up.OwnerID = &owner
+		}
+	}
+	if req.RedmineTicket != nil {
+		up.RedmineTicket = v.text("redmine_ticket", *req.RedmineTicket, 0, 300)
 	}
 	if err := v.err(); err != nil {
 		return err
 	}
+	prev := p
 	p, err = s.q.UpdateProject(r.Context(), up)
 	if err != nil {
 		return err
 	}
+	s.logProjectChanges(r.Context(), u, prev, p)
 	writeJSON(w, http.StatusOK, p)
 	return nil
+}
+
+// logProjectChanges writes the changed properties into the activity log.
+func (s *Server) logProjectChanges(ctx context.Context, u authz.User, prev, p sqlc.Project) {
+	if p.Name != prev.Name {
+		s.logActivity(ctx, p.ID, u.ID, actRenamed, prev.Name, p.Name)
+	}
+	if p.Status != prev.Status {
+		s.logActivity(ctx, p.ID, u.ID, actStatus, prev.Status, p.Status)
+	}
+	if dateOrEmpty(p.StartDate) != dateOrEmpty(prev.StartDate) || dateOrEmpty(p.DueDate) != dateOrEmpty(prev.DueDate) {
+		s.logActivity(ctx, p.ID, u.ID, actDates, dateOrEmpty(p.StartDate), dateOrEmpty(p.DueDate))
+	}
+	if !samePtr(p.OwnerID, prev.OwnerID) {
+		name := ""
+		if p.OwnerID != nil {
+			if o, err := s.q.GetUserByID(ctx, *p.OwnerID); err == nil {
+				name = o.Name
+			}
+		}
+		s.logActivity(ctx, p.ID, u.ID, actOwner, "", name)
+	}
+	if p.RedmineTicket != prev.RedmineTicket {
+		s.logActivity(ctx, p.ID, u.ID, actRedmine, "", p.RedmineTicket)
+	}
+}
+
+func samePtr[T comparable](a, b *T) bool {
+	return (a == nil && b == nil) || (a != nil && b != nil && *a == *b)
 }
 
 func (s *Server) deleteProject(w http.ResponseWriter, r *http.Request, u authz.User) error {
@@ -161,5 +245,23 @@ func (s *Server) deleteProject(w http.ResponseWriter, r *http.Request, u authz.U
 		return err
 	}
 	w.WriteHeader(http.StatusNoContent)
+	return nil
+}
+
+// GET /api/customers/{id}/assignees: users who can be made responsible for
+// a project or assigned to checklists of this customer.
+func (s *Server) customerAssignees(w http.ResponseWriter, r *http.Request, u authz.User) error {
+	id, err := pathID(r, "id")
+	if err != nil {
+		return err
+	}
+	if err := s.requireCustomer(r.Context(), u, id); err != nil {
+		return err
+	}
+	rows, err := s.q.ListUsersWithAccessToCustomer(r.Context(), id)
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, rows)
 	return nil
 }

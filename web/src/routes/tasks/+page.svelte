@@ -9,10 +9,11 @@
   import { api, errorText } from '$lib/api';
   import { refreshSidebar, session, sidebar, toast } from '$lib/state.svelte';
   import { locale, t, todayISO, withoutText } from '$lib/i18n.svelte';
-  import { barCls, customerCode, customerLabel, customerProgress, customerTone, daysUntil, STATUS_BADGE } from '$lib/projectStatus';
+  import { barCls, customerCode, customerLabel, customerProgress, customerTone, daysUntil, statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
   import { pct } from '$lib/overview';
   import type { OverviewExtra, SidebarChecklist, SidebarCustomer, SidebarProject, Task } from '$lib/types';
   import SaveStatus from '$lib/components/SaveStatus.svelte';
+  import MainHeader from '$lib/components/MainHeader.svelte';
   import TaskList from '$lib/components/TaskList.svelte';
   import ProgressToggle from '$lib/components/ProgressToggle.svelte';
   import Icon from '$lib/components/Icon.svelte';
@@ -107,14 +108,11 @@
 
 <svelte:head><title>{t('nav.myTasks')} · ProjectList</title></svelte:head>
 
-<div class="mx-auto max-w-5xl">
-  <header class="mb-6 flex items-start justify-between gap-4">
-    <div>
-      <p class="text-sm text-zinc-500 capitalize">{dateLine}</p>
-      <h1 class="mt-1 text-[28px] leading-tight font-bold tracking-tight">{t('nav.myTasks')}</h1>
-    </div>
-    <SaveStatus />
-  </header>
+<div>
+  <MainHeader title={t('nav.myTasks')}>
+    {#snippet subtitle()}<span class="capitalize">{dateLine}</span>{/snippet}
+    {#snippet actions()}<SaveStatus />{/snippet}
+  </MainHeader>
 
   <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
     <div class="inline-flex gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800/70" role="tablist">
@@ -184,7 +182,7 @@
                     <span class="flex min-w-0 items-center gap-2">
                       <Icon name="folder" size={15} class="text-zinc-400" />
                       <span class="truncate font-semibold {muted ? 'text-zinc-400 dark:text-zinc-500' : ''}">{p.name}</span>
-                      <span class="badge shrink-0 {STATUS_BADGE[p.status]}">{t(`status.${p.status}`)}</span>
+                      <span class="badge shrink-0 {statusBadgeCls(p.status)}" style={statusBadgeStyle(p.status)}>{statusLabel(p.status)}</span>
                       <span class="hidden shrink-0 text-xs text-zinc-400 md:inline">{t('overview.nChecklists', { n: p.checklists.length })}</span>
                     </span>
                     <span class="flex items-center gap-2.5 {muted ? 'opacity-50 grayscale' : ''}">

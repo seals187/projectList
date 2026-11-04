@@ -1,4 +1,4 @@
-import type { ProjectStatus, RecentItem, SidebarCustomer, User } from './types';
+import type { ProjectStatus, SidebarCustomer, Tag, User } from './types';
 import { applyFonts, DEFAULT_FONT, FONT_IDS, type FontId, type HeadingFont } from './fonts';
 import { CUSTOMER_SORTS, type CustomerSort } from './customers';
 
@@ -10,14 +10,26 @@ export const sidebar = $state<{
   customers: SidebarCustomer[];
   myTasks: number;
   favorites: number[]; // project IDs (DB, per user)
-  recent: RecentItem[]; // recently visited, newest first (DB, per user)
+  tags: Tag[]; // tag catalog (global)
+  statusLabels: Partial<Record<ProjectStatus, string>>; // custom status names (global, set by admins)
+  statusColors: Partial<Record<ProjectStatus, string>>; // custom status colors #rrggbb (global, set by admins)
+  statusWip: Partial<Record<ProjectStatus, number>>; // WIP limit per board column (global, set by admins)
+  prefs: { overview?: unknown; saved_views?: unknown }; // synced personal settings (DB, per user)
+  loaded: boolean; // first /sidebar response arrived
+  boardHidden: number[]; // customers hidden on the board (DB, per user, synced across devices)
   open: boolean;
   collapsed: boolean;
 }>({
   customers: [],
   myTasks: 0,
   favorites: [],
-  recent: [],
+  tags: [],
+  statusLabels: {},
+  statusColors: {},
+  statusWip: {},
+  prefs: {},
+  loaded: false,
+  boardHidden: [],
   open: false, // mobile: shown
   collapsed: readCollapsed() // desktop: collapsed (remembered per browser)
 });
@@ -108,15 +120,49 @@ export function refreshSidebar(delay = 400) {
   refreshTimer = setTimeout(async () => {
     const { api } = await import('./api');
     try {
-      const r = await api.get<{ customers: SidebarCustomer[]; my_tasks: number; favorites: number[]; recent: RecentItem[] }>('/sidebar');
+      const r = await api.get<{
+        customers: SidebarCustomer[];
+        my_tasks: number;
+        favorites: number[];
+        tags: Tag[];
+        status_labels: Partial<Record<ProjectStatus, string>>;
+        status_colors?: Partial<Record<ProjectStatus, string>>;
+        status_wip?: Partial<Record<ProjectStatus, number>>;
+        prefs?: { overview?: unknown; saved_views?: unknown };
+        board_hidden: number[];
+      }>('/sidebar');
       sidebar.customers = r.customers;
       sidebar.myTasks = r.my_tasks;
       sidebar.favorites = r.favorites ?? [];
-      sidebar.recent = r.recent ?? [];
+      sidebar.tags = r.tags ?? [];
+      sidebar.statusLabels = r.status_labels ?? {};
+      sidebar.statusColors = r.status_colors ?? {};
+      sidebar.statusWip = r.status_wip ?? {};
+      sidebar.prefs = r.prefs ?? {};
+      sidebar.loaded = true;
+      // do not overwrite a filter change that is still being saved
+      if (!boardHiddenTimer) sidebar.boardHidden = r.board_hidden ?? [];
     } catch {
       /* errors become visible on the next load */
     }
   }, delay);
+}
+
+// Board customer filter: show immediately, save debounced (rapid clicks = one request).
+let boardHiddenTimer: ReturnType<typeof setTimeout> | undefined;
+export function setBoardHidden(ids: number[]) {
+  sidebar.boardHidden = ids;
+  clearTimeout(boardHiddenTimer);
+  boardHiddenTimer = setTimeout(async () => {
+    const { api, errorText } = await import('./api');
+    try {
+      await api.put('/prefs/board-hidden', { customer_ids: sidebar.boardHidden });
+    } catch (e) {
+      toast(errorText(e));
+    } finally {
+      boardHiddenTimer = undefined;
+    }
+  }, 400);
 }
 
 // ---- Theme ----------------------------------------------------------------------
@@ -154,8 +200,8 @@ export type CheckPos = 'left' | 'right';
 export type CheckShape = 'square' | 'round';
 export type CodeBg = 'light' | 'dark' | 'black';
 export const CODE_BGS: readonly CodeBg[] = ['light', 'dark', 'black'];
-export type OverviewView = 'cards' | 'list' | 'board';
-export const OVERVIEW_VIEWS: readonly OverviewView[] = ['cards', 'list', 'board'];
+export type OverviewView = 'cards' | 'board' | 'list' | 'calendar' | 'timeline';
+export const OVERVIEW_VIEWS: readonly OverviewView[] = ['cards', 'board', 'list', 'calendar', 'timeline'];
 // 80 % to 160 % in 5 % steps (rounded so 1.05 etc. compare exactly)
 export const ZOOM_STEPS: readonly number[] = Array.from({ length: 17 }, (_, i) => Math.round(80 + i * 5) / 100);
 

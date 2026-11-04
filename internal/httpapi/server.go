@@ -81,10 +81,27 @@ func New(o Options) http.Handler {
 
 	// Projects
 	mux.Handle("GET /api/customers/{id}/projects", s.authed(s.listProjects))
+	mux.Handle("GET /api/customers/{id}/assignees", s.authed(s.customerAssignees))
 	mux.Handle("POST /api/customers/{id}/projects", s.writer(s.createProject))
 	mux.Handle("GET /api/projects/{id}", s.authed(s.getProject))
 	mux.Handle("PATCH /api/projects/{id}", s.writer(s.updateProject))
 	mux.Handle("DELETE /api/projects/{id}", s.writer(s.deleteProject))
+	mux.Handle("PUT /api/projects/{id}/tags", s.writer(s.setProjectTags))
+	mux.Handle("PUT /api/projects/{id}/watchers", s.writer(s.setProjectWatchers))
+	mux.Handle("POST /api/projects/{id}/duplicate", s.writer(s.duplicateProject))
+	mux.Handle("GET /api/projects/{id}/activity", s.authed(s.projectActivity))
+	mux.Handle("GET /api/projects/{id}/files", s.authed(s.listProjectFiles))
+	mux.Handle("POST /api/projects/{id}/files", s.writer(s.uploadProjectFile))
+	mux.Handle("GET /api/files/{id}", s.authed(s.downloadProjectFile))
+	mux.Handle("DELETE /api/files/{id}", s.writer(s.deleteProjectFile))
+	mux.Handle("GET /api/settings/app", s.authed(s.getAppSettings))
+	mux.Handle("PUT /api/settings/app", s.admin(s.setAppSettings))
+
+	// Tags and status names (catalog: members create, admins rename/delete)
+	mux.Handle("POST /api/tags", s.writer(s.createTag))
+	mux.Handle("PATCH /api/tags/{id}", s.admin(s.updateTag))
+	mux.Handle("DELETE /api/tags/{id}", s.admin(s.deleteTag))
+	mux.Handle("PUT /api/status-labels/{status}", s.admin(s.setStatusLabel))
 
 	// Checklists
 	mux.Handle("GET /api/projects/{id}/checklists", s.authed(s.listChecklists))
@@ -120,10 +137,11 @@ func New(o Options) http.Handler {
 	mux.Handle("GET /api/my-tasks", s.authed(s.myTasks))
 	mux.Handle("GET /api/my-checklists", s.authed(s.myChecklists))
 	mux.Handle("GET /api/overview", s.authed(s.overview))
+	mux.Handle("PUT /api/board/order", s.writer(s.orderBoard))
+	mux.Handle("PUT /api/prefs/board-hidden", s.authed(s.setBoardHidden))
+	mux.Handle("PUT /api/prefs/{key}", s.authed(s.setClientPref))
 	mux.Handle("PUT /api/favorites/{id}", s.authed(s.addFavorite))
 	mux.Handle("DELETE /api/favorites/{id}", s.authed(s.removeFavorite))
-	mux.Handle("POST /api/recent", s.authed(s.touchRecent))
-	mux.Handle("DELETE /api/recent", s.authed(s.clearRecent))
 	mux.Handle("GET /api/admin/backup", s.admin(s.backup))
 
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {

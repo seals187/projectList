@@ -13,7 +13,7 @@ import (
 const createProject = `-- name: CreateProject :one
 INSERT INTO projects (customer_id, name, description, status, due_date)
 VALUES (?, ?, ?, ?, ?)
-RETURNING id, customer_id, name, description, created_at, status, due_date, include_in_customer_progress
+RETURNING id, customer_id, name, description, created_at, status, due_date, include_in_customer_progress, owner_id, board_position, start_date, redmine_ticket
 `
 
 type CreateProjectParams struct {
@@ -42,6 +42,10 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) (P
 		&i.Status,
 		&i.DueDate,
 		&i.IncludeInCustomerProgress,
+		&i.OwnerID,
+		&i.BoardPosition,
+		&i.StartDate,
+		&i.RedmineTicket,
 	)
 	return i, err
 }
@@ -56,7 +60,7 @@ func (q *Queries) DeleteProject(ctx context.Context, id int64) error {
 }
 
 const getProject = `-- name: GetProject :one
-SELECT id, customer_id, name, description, created_at, status, due_date, include_in_customer_progress FROM projects WHERE id = ?
+SELECT id, customer_id, name, description, created_at, status, due_date, include_in_customer_progress, owner_id, board_position, start_date, redmine_ticket FROM projects WHERE id = ?
 `
 
 func (q *Queries) GetProject(ctx context.Context, id int64) (Project, error) {
@@ -71,6 +75,10 @@ func (q *Queries) GetProject(ctx context.Context, id int64) (Project, error) {
 		&i.Status,
 		&i.DueDate,
 		&i.IncludeInCustomerProgress,
+		&i.OwnerID,
+		&i.BoardPosition,
+		&i.StartDate,
+		&i.RedmineTicket,
 	)
 	return i, err
 }
@@ -219,10 +227,12 @@ func (q *Queries) ListProjectsByCustomer(ctx context.Context, customerID int64) 
 }
 
 const listProjectsWithProgress = `-- name: ListProjectsWithProgress :many
-SELECT p.id, p.customer_id, p.name, p.status, p.due_date, p.include_in_customer_progress,
+SELECT p.id, p.customer_id, p.name, p.status, p.start_date, p.due_date, p.created_at, p.include_in_customer_progress, p.owner_id, p.board_position,
+       CAST(COALESCE(o.name, '') AS TEXT) AS owner_name,
        CAST(COUNT(i.id) AS INTEGER) AS total,
        CAST(COUNT(i.done_at) AS INTEGER) AS done
 FROM projects p
+LEFT JOIN users o ON o.id = p.owner_id
 LEFT JOIN checklists c ON c.project_id = p.id
 LEFT JOIN checklist_items i ON i.checklist_id = c.id AND i.kind = 'item'
 WHERE (?1 IS NULL
@@ -232,14 +242,19 @@ ORDER BY p.name COLLATE NOCASE, p.id
 `
 
 type ListProjectsWithProgressRow struct {
-	ID                        int64   `json:"id"`
-	CustomerID                int64   `json:"customer_id"`
-	Name                      string  `json:"name"`
-	Status                    string  `json:"status"`
-	DueDate                   *string `json:"due_date"`
-	IncludeInCustomerProgress bool    `json:"include_in_customer_progress"`
-	Total                     int64   `json:"total"`
-	Done                      int64   `json:"done"`
+	ID                        int64     `json:"id"`
+	CustomerID                int64     `json:"customer_id"`
+	Name                      string    `json:"name"`
+	Status                    string    `json:"status"`
+	StartDate                 *string   `json:"start_date"`
+	DueDate                   *string   `json:"due_date"`
+	CreatedAt                 time.Time `json:"created_at"`
+	IncludeInCustomerProgress bool      `json:"include_in_customer_progress"`
+	OwnerID                   *int64    `json:"owner_id"`
+	BoardPosition             int64     `json:"board_position"`
+	OwnerName                 string    `json:"owner_name"`
+	Total                     int64     `json:"total"`
+	Done                      int64     `json:"done"`
 }
 
 // Sidebar: all visible projects incl. progress in one query.
@@ -257,8 +272,13 @@ func (q *Queries) ListProjectsWithProgress(ctx context.Context, userID interface
 			&i.CustomerID,
 			&i.Name,
 			&i.Status,
+			&i.StartDate,
 			&i.DueDate,
+			&i.CreatedAt,
 			&i.IncludeInCustomerProgress,
+			&i.OwnerID,
+			&i.BoardPosition,
+			&i.OwnerName,
 			&i.Total,
 			&i.Done,
 		); err != nil {
@@ -326,18 +346,37 @@ func (q *Queries) SearchProjects(ctx context.Context, arg SearchProjectsParams) 
 	return items, nil
 }
 
+const setProjectBoardPlace = `-- name: SetProjectBoardPlace :exec
+UPDATE projects SET status = ?, board_position = ? WHERE id = ?
+`
+
+type SetProjectBoardPlaceParams struct {
+	Status        string `json:"status"`
+	BoardPosition int64  `json:"board_position"`
+	ID            int64  `json:"id"`
+}
+
+// Board drag and drop: column (status) and position within the column.
+func (q *Queries) SetProjectBoardPlace(ctx context.Context, arg SetProjectBoardPlaceParams) error {
+	_, err := q.db.ExecContext(ctx, setProjectBoardPlace, arg.Status, arg.BoardPosition, arg.ID)
+	return err
+}
+
 const updateProject = `-- name: UpdateProject :one
-UPDATE projects SET name = ?, description = ?, status = ?, due_date = ?, include_in_customer_progress = ?
+UPDATE projects SET name = ?, description = ?, status = ?, start_date = ?, due_date = ?, include_in_customer_progress = ?, owner_id = ?, redmine_ticket = ?
 WHERE id = ?
-RETURNING id, customer_id, name, description, created_at, status, due_date, include_in_customer_progress
+RETURNING id, customer_id, name, description, created_at, status, due_date, include_in_customer_progress, owner_id, board_position, start_date, redmine_ticket
 `
 
 type UpdateProjectParams struct {
 	Name                      string  `json:"name"`
 	Description               string  `json:"description"`
 	Status                    string  `json:"status"`
+	StartDate                 *string `json:"start_date"`
 	DueDate                   *string `json:"due_date"`
 	IncludeInCustomerProgress bool    `json:"include_in_customer_progress"`
+	OwnerID                   *int64  `json:"owner_id"`
+	RedmineTicket             string  `json:"redmine_ticket"`
 	ID                        int64   `json:"id"`
 }
 
@@ -346,8 +385,11 @@ func (q *Queries) UpdateProject(ctx context.Context, arg UpdateProjectParams) (P
 		arg.Name,
 		arg.Description,
 		arg.Status,
+		arg.StartDate,
 		arg.DueDate,
 		arg.IncludeInCustomerProgress,
+		arg.OwnerID,
+		arg.RedmineTicket,
 		arg.ID,
 	)
 	var i Project
@@ -360,6 +402,10 @@ func (q *Queries) UpdateProject(ctx context.Context, arg UpdateProjectParams) (P
 		&i.Status,
 		&i.DueDate,
 		&i.IncludeInCustomerProgress,
+		&i.OwnerID,
+		&i.BoardPosition,
+		&i.StartDate,
+		&i.RedmineTicket,
 	)
 	return i, err
 }

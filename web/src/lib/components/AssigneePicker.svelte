@@ -13,6 +13,7 @@
     name,
     disabled = false,
     compact = false,
+    label = t('checklist.assignChecklist'),
     onchange
   }: {
     assignees: Assignee[];
@@ -20,6 +21,7 @@
     name: string | null;
     disabled?: boolean;
     compact?: boolean;
+    label?: string; // tooltip and placeholder (default: assign checklist)
     onchange: (id: number | null) => void;
   } = $props();
 </script>
@@ -29,13 +31,13 @@
     {compact ? 'px-1 py-0.5' : 'border border-zinc-200 px-2 py-0.5 dark:border-zinc-700'}
     {disabled ? '' : 'cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/60'}
     {value ? 'text-zinc-700 dark:text-zinc-200' : 'text-zinc-400'}"
-  title={t('checklist.assignChecklist')}>
+  title={label}>
   {#if value && name}
     <Avatar {name} id={value} size={18} />
     <span class="truncate">{name}</span>
   {:else if !disabled}
     <Icon name="user" size={14} />
-    <span>{t('checklist.assignChecklist')}</span>
+    <span>{label}</span>
   {:else}
     <Icon name="user" size={14} />
     <span>{t('checklist.nobody')}</span>
@@ -45,7 +47,7 @@
     class="absolute inset-0 cursor-pointer opacity-0 disabled:cursor-default"
     {disabled}
     value={value ?? ''}
-    aria-label={t('checklist.assignChecklist')}
+    aria-label={label}
     onchange={(e) => {
       const v = e.currentTarget.value;
       onchange(v ? Number(v) : null);

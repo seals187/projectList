@@ -17,7 +17,7 @@ docker compose up -d        # pulls the published image ghcr.io/seals187/project
 ```
 
 Version via `PROJECTLIST_VERSION` in `.env`: `latest` = newest release (default), `edge` =
-current development state (every push to `main`), or a fixed version such as `0.0.4`.
+current development state (every push to `main`), or a fixed version such as `0.0.5`.
 Update: `docker compose pull && docker compose up -d`.
 
 Then sign in at <http://localhost:8080> with the admin credentials from `.env`.
@@ -36,7 +36,7 @@ docker compose logs -f projectlist    # structured JSON logs
 Every release has an image for **linux/amd64** and **linux/arm64** (e.g. Raspberry Pi):
 
 ```bash
-docker pull ghcr.io/seals187/projectlist:latest   # or a fixed version, e.g. :0.0.4
+docker pull ghcr.io/seals187/projectlist:latest   # or a fixed version, e.g. :0.0.5
 ```
 
 `docker-compose.yml` already uses this image. Without Compose:
@@ -62,7 +62,7 @@ For every version tag, the workflow `release.yml` creates the GitHub release wit
 | `ADMIN_NAME`          | `Admin`                | Display name of the first admin |
 | `APP_SUBTITLE`        | –                      | Optional subtitle below "ProjectList" in the sidebar (e.g. company or department name) |
 | `PORT`                | `8080`                 | Host port (docker compose only) |
-| `PROJECTLIST_VERSION` | `latest`               | Image version for docker compose: `latest`, `edge` or e.g. `0.0.4` |
+| `PROJECTLIST_VERSION` | `latest`               | Image version for docker compose: `latest`, `edge` or e.g. `0.0.5` |
 | `LISTEN_ADDR`         | `:8080`                | Listen address inside the container |
 | `DB_PATH`             | `/data/projectlist.db` | Path of the SQLite file |
 | `COOKIE_SECURE`       | `true`                 | Send the session cookie over HTTPS only. On `http://localhost` this works in Chrome/Edge/Firefox; set `false` for plain HTTP access via an IP or hostname |
@@ -92,12 +92,25 @@ the user interface translates them.
   Manrope, DM Sans, Schibsted Grotesk, IBM Plex Sans or system; headings in serif (Source Serif 4) or like the
   text; code in JetBrains Mono. All fonts are embedded (no external requests). The language is taken from the
   browser on the first visit
-- **Overview** in three views; the **default view** can be set in *Settings* (cards, list, board or "last used"),
-  the view in use is kept until the app is closed. In *cards* and *list*, the projects of each customer can be
-  collapsed (default: collapsed, "Expand all" at the top right, state remembered per browser):
-  - *Cards*: per customer its projects with status, team, progress per checklist, due date and next open step
-  - *List*: key figures (active projects, open tasks, due within 14 days, blocked) and a table grouped by customer
-  - *Board*: columns Planning · Active · Review · Blocked · Done, move projects by drag & drop, filter by customer
+- **Overview** in five views: *Cards · Board · List · Calendar · Timeline*; the **default view** can be set in
+  *Settings* (or "last used"), the view in use is kept until the app is closed. In *cards* and *list*, the projects of
+  each customer can be collapsed (default: collapsed, "Expand all" at the top right, state remembered per browser):
+  - *Cards*: one card per customer with location, progress ring, its projects (status, progress, due date) and a
+    footer with overdue or open items, the next due date and the team; customers with overdue items come first;
+    collapsible (collapsed: header and footer as summary)
+  - *Board*: columns per status (or grouped by customer / person responsible), move projects by drag & drop
+    between and within columns; calm cards (labels as colored dots, progress bar, due date, checklist count,
+    avatars), quick actions on hover, "Add project" per column, *Compact* switch, WIP limit per status column
+  - *List*: key figures (active projects, open/overdue items, due within 14 days, behind schedule, blocked) and a
+    table grouped by customer: per project its checklists as sub-rows (state, progress, due date, person
+    responsible), **time vs. progress** (progress bar with a marker for the time elapsed: on track / x% behind /
+    overdue) and the latest activity
+  - *Calendar*: month grid with the projects on their due date; drag a project onto another day to reschedule it
+  - *Timeline*: Gantt bars from the start date (or creation date) to the due date, grouped by customer; drag a bar
+    to move it, drag its ends to change start or due date; zoom weeks/months
+- **Filters** for all overview views: customer (*All*/*None*), label and person responsible as dropdowns; saved per
+  user in the database (the same on all devices). **Saved views** store the view with its filters under a name and
+  appear in the sidebar
 - **My tasks**: tab *Customers* (customers → projects → checklists you are involved in, with customer progress and
   due dates "yesterday/today/tomorrow") and tab *Personal* (assigned items to check off); filters open / today /
   done (done = last 30 days)
@@ -108,13 +121,29 @@ the user interface translates them.
   filters (all, with active projects, critical, without project), sorting (last activity, name, progress, due date,
   open tasks); status per customer: *New* (no projects), *Critical* (project blocked or due/overdue within 3 days),
   *Completed*, otherwise *On track*. Location, contact person and email can be edited on the customer page
-- **Project status** (planning, active, review, blocked, done, archived) and **due date** at the top of the project
-  page; "New project" in the overview can create the first checklist from a template right away
+- **Project page**: breadcrumb, status, favorite star and actions (duplicate, archive, delete, "+ Checklist"),
+  progress in plain words ("37% · 19 of 31 items · 50 days left"), tabs *Checklists · Activity · Files · Notes* and a
+  properties panel (status, customer, person responsible, start/end, labels, watchers, Easy Redmine ticket) that is
+  edited in place, plus the latest activity. "New project" in the overview can create the first checklist from a
+  template right away
+- **Activity log** per project: checked-off items (grouped), checklists created/completed/deleted, status, dates,
+  person responsible, labels, Redmine ticket and files
+- **Files** per project (upload by button or drag & drop, max. 25 MB per file); stored in the database, so they are
+  part of every backup. Downloads are always served as attachments
+- **Duplicate a project** with description, person responsible, labels and all checklists (items unchecked)
+- **Easy Redmine**: ticket number per project; an admin sets the Redmine address once (*Settings → Projects*)
+- **Custom status names, colors and WIP limits**: admins change them for everyone directly on the overview board
+  (click a column title); empty = default name and color, no limit
+- **Tags**: label projects with colored tags (54 preset colors or any color), shown in all overview views;
+  assign or create them on the project page, rename, recolor or delete them in Settings → Projects (admin)
+- **Person responsible** per project (project page, board card)
+- **Context menus** (board and cards): right-click a project (or its "…" button) to open it, open or add checklists, rename it,
+  change status, start/due date, person responsible, tags or favorite; right-click a customer to open it, add a
+  project or filter the overview (only this customer, hide)
+- **Board order**: drag cards between columns (status) and within a column; the order is shared by all users
 - **Sidebar**: search and **+** (new project), **favorites** (star on a project in the sidebar or on the project
-  page), **recently visited** customers/projects/checklists/templates with type and parent, "Clear" (both stored per
-  user in the database, so they are the same on every device); sections favorites/recent/customers collapsible;
-  customers with code and project count (expandable, projects with status dot, "+ New project" per customer); at
-  the bottom: user (→ settings), theme toggle, sign out
+  page) and **saved views** (both stored per user in the database, so they are the same on every device); sections
+  collapsible; at the bottom: user (→ settings), theme toggle, sign out. Customers are opened via *Customers*
 - **Ctrl+K** / **⌘K** opens the search (customers, projects, checklists)
 - Click the title of a customer, project or checklist to edit it – **Enter** saves, **Esc** cancels
 
@@ -292,11 +321,13 @@ All endpoints under `/api`, JSON. Writing requests need the header `X-CSRF-Token
 | Auth        | `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`, `PUT /auth/password` |
 | Users       | `GET/POST /users`, `PATCH/DELETE /users/{id}`, `PUT /users/{id}/customers` (admin) |
 | Customers   | `GET/POST /customers`, `GET/PATCH/DELETE /customers/{id}` |
-| Projects    | `GET/POST /customers/{id}/projects`, `GET/PATCH/DELETE /projects/{id}` |
+| Projects    | `GET/POST /customers/{id}/projects`, `GET/PATCH/DELETE /projects/{id}` (incl. `start_date`, `redmine_ticket`), `PUT /projects/{id}/tags` (`tag_ids`), `PUT /projects/{id}/watchers` (`user_ids`), `POST /projects/{id}/duplicate`, `GET /projects/{id}/activity`, `GET/POST /projects/{id}/files` (multipart `file`), `GET/DELETE /files/{id}`, `GET /customers/{id}/assignees` |
+| Settings    | `GET /settings/app`, `PUT /settings/app` (`redmine_url`; admin) |
+| Tags        | `POST /tags` (members), `PATCH/DELETE /tags/{id}`, `PUT /status-labels/{status}` (`label`, `color`, `wip_limit`; admin); catalog, status names, colors and WIP limits come with `GET /sidebar` |
 | Checklists  | `GET/POST /projects/{id}/checklists`, `POST /projects/{id}/checklists/from-template`, `PUT /projects/{id}/checklists/order`, `GET/PATCH/DELETE /checklists/{id}`, `POST /checklists/{id}/save-as-template` |
 | Items       | `POST /checklists/{id}/items`, `PUT /checklists/{id}/items/order`, `PATCH/DELETE /items/{id}`, `POST /items/{id}/done` |
 | Templates   | `GET/POST /templates`, `GET/PATCH/DELETE /templates/{id}`, `POST /templates/{id}/items`, `PUT /templates/{id}/items/order`, `PATCH/DELETE /template-items/{id}` |
-| Sidebar     | `PUT/DELETE /favorites/{projectId}`, `POST/DELETE /recent` (`kind` = `customer`, `project`, `checklist` or `template`, plus `id`); both lists come with `GET /sidebar` |
+| Sidebar     | `PUT/DELETE /favorites/{projectId}`, `PUT /board/order` (`status`, `ids`), `PUT /prefs/board-hidden` (`customer_ids`), `PUT /prefs/{overview,saved_views}` (any JSON, per user); favorites and settings come with `GET /sidebar` |
 | Other       | `GET /sidebar`, `GET /overview`, `GET /my-tasks`, `GET /my-checklists`, `GET /search?q=`, `GET /admin/backup`, `GET /healthz` |
 
 ## License

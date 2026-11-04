@@ -8,6 +8,11 @@ import (
 	"time"
 )
 
+type AppSetting struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
 type Checklist struct {
 	ID         int64  `json:"id"`
 	ProjectID  int64  `json:"project_id"`
@@ -65,12 +70,65 @@ type Project struct {
 	Status                    string    `json:"status"`
 	DueDate                   *string   `json:"due_date"`
 	IncludeInCustomerProgress bool      `json:"include_in_customer_progress"`
+	OwnerID                   *int64    `json:"owner_id"`
+	BoardPosition             int64     `json:"board_position"`
+	StartDate                 *string   `json:"start_date"`
+	RedmineTicket             string    `json:"redmine_ticket"`
+}
+
+type ProjectActivity struct {
+	ID        int64     `json:"id"`
+	ProjectID int64     `json:"project_id"`
+	UserID    *int64    `json:"user_id"`
+	Kind      string    `json:"kind"`
+	Subject   string    `json:"subject"`
+	Detail    string    `json:"detail"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+type ProjectFile struct {
+	ID         int64     `json:"id"`
+	ProjectID  int64     `json:"project_id"`
+	Name       string    `json:"name"`
+	Mime       string    `json:"mime"`
+	Size       int64     `json:"size"`
+	UploadedBy *int64    `json:"uploaded_by"`
+	CreatedAt  time.Time `json:"created_at"`
+}
+
+type ProjectFileDatum struct {
+	FileID int64  `json:"file_id"`
+	Data   []byte `json:"data"`
+}
+
+type ProjectTag struct {
+	ProjectID int64 `json:"project_id"`
+	TagID     int64 `json:"tag_id"`
+}
+
+type ProjectWatcher struct {
+	ProjectID int64 `json:"project_id"`
+	UserID    int64 `json:"user_id"`
 }
 
 type Session struct {
 	ID        string    `json:"id"`
 	UserID    int64     `json:"user_id"`
 	ExpiresAt time.Time `json:"expires_at"`
+}
+
+type StatusLabel struct {
+	Status   string `json:"status"`
+	Label    string `json:"label"`
+	Color    string `json:"color"`
+	WipLimit int64  `json:"wip_limit"`
+}
+
+type Tag struct {
+	ID        int64     `json:"id"`
+	Name      string    `json:"name"`
+	Color     string    `json:"color"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type TemplateItem struct {
@@ -101,9 +159,8 @@ type UserFavorite struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-type UserRecent struct {
-	UserID    int64  `json:"user_id"`
-	Kind      string `json:"kind"`
-	TargetID  int64  `json:"target_id"`
-	VisitedAt string `json:"visited_at"`
+type UserPref struct {
+	UserID int64  `json:"user_id"`
+	Key    string `json:"key"`
+	Value  string `json:"value"`
 }

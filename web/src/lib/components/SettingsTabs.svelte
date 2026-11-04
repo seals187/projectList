@@ -5,7 +5,12 @@
 
   const tabs = $derived([
     { href: '/settings', label: t('settings.general') },
-    ...(isAdmin() ? [{ href: '/settings/users', label: t('settings.users') }] : [])
+    ...(isAdmin()
+      ? [
+          { href: '/settings/projects', label: t('settings.projects') },
+          { href: '/settings/users', label: t('settings.users') }
+        ]
+      : [])
   ]);
 </script>
 

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -805,84 +806,40 @@ func TestProjectStatusDueAndOverview(t *testing.T) {
 	}
 }
 
-func TestFavoritesAndRecent(t *testing.T) {
+func TestFavorites(t *testing.T) {
 	e := newEnv(t)
 	admin := e.user("admin@example.com", "admin")
-	var a, b, p, q, cl idResp
+	var a, b, p, q idResp
 	admin.do("POST", "/api/customers", map[string]string{"name": "A"}, &a)
 	admin.do("POST", "/api/customers", map[string]string{"name": "B"}, &b)
 	admin.do("POST", fmt.Sprintf("/api/customers/%d/projects", a.ID), map[string]string{"name": "P"}, &p)
 	admin.do("POST", fmt.Sprintf("/api/customers/%d/projects", b.ID), map[string]string{"name": "Q"}, &q)
-	admin.do("POST", fmt.Sprintf("/api/projects/%d/checklists", p.ID), map[string]string{"title": "CL"}, &cl)
 	member := e.user("member@example.com", "member", a.ID)
 
 	type side struct {
 		Favorites []int64 `json:"favorites"`
-		Recent    []struct {
-			Kind string `json:"kind"`
-			ID   int64  `json:"id"`
-		} `json:"recent"`
 	}
 	var s side
 	member.do("GET", "/api/sidebar", nil, &s)
-	if s.Favorites == nil || s.Recent == nil || len(s.Favorites) != 0 || len(s.Recent) != 0 {
-		t.Fatalf("anfangs leere listen erwartet (nicht null): %+v", s)
+	if s.Favorites == nil || len(s.Favorites) != 0 {
+		t.Fatalf("anfangs leere liste erwartet (nicht null): %+v", s)
 	}
 
 	fav := fmt.Sprintf("/api/favorites/%d", p.ID)
 	expect(t, "favorit", member.do("PUT", fav, nil, nil), 204)
 	expect(t, "favorit doppelt", member.do("PUT", fav, nil, nil), 204)
 	expect(t, "fremdes projekt", member.do("PUT", fmt.Sprintf("/api/favorites/%d", q.ID), nil, nil), 404)
-
-	expect(t, "besuch kunde", member.do("POST", "/api/recent", map[string]any{"kind": "customer", "id": a.ID}, nil), 204)
-	expect(t, "besuch checkliste", member.do("POST", "/api/recent", map[string]any{"kind": "checklist", "id": cl.ID}, nil), 204)
-	expect(t, "besuch kunde erneut", member.do("POST", "/api/recent", map[string]any{"kind": "customer", "id": a.ID}, nil), 204)
-	expect(t, "fremder kunde", member.do("POST", "/api/recent", map[string]any{"kind": "customer", "id": b.ID}, nil), 404)
-	expect(t, "falsche art", member.do("POST", "/api/recent", map[string]any{"kind": "user", "id": 1}, nil), 400)
+	expect(t, "zuletzt gibt es nicht mehr", member.do("POST", "/api/recent", map[string]any{"kind": "customer", "id": a.ID}, nil), 404)
 
 	member.do("GET", "/api/sidebar", nil, &s)
 	if len(s.Favorites) != 1 || s.Favorites[0] != p.ID {
 		t.Fatalf("favoriten falsch: %+v", s.Favorites)
 	}
-	if len(s.Recent) != 2 || s.Recent[0].Kind != "customer" || s.Recent[1].Kind != "checklist" {
-		t.Fatalf("zuletzt falsch (neuester zuerst, ohne duplikate): %+v", s.Recent)
-	}
-	// Admin sees their own (empty) lists
+	// Admin sees their own (empty) list
 	var as side
 	admin.do("GET", "/api/sidebar", nil, &as)
-	if len(as.Favorites) != 0 || len(as.Recent) != 0 {
-		t.Fatalf("listen sind pro benutzer: %+v", as)
-	}
-
-	// limited to 20
-	for i := 0; i < 25; i++ {
-		var c idResp
-		admin.do("POST", fmt.Sprintf("/api/projects/%d/checklists", p.ID), map[string]string{"title": fmt.Sprint("X", i)}, &c)
-		member.do("POST", "/api/recent", map[string]any{"kind": "checklist", "id": c.ID}, nil)
-	}
-	member.do("GET", "/api/sidebar", nil, &s)
-	if len(s.Recent) != 20 {
-		t.Fatalf("zuletzt nicht auf 20 gekürzt: %d", len(s.Recent))
-	}
-
-	var tpl idResp
-	admin.do("POST", "/api/templates", map[string]string{"name": "Vorlage"}, &tpl)
-	expect(t, "besuch template", member.do("POST", "/api/recent", map[string]any{"kind": "template", "id": tpl.ID}, nil), 204)
-	var named struct {
-		Recent []struct {
-			Kind   string `json:"kind"`
-			Title  string `json:"title"`
-			Parent string `json:"parent"`
-		} `json:"recent"`
-	}
-	member.do("GET", "/api/sidebar", nil, &named)
-	if named.Recent[0].Kind != "template" || named.Recent[0].Title != "Vorlage" || named.Recent[1].Title != "X24" || named.Recent[1].Parent != "P" {
-		t.Fatalf("aufgelöste titel falsch: %+v", named.Recent[:2])
-	}
-	expect(t, "zuletzt leeren", member.do("DELETE", "/api/recent", nil, nil), 204)
-	member.do("GET", "/api/sidebar", nil, &s)
-	if len(s.Recent) != 0 {
-		t.Fatalf("nicht geleert: %+v", s.Recent)
+	if len(as.Favorites) != 0 {
+		t.Fatalf("favoriten sind pro benutzer: %+v", as)
 	}
 
 	expect(t, "favorit entfernen", member.do("DELETE", fav, nil, nil), 204)
@@ -1003,5 +960,431 @@ func TestProjectProgressFlagAndMyDoneTasks(t *testing.T) {
 	member.do("GET", "/api/my-tasks", nil, &tasks)
 	if len(tasks) != 0 {
 		t.Fatalf("offene aufgaben falsch: %+v", tasks)
+	}
+}
+
+func TestStatusLabelsAndTags(t *testing.T) {
+	e := newEnv(t)
+	admin := e.user("admin@example.com", "admin")
+	var a, b, p, q idResp
+	admin.do("POST", "/api/customers", map[string]string{"name": "A"}, &a)
+	admin.do("POST", "/api/customers", map[string]string{"name": "B"}, &b)
+	member := e.user("member@example.com", "member", a.ID)
+	viewer := e.user("viewer@example.com", "viewer", a.ID)
+	admin.do("POST", fmt.Sprintf("/api/customers/%d/projects", a.ID), map[string]string{"name": "P"}, &p)
+	admin.do("POST", fmt.Sprintf("/api/customers/%d/projects", b.ID), map[string]string{"name": "Q"}, &q)
+
+	// status names: admin only, validated, empty = default
+	expect(t, "member darf keine status-namen", member.do("PUT", "/api/status-labels/review", map[string]string{"label": "Abnahme"}, nil), 403)
+	expect(t, "unbekannter status", admin.do("PUT", "/api/status-labels/foo", map[string]string{"label": "x"}, nil), 400)
+	expect(t, "ungültige statusfarbe", admin.do("PUT", "/api/status-labels/review", map[string]string{"color": "red"}, nil), 400)
+	expect(t, "status-name setzen", admin.do("PUT", "/api/status-labels/review", map[string]string{"label": " Abnahme "}, nil), 200)
+	expect(t, "statusfarbe setzen", admin.do("PUT", "/api/status-labels/done", map[string]string{"color": "#0D9488"}, nil), 200)
+	expect(t, "status zurücksetzen", admin.do("PUT", "/api/status-labels/planning", map[string]string{"label": "x", "color": "#000000"}, nil), 200)
+	expect(t, "status zurücksetzen", admin.do("PUT", "/api/status-labels/planning", map[string]string{"label": "", "color": ""}, nil), 200)
+
+	type tag struct {
+		ID    int64  `json:"id"`
+		Name  string `json:"name"`
+		Color string `json:"color"`
+	}
+	var t1, t2 tag
+	expect(t, "viewer darf keine tags", viewer.do("POST", "/api/tags", map[string]string{"name": "x", "color": "#ff0000"}, nil), 403)
+	expect(t, "ungültige farbe", member.do("POST", "/api/tags", map[string]string{"name": "x", "color": "red"}, nil), 400)
+	expect(t, "tag anlegen", member.do("POST", "/api/tags", map[string]string{"name": "Infra", "color": "#FF8800"}, &t1), 201)
+	if t1.Color != "#ff8800" {
+		t.Fatalf("farbe nicht normalisiert: %+v", t1)
+	}
+	expect(t, "doppelter name", member.do("POST", "/api/tags", map[string]string{"name": "infra", "color": "#000000"}, nil), 409)
+	admin.do("POST", "/api/tags", map[string]string{"name": "Dringend", "color": "#dc2626"}, &t2)
+	expect(t, "member darf nicht umbenennen", member.do("PATCH", fmt.Sprintf("/api/tags/%d", t1.ID), map[string]string{"name": "y"}, nil), 403)
+	expect(t, "admin färbt um", admin.do("PATCH", fmt.Sprintf("/api/tags/%d", t1.ID), map[string]string{"color": "#00aa00"}, &t1), 200)
+	if t1.Name != "Infra" || t1.Color != "#00aa00" {
+		t.Fatalf("tag falsch: %+v", t1)
+	}
+
+	// assignment: project access required
+	tagsURL := fmt.Sprintf("/api/projects/%d/tags", p.ID)
+	expect(t, "viewer darf nicht zuweisen", viewer.do("PUT", tagsURL, map[string]any{"tag_ids": []int64{t1.ID}}, nil), 403)
+	expect(t, "fremdes projekt", member.do("PUT", fmt.Sprintf("/api/projects/%d/tags", q.ID), map[string]any{"tag_ids": []int64{t1.ID}}, nil), 404)
+	expect(t, "unbekannter tag", member.do("PUT", tagsURL, map[string]any{"tag_ids": []int64{999}}, nil), 400)
+	var set struct {
+		TagIDs []int64 `json:"tag_ids"`
+	}
+	expect(t, "tags zuweisen", member.do("PUT", tagsURL, map[string]any{"tag_ids": []int64{t1.ID, t2.ID, t1.ID}}, &set), 200)
+	if len(set.TagIDs) != 2 || set.TagIDs[0] != t2.ID { // sorted by name: Dringend, Infra
+		t.Fatalf("zuweisung falsch: %+v", set)
+	}
+
+	var s struct {
+		Customers []struct {
+			Projects []struct {
+				TagIDs []int64 `json:"tag_ids"`
+			} `json:"projects"`
+		} `json:"customers"`
+		Tags         []tag             `json:"tags"`
+		StatusLabels map[string]string `json:"status_labels"`
+		StatusColors map[string]string `json:"status_colors"`
+	}
+	viewer.do("GET", "/api/sidebar", nil, &s)
+	if len(s.Tags) != 2 || len(s.Customers) != 1 || len(s.Customers[0].Projects[0].TagIDs) != 2 {
+		t.Fatalf("sidebar tags falsch: %+v", s)
+	}
+	if len(s.StatusLabels) != 1 || s.StatusLabels["review"] != "Abnahme" {
+		t.Fatalf("status-namen falsch: %+v", s.StatusLabels)
+	}
+	if len(s.StatusColors) != 1 || s.StatusColors["done"] != "#0d9488" {
+		t.Fatalf("statusfarben falsch: %+v", s.StatusColors)
+	}
+	var detail struct {
+		TagIDs []int64 `json:"tag_ids"`
+	}
+	viewer.do("GET", fmt.Sprintf("/api/projects/%d", p.ID), nil, &detail)
+	if len(detail.TagIDs) != 2 {
+		t.Fatalf("projekt-tags falsch: %+v", detail)
+	}
+
+	// deleting a tag removes it from all projects
+	expect(t, "tag löschen", admin.do("DELETE", fmt.Sprintf("/api/tags/%d", t2.ID), nil, nil), 204)
+	viewer.do("GET", fmt.Sprintf("/api/projects/%d", p.ID), nil, &detail)
+	if len(detail.TagIDs) != 1 || detail.TagIDs[0] != t1.ID {
+		t.Fatalf("gelöschter tag noch zugewiesen: %+v", detail)
+	}
+}
+
+func TestProjectOwner(t *testing.T) {
+	e := newEnv(t)
+	admin := e.user("admin@example.com", "admin")
+	var a, b, p idResp
+	admin.do("POST", "/api/customers", map[string]string{"name": "A"}, &a)
+	admin.do("POST", "/api/customers", map[string]string{"name": "B"}, &b)
+	member := e.user("member@example.com", "member", a.ID)
+	e.user("other@example.com", "member", b.ID)
+	admin.do("POST", fmt.Sprintf("/api/customers/%d/projects", a.ID), map[string]string{"name": "P"}, &p)
+
+	type person struct {
+		ID   int64  `json:"id"`
+		Name string `json:"name"`
+	}
+	var people []person
+	expect(t, "assignees", member.do("GET", fmt.Sprintf("/api/customers/%d/assignees", a.ID), nil, &people), 200)
+	if len(people) != 2 { // admin + member, not the member of B
+		t.Fatalf("assignees falsch: %+v", people)
+	}
+	expect(t, "fremder kunde", member.do("GET", fmt.Sprintf("/api/customers/%d/assignees", b.ID), nil, nil), 404)
+	var memberID, otherID int64
+	var all []struct {
+		ID    int64  `json:"id"`
+		Email string `json:"email"`
+	}
+	admin.do("GET", "/api/users", nil, &all)
+	for _, x := range all {
+		switch x.Email {
+		case "member@example.com":
+			memberID = x.ID
+		case "other@example.com":
+			otherID = x.ID
+		}
+	}
+
+	url := fmt.Sprintf("/api/projects/%d", p.ID)
+	expect(t, "ohne kundenzugriff", member.do("PATCH", url, map[string]any{"owner_id": otherID}, nil), 400)
+	var got struct {
+		OwnerID *int64 `json:"owner_id"`
+		Status  string `json:"status"`
+	}
+	expect(t, "verantwortlich setzen", member.do("PATCH", url, map[string]any{"owner_id": memberID}, &got), 200)
+	if got.OwnerID == nil || *got.OwnerID != memberID {
+		t.Fatalf("owner nicht gesetzt: %+v", got)
+	}
+	member.do("PATCH", url, map[string]any{"status": "review"}, &got)
+	if got.OwnerID == nil {
+		t.Fatalf("owner darf durch anderes patch nicht verschwinden")
+	}
+	var s struct {
+		Customers []struct {
+			Projects []struct {
+				OwnerName string `json:"owner_name"`
+			} `json:"projects"`
+		} `json:"customers"`
+	}
+	member.do("GET", "/api/sidebar", nil, &s)
+	if s.Customers[0].Projects[0].OwnerName == "" {
+		t.Fatalf("owner_name fehlt: %+v", s)
+	}
+	expect(t, "verantwortlich entfernen", member.do("PATCH", url, map[string]any{"owner_id": nil}, &got), 200)
+	if got.OwnerID != nil {
+		t.Fatalf("owner nicht entfernt: %+v", got)
+	}
+}
+
+func TestBoardOrderAndHiddenCustomers(t *testing.T) {
+	e := newEnv(t)
+	admin := e.user("admin@example.com", "admin")
+	var a, b, p1, p2, p3, q idResp
+	admin.do("POST", "/api/customers", map[string]string{"name": "A"}, &a)
+	admin.do("POST", "/api/customers", map[string]string{"name": "B"}, &b)
+	member := e.user("member@example.com", "member", a.ID)
+	viewer := e.user("viewer@example.com", "viewer", a.ID)
+	for _, x := range []struct {
+		name string
+		out  *idResp
+	}{{"P1", &p1}, {"P2", &p2}, {"P3", &p3}} {
+		admin.do("POST", fmt.Sprintf("/api/customers/%d/projects", a.ID), map[string]string{"name": x.name}, x.out)
+	}
+	admin.do("POST", fmt.Sprintf("/api/customers/%d/projects", b.ID), map[string]string{"name": "Q"}, &q)
+
+	expect(t, "viewer darf nicht sortieren", viewer.do("PUT", "/api/board/order", map[string]any{"status": "review", "ids": []int64{p1.ID}}, nil), 403)
+	expect(t, "fremdes projekt", member.do("PUT", "/api/board/order", map[string]any{"status": "review", "ids": []int64{q.ID}}, nil), 404)
+	expect(t, "ungueltiger status", member.do("PUT", "/api/board/order", map[string]any{"status": "x", "ids": []int64{p1.ID}}, nil), 400)
+	expect(t, "sortieren", member.do("PUT", "/api/board/order", map[string]any{"status": "review", "ids": []int64{p3.ID, p1.ID}}, nil), 204)
+
+	type side struct {
+		Customers []struct {
+			Projects []struct {
+				ID     int64  `json:"id"`
+				Status string `json:"status"`
+				Pos    int64  `json:"board_position"`
+			} `json:"projects"`
+		} `json:"customers"`
+		BoardHidden []int64 `json:"board_hidden"`
+	}
+	var s side
+	member.do("GET", "/api/sidebar", nil, &s)
+	got := map[int64][2]any{}
+	for _, p := range s.Customers[0].Projects {
+		got[p.ID] = [2]any{p.Status, p.Pos}
+	}
+	if got[p3.ID] != [2]any{"review", int64(0)} || got[p1.ID] != [2]any{"review", int64(1)} || got[p2.ID][0] != "active" {
+		t.Fatalf("board-reihenfolge falsch: %+v", got)
+	}
+	if s.BoardHidden == nil || len(s.BoardHidden) != 0 {
+		t.Fatalf("board_hidden sollte leer sein: %+v", s.BoardHidden)
+	}
+
+	// filter: per user, also for viewers
+	expect(t, "filter speichern", viewer.do("PUT", "/api/prefs/board-hidden", map[string]any{"customer_ids": []int64{a.ID}}, nil), 204)
+	viewer.do("GET", "/api/sidebar", nil, &s)
+	if len(s.BoardHidden) != 1 || s.BoardHidden[0] != a.ID {
+		t.Fatalf("filter nicht gespeichert: %+v", s.BoardHidden)
+	}
+	member.do("GET", "/api/sidebar", nil, &s)
+	if len(s.BoardHidden) != 0 {
+		t.Fatalf("filter darf nicht fuer andere gelten: %+v", s.BoardHidden)
+	}
+	expect(t, "filter leeren", viewer.do("PUT", "/api/prefs/board-hidden", map[string]any{"customer_ids": []int64{}}, nil), 204)
+	viewer.do("GET", "/api/sidebar", nil, &s)
+	if len(s.BoardHidden) != 0 {
+		t.Fatalf("filter nicht geleert: %+v", s.BoardHidden)
+	}
+
+	// free-form settings (overview filters, saved views): per user, known keys only
+	expect(t, "unbekannter prefs-key", viewer.do("PUT", "/api/prefs/foo", map[string]any{"a": 1}, nil), 404)
+	expect(t, "ansichten speichern", viewer.do("PUT", "/api/prefs/saved_views", []map[string]any{{"name": "Blockiert"}}, nil), 204)
+	var pr struct {
+		Prefs map[string]json.RawMessage `json:"prefs"`
+	}
+	viewer.do("GET", "/api/sidebar", nil, &pr)
+	if string(pr.Prefs["saved_views"]) != `[{"name":"Blockiert"}]` {
+		t.Fatalf("prefs falsch: %s", pr.Prefs["saved_views"])
+	}
+	pr.Prefs = nil
+	member.do("GET", "/api/sidebar", nil, &pr)
+	if _, ok := pr.Prefs["saved_views"]; ok {
+		t.Fatalf("prefs duerfen nicht fuer andere gelten: %+v", pr.Prefs)
+	}
+
+	// start date: optional, not after the due date
+	expect(t, "startdatum", member.do("PATCH", fmt.Sprintf("/api/projects/%d", p1.ID), map[string]any{"start_date": "2026-01-10", "due_date": "2026-02-01"}, nil), 200)
+	expect(t, "start nach faelligkeit", member.do("PATCH", fmt.Sprintf("/api/projects/%d", p1.ID), map[string]any{"start_date": "2026-03-01"}, nil), 400)
+	var ps struct {
+		Customers []struct {
+			Projects []struct {
+				ID        int64   `json:"id"`
+				StartDate *string `json:"start_date"`
+				CreatedAt string  `json:"created_at"`
+			} `json:"projects"`
+		} `json:"customers"`
+	}
+	member.do("GET", "/api/sidebar", nil, &ps)
+	for _, p := range ps.Customers[0].Projects {
+		if p.ID == p1.ID && (p.StartDate == nil || *p.StartDate != "2026-01-10" || len(p.CreatedAt) != 10) {
+			t.Fatalf("startdatum falsch: %+v", p)
+		}
+	}
+
+	// WIP limit per status (admin)
+	expect(t, "wip ungueltig", admin.do("PUT", "/api/status-labels/blocked", map[string]any{"wip_limit": -1}, nil), 400)
+	expect(t, "wip setzen", admin.do("PUT", "/api/status-labels/blocked", map[string]any{"wip_limit": 2}, nil), 200)
+	var sw struct {
+		WIP map[string]int64 `json:"status_wip"`
+	}
+	member.do("GET", "/api/sidebar", nil, &sw)
+	if sw.WIP["blocked"] != 2 {
+		t.Fatalf("wip falsch: %+v", sw.WIP)
+	}
+}
+
+// upload sends a file as multipart/form-data (field "file").
+func (c *client) upload(path, name string, content []byte) (int, http.Header) {
+	c.e.t.Helper()
+	var buf bytes.Buffer
+	mw := multipart.NewWriter(&buf)
+	fw, _ := mw.CreateFormFile("file", name)
+	fw.Write(content)
+	mw.Close()
+	req, _ := http.NewRequest("POST", c.e.srv.URL+path, &buf)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	req.Header.Set("X-CSRF-Token", c.csrf)
+	resp, err := c.http.Do(req)
+	if err != nil {
+		c.e.t.Fatal(err)
+	}
+	resp.Body.Close()
+	return resp.StatusCode, resp.Header
+}
+
+func TestProjectDetail(t *testing.T) {
+	e := newEnv(t)
+	admin := e.user("admin@example.com", "admin")
+	var a, b, p, cl idResp
+	admin.do("POST", "/api/customers", map[string]string{"name": "A"}, &a)
+	admin.do("POST", "/api/customers", map[string]string{"name": "B"}, &b)
+	member := e.user("member@example.com", "member", a.ID)
+	viewer := e.user("viewer@example.com", "viewer", a.ID)
+	other := e.user("other@example.com", "member", b.ID)
+	member.do("POST", fmt.Sprintf("/api/customers/%d/projects", a.ID), map[string]string{"name": "P"}, &p)
+	pp := fmt.Sprintf("/api/projects/%d", p.ID)
+	member.do("POST", pp+"/checklists", map[string]string{"title": "Install"}, &cl)
+	var item idResp
+	member.do("POST", fmt.Sprintf("/api/checklists/%d/items", cl.ID), map[string]string{"title": "Server"}, &item)
+
+	// activity: created, checklist, item done + checklist completed, status, owner
+	expect(t, "abhaken", member.do("POST", fmt.Sprintf("/api/items/%d/done", item.ID), map[string]bool{"done": true}, nil), 200)
+	var me struct {
+		User struct {
+			ID int64 `json:"id"`
+		} `json:"user"`
+	}
+	member.do("GET", "/api/auth/me", nil, &me)
+	expect(t, "status", member.do("PATCH", pp, map[string]any{"status": "review", "owner_id": me.User.ID, "redmine_ticket": "4812"}, nil), 200)
+	type act struct {
+		Kind     string `json:"kind"`
+		UserName string `json:"user_name"`
+		Subject  string `json:"subject"`
+		Detail   string `json:"detail"`
+	}
+	var acts []act
+	expect(t, "aktivität lesen (viewer)", viewer.do("GET", pp+"/activity", nil, &acts), 200)
+	kinds := []string{}
+	for _, x := range acts {
+		kinds = append(kinds, x.Kind)
+	}
+	want := "redmine,owner,status,checklist_completed,item_done,checklist_created,project_created"
+	if strings.Join(kinds, ",") != want {
+		t.Fatalf("aktivität falsch: %v", kinds)
+	}
+	if acts[4].Subject != "Install" || acts[4].Detail != "Server" || acts[4].UserName == "" {
+		t.Fatalf("item_done falsch: %+v", acts[4])
+	}
+	expect(t, "fremdes projekt", other.do("GET", pp+"/activity", nil, nil), 404)
+
+	// files: upload (writer), list, download as attachment, delete
+	st, _ := viewer.upload(pp+"/files", "x.txt", []byte("hi"))
+	expect(t, "viewer darf nicht hochladen", st, 403)
+	st, _ = member.upload(pp+"/files", "../../evil<script>.html", []byte("<script>alert(1)</script>"))
+	expect(t, "hochladen", st, 201)
+	var files []struct {
+		ID   int64  `json:"id"`
+		Name string `json:"name"`
+		Size int64  `json:"size"`
+	}
+	member.do("GET", pp+"/files", nil, &files)
+	if len(files) != 1 || files[0].Name != "evil<script>.html" || files[0].Size != 25 {
+		t.Fatalf("dateien falsch: %+v", files)
+	}
+	req, _ := http.NewRequest("GET", e.srv.URL+fmt.Sprintf("/api/files/%d", files[0].ID), nil)
+	resp, err := viewer.http.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if resp.StatusCode != 200 || string(body) != "<script>alert(1)</script>" ||
+		!strings.HasPrefix(resp.Header.Get("Content-Disposition"), "attachment") ||
+		!strings.Contains(resp.Header.Get("Content-Security-Policy"), "sandbox") {
+		t.Fatalf("download falsch: %d %v", resp.StatusCode, resp.Header)
+	}
+	expect(t, "fremder download", other.do("GET", fmt.Sprintf("/api/files/%d", files[0].ID), nil, nil), 404)
+	expect(t, "datei löschen", member.do("DELETE", fmt.Sprintf("/api/files/%d", files[0].ID), nil, nil), 204)
+	st, _ = member.upload(pp+"/files", "big.bin", make([]byte, 25<<20+10))
+	expect(t, "zu gross", st, 400)
+
+	// watchers: only people with access to the customer
+	expect(t, "fremder beobachter", member.do("PUT", pp+"/watchers", map[string]any{"user_ids": []int64{2, 999}}, nil), 400)
+	var watchers []struct {
+		ID int64 `json:"id"`
+	}
+	expect(t, "beobachter", member.do("PUT", pp+"/watchers", map[string]any{"user_ids": []int64{me.User.ID}}, &watchers), 200)
+	var detail struct {
+		Watchers []struct {
+			ID int64 `json:"id"`
+		} `json:"watchers"`
+		FilesCount int64  `json:"files_count"`
+		RedmineURL string `json:"redmine_url"`
+		Project    struct {
+			RedmineTicket string `json:"redmine_ticket"`
+		} `json:"project"`
+	}
+	// redmine base URL: admin only
+	expect(t, "redmine url member", member.do("PUT", "/api/settings/app", map[string]string{"redmine_url": "https://x"}, nil), 403)
+	expect(t, "redmine url ungültig", admin.do("PUT", "/api/settings/app", map[string]string{"redmine_url": "javascript:alert(1)"}, nil), 400)
+	expect(t, "redmine url", admin.do("PUT", "/api/settings/app", map[string]string{"redmine_url": "https://redmine.example.com/"}, nil), 200)
+	viewer.do("GET", pp, nil, &detail)
+	if len(detail.Watchers) != 1 || detail.FilesCount != 0 || detail.RedmineURL != "https://redmine.example.com" || detail.Project.RedmineTicket != "4812" {
+		t.Fatalf("projekt-details falsch: %+v", detail)
+	}
+
+	// duplicate: copy with checklists, items not done
+	var dup struct {
+		ID     int64  `json:"id"`
+		Name   string `json:"name"`
+		Status string `json:"status"`
+	}
+	expect(t, "viewer darf nicht duplizieren", viewer.do("POST", pp+"/duplicate", nil, nil), 403)
+	expect(t, "duplizieren", member.do("POST", pp+"/duplicate", nil, &dup), 201)
+	if dup.Name != "P (copy)" || dup.Status != "planning" {
+		t.Fatalf("kopie falsch: %+v", dup)
+	}
+	var dupDetail struct {
+		Checklists []struct {
+			Title string `json:"title"`
+			Total int64  `json:"total"`
+			Done  int64  `json:"done"`
+		} `json:"checklists"`
+	}
+	member.do("GET", fmt.Sprintf("/api/projects/%d", dup.ID), nil, &dupDetail)
+	if len(dupDetail.Checklists) != 1 || dupDetail.Checklists[0].Title != "Install" || dupDetail.Checklists[0].Total != 1 || dupDetail.Checklists[0].Done != 0 {
+		t.Fatalf("kopierte checklisten falsch: %+v", dupDetail)
+	}
+
+	// overview: overdue items per checklist (relative to ?today=), person responsible, latest activity
+	member.do("POST", fmt.Sprintf("/api/checklists/%d/items", cl.ID), map[string]string{"title": "Alt", "due_date": "2026-01-10"}, nil)
+	expect(t, "checkliste zuweisen", member.do("PATCH", fmt.Sprintf("/api/checklists/%d", cl.ID), map[string]any{"assignee_id": me.User.ID}, nil), 200)
+	var ov map[string]struct {
+		UpdatedAt  *string `json:"updated_at"`
+		Checklists map[string]struct {
+			AssigneeName string `json:"assignee_name"`
+			Overdue      int64  `json:"overdue"`
+		} `json:"checklists"`
+	}
+	member.do("GET", "/api/overview?today=2026-01-11", nil, &ov)
+	c := ov[fmt.Sprint(p.ID)].Checklists[fmt.Sprint(cl.ID)]
+	if c.Overdue != 1 || c.AssigneeName == "" || ov[fmt.Sprint(p.ID)].UpdatedAt == nil {
+		t.Fatalf("overview-checkliste falsch: %+v", ov[fmt.Sprint(p.ID)])
+	}
+	member.do("GET", "/api/overview?today=2026-01-10", nil, &ov)
+	if ov[fmt.Sprint(p.ID)].Checklists[fmt.Sprint(cl.ID)].Overdue != 0 {
+		t.Fatalf("am fälligkeitstag nicht überfällig: %+v", ov[fmt.Sprint(p.ID)])
 	}
 }

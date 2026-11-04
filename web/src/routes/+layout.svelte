@@ -1,6 +1,6 @@
 <script lang="ts">
   import '../app.css';
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import { goto, afterNavigate } from '$app/navigation';
   import { page } from '$app/state';
   import { api, setCsrf } from '$lib/api';
@@ -18,6 +18,7 @@
     toggleSidebar
   } from '$lib/state.svelte';
   import { t } from '$lib/i18n.svelte';
+  import { syncFromServer } from '$lib/overviewFilter.svelte';
   import type { User } from '$lib/types';
   import Sidebar from '$lib/components/Sidebar.svelte';
   import CommandPalette from '$lib/components/CommandPalette.svelte';
@@ -38,6 +39,11 @@
       session.user = null;
     }
     session.ready = true;
+  });
+
+  // overview filters and saved views (synced per user) whenever the sidebar data arrives
+  $effect(() => {
+    if (sidebar.prefs) untrack(syncFromServer);
   });
 
   $effect(() => {

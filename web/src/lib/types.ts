@@ -38,8 +38,11 @@ export interface Project {
   name: string;
   description: string;
   status: ProjectStatus;
+  start_date: string | null; // YYYY-MM-DD (timeline); null = creation date
   due_date: string | null;
   include_in_customer_progress: boolean;
+  owner_id: number | null; // person responsible
+  redmine_ticket: string; // Easy Redmine ticket (number or URL), "" = none
   created_at: string;
 }
 
@@ -120,6 +123,18 @@ export interface ProjectDetail {
   customer: { id: number; name: string };
   checklists: ChecklistSummary[];
   progress: { total: number; done: number };
+  tag_ids: number[];
+  assignees: Assignee[]; // possible persons responsible
+  watchers: { id: number; name: string }[];
+  files_count: number;
+  redmine_url: string; // Easy Redmine base URL (admin setting), "" = not set
+}
+
+/** Project tag with a free color (#rrggbb). */
+export interface Tag {
+  id: number;
+  name: string;
+  color: string;
 }
 
 export interface Template {
@@ -144,8 +159,14 @@ export interface SidebarProject {
   id: number;
   name: string;
   status: ProjectStatus;
+  start_date: string | null; // YYYY-MM-DD, null = created_at
   due_date: string | null;
+  created_at: string; // YYYY-MM-DD
   include_in_customer_progress: boolean;
+  tag_ids: number[];
+  owner_id: number | null;
+  owner_name: string; // empty = nobody
+  board_position: number; // order within the board column (shared)
   total: number;
   done: number;
   checklists: SidebarChecklist[];
@@ -154,6 +175,7 @@ export interface SidebarProject {
 export interface SidebarCustomer {
   id: number;
   name: string;
+  location: string; // e.g. town, "" = none
   projects: SidebarProject[];
 }
 
@@ -222,16 +244,28 @@ export interface MyChecklist {
 export interface OverviewExtra {
   team: { id: number; name: string }[];
   next_step: string; // rich-text HTML
+  updated_at: string | null; // latest activity
+  checklists: Record<string, { assignee_id: number | null; assignee_name: string; overdue: number }>;
 }
 
-/** Recently visited page (sidebar). */
-export interface RecentEntry {
-  kind: 'customer' | 'project' | 'checklist' | 'template';
+/** Entry of a project's activity log (newest first). */
+export interface ActivityEntry {
   id: number;
+  user_id: number | null;
+  user_name: string;
+  kind: string;
+  subject: string;
+  detail: string;
+  created_at: string;
 }
 
-/** Entry resolved by the server: title and parent element (customer or project). */
-export interface RecentItem extends RecentEntry {
-  title: string;
-  parent: string;
+/** File attached to a project. */
+export interface ProjectFile {
+  id: number;
+  name: string;
+  mime: string;
+  size: number;
+  uploaded_by: number | null;
+  uploaded_by_name: string;
+  created_at: string;
 }
