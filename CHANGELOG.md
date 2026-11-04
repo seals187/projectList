@@ -8,6 +8,11 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unveröffentlicht]
 
+### Geändert
+
+- `docker-compose.yml` verwendet das veröffentlichte Image `ghcr.io/seals187/projectlist:latest`
+  (Version wählbar über `PROJECTLIST_TAG`); `docker compose build` baut weiterhin lokal aus dem Quellcode
+
 ## [0.0.2] – 2026-11-04
 
 ### Hinzugefügt

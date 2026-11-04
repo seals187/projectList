@@ -2,11 +2,14 @@ name: projectlist
 
 services:
   projectlist:
+    # Fertiges Image von GitHub (amd64/arm64): `docker compose up -d` lädt es herunter.
+    # Andere Version: PROJECTLIST_TAG=0.0.2 docker compose up -d
+    image: ghcr.io/seals187/projectlist:${PROJECTLIST_TAG:-latest}
+    # Selbst aus dem Quellcode bauen: `docker compose build` (ersetzt das Image lokal)
     build:
       context: .
       args:
         VERSION: ${VERSION:-0.0.2} # Versionsnummer im Binary (projectlist version, Log beim Start)
-    image: projectlist:latest
     container_name: projectlist
     restart: unless-stopped
     env_file: .env

@@ -12,8 +12,12 @@ Checklisten lassen sich aus wiederverwendbaren Templates erzeugen (als unabhäng
 
 ```bash
 cp .env.example .env        # ADMIN_EMAIL / ADMIN_PASSWORD anpassen!
-docker compose up -d
+docker compose up -d        # lädt das fertige Image ghcr.io/seals187/projectlist:latest
 ```
+
+Selbst aus dem Quellcode bauen statt herunterladen: `docker compose build && docker compose up -d`.
+Eine bestimmte Version: `PROJECTLIST_TAG=0.0.2 docker compose up -d`. Aktualisieren:
+`docker compose pull && docker compose up -d`.
 
 Danach unter <http://localhost:8080> mit den Admin-Zugangsdaten aus der `.env` anmelden.
 Der erste Admin wird nur beim allerersten Start angelegt (leere Datenbank).
@@ -34,8 +38,7 @@ Zu jedem Release gibt es ein Image für **linux/amd64** und **linux/arm64** (z. 
 docker pull ghcr.io/seals187/projectlist:latest   # oder eine feste Version, z. B. :0.0.2
 ```
 
-Ohne eigenen Build: in `docker-compose.yml` die Zeile `build:` (samt `context`/`args`) entfernen und
-`image: ghcr.io/seals187/projectlist:latest` setzen, dann `docker compose up -d`. Oder direkt:
+`docker-compose.yml` verwendet dieses Image bereits. Ohne Compose direkt:
 
 ```bash
 docker run -d --name projectlist -p 8080:8080 --env-file .env \
