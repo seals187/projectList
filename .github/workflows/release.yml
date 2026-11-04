@@ -1,0 +1,99 @@
+# Creates a GitHub release for every version tag, with the release notes
+# taken from the matching section in CHANGELOG.md, and announces new releases
+# on Discord (repository secret DISCORD_WEBHOOK; skipped if not set).
+#
+#   git tag v0.0.4 && git push origin v0.0.4   ->  release "ProjectList 0.0.4"
+#
+# For an existing tag: Actions -> Release -> Run workflow -> enter the tag.
+# Running it again updates the notes of an existing release.
+name: Release
+
+on:
+  push:
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag, e.g. v0.0.3'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          tag="${INPUT_TAG:-$GITHUB_REF_NAME}"
+          if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Invalid tag '$tag' (expected e.g. v0.0.3)"; exit 1
+          fi
+          if ! git rev-parse -q --verify "refs/tags/$tag" > /dev/null; then
+            echo "::error::Tag '$tag' does not exist"; exit 1
+          fi
+          echo "TAG=$tag" >> "$GITHUB_ENV"
+          echo "VERSION=${tag#v}" >> "$GITHUB_ENV"
+
+      - name: Extract release notes from CHANGELOG.md
+        run: |
+          # Section from "## [x.y.z]" up to the next "## [" heading or the link references
+          awk -v ver="$VERSION" '
+            /^## \[/ { if (found) exit; if (index($0, "## [" ver "]") == 1) { found = 1; next } }
+            /^\[[^]]+\]: / { if (found) exit }
+            found { print }
+          ' CHANGELOG.md | sed -e '/./,$!d' > notes.md
+          if [ ! -s notes.md ]; then
+            echo "::warning::No section for $VERSION in CHANGELOG.md"
+            echo "See [CHANGELOG.md](CHANGELOG.md)." > notes.md
+          fi
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/projectlist"
+          # shellcheck disable=SC2016  # backticks are Markdown, not command substitution
+          printf '\n### Docker image\n\n```bash\ndocker pull %s:%s\n```\n' "$image" "$VERSION" >> notes.md
+          cat notes.md
+
+      - name: Create or update the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          flags=()
+          [[ "$VERSION" == *-* ]] && flags+=(--prerelease)   # e.g. v0.1.0-beta.1
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release edit "$TAG" --title "ProjectList $VERSION" --notes-file notes.md
+          else
+            gh release create "$TAG" --verify-tag --title "ProjectList $VERSION" --notes-file notes.md "${flags[@]}"
+            echo "CREATED=true" >> "$GITHUB_ENV"
+          fi
+
+      # Done here instead of a separate "on: release" workflow: releases created
+      # with github.token do not trigger other workflows.
+      - name: Announce on Discord
+        if: env.CREATED == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          if [ -z "$WEBHOOK" ]; then
+            echo "::notice::DISCORD_WEBHOOK secret not set – skipping the Discord post"; exit 0
+          fi
+          url=$(gh release view "$TAG" --json url --jq .url)
+          jq -n \
+            --arg tag "$TAG" --arg url "$url" \
+            --arg body "$(head -c 3900 notes.md)" \
+            '{
+              username: "ProjectList",
+              embeds: [{
+                title: ("🚀 ProjectList " + $tag + " released"),
+                url: $url,
+                description: ($body + "\n\n**Update:** `docker compose pull && docker compose up -d`"),
+                color: 5195493
+              }]
+            }' | curl -sS -f -H "Content-Type: application/json" -d @- "$WEBHOOK"

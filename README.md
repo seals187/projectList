@@ -49,6 +49,9 @@ Veröffentlicht wird automatisch per GitHub Actions (`.github/workflows/docker.y
 `vX.Y.Z` mit den Tags `:X.Y.Z`, `:X.Y` und `:latest`, bei jedem Push auf `main` (nach grünen Tests) als `:edge`. Ein bestehendes Tag lässt sich unter
 *Actions → CI and container image → Run workflow* nachträglich veröffentlichen.
 
+Zu jedem Versions-Tag legt der Workflow `release.yml` automatisch die GitHub-Release-Seite an, mit den Notizen aus
+der `CHANGELOG.md` (für ein bestehendes Tag: *Actions → Release → Run workflow*).
+
 ## Umgebungsvariablen
 
 | Variable         | Standard               | Beschreibung |

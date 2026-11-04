@@ -8,6 +8,15 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unveröffentlicht]
 
+### Hinzugefügt
+
+- GitHub-Release wird bei jedem Versions-Tag automatisch angelegt, mit den Notizen aus dieser Datei
+  (Workflow `release.yml`; optional Ankündigung auf Discord über das Secret `DISCORD_WEBHOOK`)
+
+### Geändert
+
+- GitHub Actions auf aktuelle Versionen (keine Node-20-Warnungen mehr)
+
 ## [0.0.3] – 2026-11-04
 
 ### Hinzugefügt
