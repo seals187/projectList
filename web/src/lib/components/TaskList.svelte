@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Liste "Meine Aufgaben" mit Abhaken (optimistisch) und Kontext-Link.
+  // "My tasks" list with check-off (optimistic) and context link.
   import { api, errorText } from '$lib/api';
   import { canWrite, checkRadius, refreshSidebar, session, toast } from '$lib/state.svelte';
   import { fmtDate, t, todayISO } from '$lib/i18n.svelte';

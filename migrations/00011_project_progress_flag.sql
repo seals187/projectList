@@ -1,6 +1,6 @@
 -- +goose Up
--- Ob ein Projekt in den Gesamtfortschritt seines Kunden einfliesst
--- (z. B. abgeschlossene oder interne Projekte ausblenden).
+-- Whether a project counts towards its customer's overall progress
+-- (e.g. to exclude completed or internal projects).
 ALTER TABLE projects ADD COLUMN include_in_customer_progress BOOLEAN NOT NULL DEFAULT 1;
 
 -- +goose Down

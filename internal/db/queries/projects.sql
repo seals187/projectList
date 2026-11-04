@@ -1,5 +1,5 @@
 -- name: ListProjectsWithProgress :many
--- Sidebar: alle sichtbaren Projekte samt Fortschritt in einer Abfrage.
+-- Sidebar: all visible projects incl. progress in one query.
 SELECT p.id, p.customer_id, p.name, p.status, p.due_date, p.include_in_customer_progress,
        CAST(COUNT(i.id) AS INTEGER) AS total,
        CAST(COUNT(i.done_at) AS INTEGER) AS done

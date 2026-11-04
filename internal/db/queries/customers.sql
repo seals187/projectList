@@ -1,4 +1,4 @@
--- Sichtbarkeit: user_id NULL = Admin (alle Kunden), sonst nur zugeordnete Kunden.
+-- Visibility: user_id NULL = admin (all customers), otherwise only assigned customers.
 
 -- name: ListCustomers :many
 SELECT * FROM customers c

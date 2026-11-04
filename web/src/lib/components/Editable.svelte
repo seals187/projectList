@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Inline-Editing: Text anklicken → Eingabefeld. Enter/Blur speichert,
-  // Escape bricht ab. Bei mehrzeiligen Feldern speichert Strg+Enter.
+  // Inline editing: click text → input field. Enter/blur saves,
+  // Escape cancels. In multiline fields, Ctrl+Enter saves.
   import { tick } from 'svelte';
   import { errorText } from '$lib/api';
   import { toast } from '$lib/state.svelte';
@@ -37,7 +37,7 @@
 
   async function start(e?: Event) {
     if (disabled) return;
-    // Klicks auf Links im formatierten Text sollen den Link öffnen.
+    // Clicks on links in the formatted text should open the link.
     if (e && (e.target as HTMLElement).closest('a')) return;
     draft = value;
     editing = true;

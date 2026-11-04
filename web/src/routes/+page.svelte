@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Übersicht: Kunden und Projekte als Karten, gruppierte Liste oder Status-Board.
+  // Overview: customers and projects as cards, grouped list or status board.
   import { api, errorText } from '$lib/api';
   import { canWrite, isAdmin, openNewProject, OVERVIEW_VIEWS, overviewView, refreshSidebar, session, setOverviewView, sidebar, toast } from '$lib/state.svelte';
   import { locale, t, todayISO } from '$lib/i18n.svelte';
@@ -15,7 +15,7 @@
   let extra = $state<Record<string, OverviewExtra>>({});
 
   $effect(() => {
-    refreshSidebar(0); // Fortschritt/Status aktuell halten
+    refreshSidebar(0); // keep progress/status up to date
     api.get<Record<string, OverviewExtra>>('/overview').then(
       (r) => (extra = r),
       () => {}
@@ -29,10 +29,10 @@
   const canCreate = $derived(canWrite() && sidebar.customers.length > 0);
   const dateLine = $derived(new Date().toLocaleDateString(locale(), { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' }));
 
-  // Dialog „Neues Projekt“ (global im Layout)
+  // "New project" dialog (global in the layout)
   const create = (customerId: number | null = null, status: ProjectStatus = 'planning') => openNewProject(customerId, status);
 
-  // Board: Status per Drag & Drop ändern (sofort anzeigen, bei Fehler zurück)
+  // Board: change status via drag & drop (show immediately, revert on error)
   async function move(p: OvProject, status: ProjectStatus) {
     const target = sidebar.customers.flatMap((c) => c.projects).find((x) => x.id === p.id);
     if (!target) return;

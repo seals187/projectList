@@ -1,10 +1,10 @@
-// Kundenübersicht: Kennzahlen und Status je Kunde, berechnet aus dem
-// Sidebar-Baum (Projekte, Checklisten, Fortschritt) und /api/customers.
+// Customer overview: metrics and status per customer, computed from the
+// sidebar tree (projects, checklists, progress) and /api/customers.
 import type { CustomerListItem, SidebarCustomer, SidebarProject } from './types';
 import { dueUrgent } from './overview';
 import { customerProgress } from './projectStatus';
 
-/** neu = noch keine Projekte, kritisch = blockiert oder (fast) überfällig, erledigt = alles fertig */
+/** new = no projects yet, critical = blocked or (nearly) overdue, done = everything finished */
 export type CustomerStatus = 'new' | 'onTrack' | 'critical' | 'done';
 
 export const CUSTOMER_STATUSES: readonly CustomerStatus[] = ['onTrack', 'critical', 'new', 'done'];
@@ -19,13 +19,13 @@ export const CUSTOMER_STATUS_BADGE: Record<CustomerStatus, { badge: string; dot:
 export interface CustomerRow {
   customer: SidebarCustomer;
   info: CustomerListItem | undefined;
-  projects: SidebarProject[]; // ohne archivierte
-  activeProjects: number; // weder erledigt noch archiviert
-  open: number; // offene Einträge aller Projekte
-  done: number; // Kundenfortschritt (nur einbezogene Projekte)
+  projects: SidebarProject[]; // excluding archived
+  activeProjects: number; // neither done nor archived
+  open: number; // open items across all projects
+  done: number; // customer progress (included projects only)
   total: number;
-  excluded: number; // Projekte ausserhalb des Kundenfortschritts
-  nextDue: string | null; // nächste Fälligkeit eines nicht erledigten Projekts
+  excluded: number; // projects outside the customer progress
+  nextDue: string | null; // next due date of a project not yet done
   nextDueUrgent: boolean;
   status: CustomerStatus;
   lastActivity: string;

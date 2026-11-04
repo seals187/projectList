@@ -1,5 +1,5 @@
-// Sehr kleiner Syntax-Highlighter (Regex-basiert) für die üblichen Admin-
-// Sprachen. Ergebnis ist escaptes HTML mit <span class="tk-…">-Tokens.
+// Very small syntax highlighter (regex-based) for the usual admin
+// languages. The result is escaped HTML with <span class="tk-…"> tokens.
 
 import { escapeHtml } from './rich';
 
@@ -94,7 +94,7 @@ function regexFor(lang: string): RegExp | null {
   return compiled.get(lang)!;
 }
 
-/** Hebt eine Zeile hervor (Zeilenweise, damit Zeilennummern einfach bleiben). */
+/** Highlights one line (line by line, so line numbers stay simple). */
 export function highlightLine(line: string, lang: string): string {
   const re = regexFor(lang);
   if (!re || !line) return escapeHtml(line);
@@ -110,7 +110,7 @@ export function highlightLine(line: string, lang: string): string {
   return out + escapeHtml(line.slice(last));
 }
 
-/** Rät die Sprache, falls keine gewählt ist. */
+/** Guesses the language if none is selected. */
 export function guessLang(code: string): string {
   if (/\b[A-Z][a-z]+-[A-Z][A-Za-z]+\b/.test(code) || /\$\w+\s*=/.test(code)) return 'powershell';
   if (/^\s*[{[]/.test(code)) return 'json';

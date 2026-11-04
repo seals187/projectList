@@ -1,7 +1,7 @@
 import type { Kind, Row } from './types';
 import type { Key } from './i18n.svelte';
 
-/** Blocktypen in der Reihenfolge des Typ-Menüs. */
+/** Block types in the order of the type menu. */
 export const KINDS: { kind: Kind; label: Key; desc: Key; icon: string; group: 'headings' | 'blocks' }[] = [
   { kind: 'h1', label: 'blocks.h1', desc: 'blocks.h1Desc', icon: 'H1', group: 'headings' },
   { kind: 'h2', label: 'blocks.h2', desc: 'blocks.h2Desc', icon: 'H2', group: 'headings' },
@@ -17,15 +17,15 @@ export const KINDS: { kind: Kind; label: Key; desc: Key; icon: string; group: 'h
 ];
 
 export const isHeading = (k: Kind) => k === 'h1' || k === 'h2' || k === 'h3' || k === 'h4';
-/** Blöcke mit editierbarem Inline-Text. */
+/** Blocks with editable inline text. */
 export const isTextual = (k: Kind) => k !== 'code' && k !== 'divider';
 
-/** Typ des neuen Blocks nach Enter. */
+/** Type of the new block after Enter. */
 export function nextKind(k: Kind): Kind {
   return k === 'item' || k === 'bullet' || k === 'numbered' ? k : 'text';
 }
 
-/** Markdown-Kürzel am Zeilenanfang → Blocktyp. */
+/** Markdown shortcut at line start → block type. */
 export const SHORTCUTS: [RegExp, Kind][] = [
   [/^####\s$/, 'h4'],
   [/^###\s$/, 'h3'],
@@ -39,7 +39,7 @@ export const SHORTCUTS: [RegExp, Kind][] = [
   [/^---$/, 'divider']
 ];
 
-/** Nummerierung für "numbered"-Blöcke (fortlaufend je Einrückungsebene). */
+/** Numbering for "numbered" blocks (consecutive per indent level). */
 export function numbering(rows: Row[]): Map<number, number> {
   const out = new Map<number, number>();
   const counters: number[] = [];
@@ -63,7 +63,7 @@ export interface SectionStat {
   total: number;
 }
 
-/** H1-Abschnitte mit Fortschritt der folgenden Einträge (bis zum nächsten H1). */
+/** H1 sections with progress of the following items (up to the next H1). */
 export function computeSections(items: (Row & { done_at?: string | null })[], idOf: (r: Row) => number = (r) => r.id): SectionStat[] {
   const out: SectionStat[] = [];
   let cur: SectionStat | null = null;
@@ -79,18 +79,18 @@ export function computeSections(items: (Row & { done_at?: string | null })[], id
   return out;
 }
 
-/** Ebene einer Überschrift (1–4), sonst 0. */
+/** Level of a heading (1–4), otherwise 0. */
 export const headingLevel = (k: Kind) => (isHeading(k) ? Number(k[1]) : 0);
 
 export interface HeadingStat {
-  blocks: number; // Blöcke im Abschnitt (bis zur nächsten Überschrift gleicher oder höherer Ebene)
+  blocks: number; // blocks in the section (up to the next heading of the same or higher level)
   done: number;
   total: number;
 }
 
 /**
- * Fortschritt und Größe je Überschrift. Ein Abschnitt reicht bis zur nächsten
- * Überschrift gleicher oder höherer Ebene (H2 endet also bei H1 oder H2).
+ * Progress and size per heading. A section extends up to the next heading
+ * of the same or higher level (so H2 ends at H1 or H2).
  */
 export function headingStats(rows: (Row & { done_at?: string | null })[]): Map<number, HeadingStat> {
   const out = new Map<number, HeadingStat>();
@@ -116,9 +116,9 @@ export function headingStats(rows: (Row & { done_at?: string | null })[]): Map<n
 
 
 /**
- * Abschnittsfarbe je Block: Die Farbe einer Überschrift gilt für ihren ganzen
- * Abschnitt; verschachtelte farbige Abschnitte haben Vorrang. `region` ist die
- * ID der Überschrift, von der die Farbe stammt (zum Abgrenzen benachbarter Abschnitte).
+ * Section color per block: a heading's color applies to its whole section;
+ * nested colored sections take precedence. `region` is the ID of the
+ * heading the color comes from (to separate adjacent sections).
  */
 export function sectionColors(rows: (Row & { bg_color?: string })[]): Map<number, { color: string; region: number }> {
   const out = new Map<number, { color: string; region: number }>();
@@ -129,9 +129,9 @@ export function sectionColors(rows: (Row & { bg_color?: string })[]): Map<number
       while (open.length && open[open.length - 1].level >= lvl) open.pop();
       open.push({ level: lvl, id: r.id, color: r.bg_color ?? '' });
     } else if (r.bg_color === 'none') {
-      continue; // ausdrücklich ohne Hintergrund, auch im farbigen Abschnitt
+      continue; // explicitly no background, even in a colored section
     } else if (r.bg_color) {
-      // eigene Zeilenfarbe hat Vorrang vor der Abschnittsfarbe (eigene Region)
+      // own row color takes precedence over the section color (own region)
       out.set(r.id, { color: r.bg_color, region: r.id });
       continue;
     }
@@ -145,10 +145,10 @@ export function sectionColors(rows: (Row & { bg_color?: string })[]): Map<number
   return out;
 }
 
-/** IDs der Blöcke, die unter eingeklappten Überschriften verborgen sind. */
+/** IDs of blocks hidden under collapsed headings. */
 export function hiddenBlocks(rows: Row[], collapsed: { has(id: number): boolean }): Set<number> {
   const out = new Set<number>();
-  let hideLevel = 0; // 0 = nichts verborgen
+  let hideLevel = 0; // 0 = nothing hidden
   for (const r of rows) {
     const lvl = headingLevel(r.kind);
     if (hideLevel && lvl && lvl <= hideLevel) hideLevel = 0;
@@ -161,7 +161,7 @@ export function hiddenBlocks(rows: Row[], collapsed: { has(id: number): boolean 
   return out;
 }
 
-/** Fortschritt (nur Checklisten-Einträge zählen). */
+/** Progress (only checklist items count). */
 export function countProgress(items: (Row & { done_at?: string | null })[]) {
   let done = 0,
     total = 0;
@@ -173,7 +173,7 @@ export function countProgress(items: (Row & { done_at?: string | null })[]) {
   return { done, total };
 }
 
-/** Filtert die Blocktypen für das Slash-Menü. */
+/** Filters the block types for the slash menu. */
 export function filterKinds(query: string, tr: (k: Key) => string) {
   const q = query.trim().toLowerCase();
   return KINDS.filter((k) => !q || tr(k.label).toLowerCase().includes(q) || k.kind.startsWith(q) || tr(k.desc).toLowerCase().includes(q));

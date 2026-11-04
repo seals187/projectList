@@ -1,10 +1,10 @@
-// Package static liefert das eingebettete SvelteKit-Frontend aus.
+// Package static serves the embedded SvelteKit frontend.
 //
-// Vorkomprimierte Varianten (.br/.gz, beim Build erzeugt) werden direkt
-// ausgeliefert – keine Kompression zur Laufzeit, kein CPU-Aufwand.
-// Gehashte Dateien unter _app/immutable/ werden ein Jahr gecacht, alles
-// andere wird per ETag revalidiert. Unbekannte Pfade ohne Dateiendung
-// erhalten index.html (SPA-Fallback).
+// Precompressed variants (.br/.gz, generated at build time) are served
+// directly – no compression at runtime, no CPU overhead.
+// Hashed files under _app/immutable/ are cached for one year, everything
+// else is revalidated via ETag. Unknown paths without a file extension
+// get index.html (SPA fallback).
 package static
 
 import (
@@ -42,7 +42,7 @@ var extraTypes = map[string]string{
 	".json":        "application/json",
 }
 
-// New indiziert alle Dateien in fsys und berechnet ETags.
+// New indexes all files in fsys and computes ETags.
 func New(fsys fs.FS) (*Handler, error) {
 	h := &Handler{fsys: fsys, files: map[string]*file{}}
 	err := fs.WalkDir(fsys, ".", func(p string, d fs.DirEntry, err error) error {
@@ -91,7 +91,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.NotFound(w, r)
 			return
 		}
-		p = "index.html" // SPA-Fallback
+		p = "index.html" // SPA fallback
 	}
 	f, ok := h.files[p]
 	if !ok {

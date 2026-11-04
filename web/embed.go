@@ -1,9 +1,9 @@
-// Package web bettet den statischen SvelteKit-Build ins Binary ein.
+// Package web embeds the static SvelteKit build into the binary.
 package web
 
 import "embed"
 
-// Build enthält den Inhalt von web/build (inkl. _app/-Verzeichnis, daher "all:").
+// Build holds the contents of web/build (incl. the _app/ directory, hence "all:").
 //
 //go:embed all:build
 var Build embed.FS

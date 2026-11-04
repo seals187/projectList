@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// LoginLimiter begrenzt fehlgeschlagene Logins pro Schlüssel (IP + E-Mail).
+// LoginLimiter limits failed logins per key (IP + email).
 type LoginLimiter struct {
 	mu     sync.Mutex
 	max    int
@@ -22,7 +22,7 @@ func NewLoginLimiter(max int, window time.Duration) *LoginLimiter {
 	return &LoginLimiter{max: max, window: window, m: make(map[string]*attempts)}
 }
 
-// Allowed meldet, ob für key noch Versuche erlaubt sind.
+// Allowed reports whether attempts are still allowed for key.
 func (l *LoginLimiter) Allowed(key string) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -40,7 +40,7 @@ func (l *LoginLimiter) Allowed(key string) bool {
 func (l *LoginLimiter) Fail(key string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if len(l.m) > 10_000 { // Speicher begrenzen: abgelaufene Einträge aufräumen
+	if len(l.m) > 10_000 { // limit memory: clean up expired entries
 		for k, a := range l.m {
 			if time.Since(a.first) > l.window {
 				delete(l.m, k)

@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Neues Projekt anlegen (Übersicht): Kunde, Name, Status, Fälligkeit und
-  // optional eine erste Checkliste aus einer Vorlage.
+  // Create a new project (overview): customer, name, status, due date and
+  // optionally a first checklist from a template.
   import { untrack } from 'svelte';
   import { goto } from '$app/navigation';
   import { api, errorText } from '$lib/api';
@@ -16,7 +16,7 @@
     onclose
   }: { customerId?: number | null; status?: ProjectStatus; onclose: () => void } = $props();
 
-  // Startwerte einmalig aus den Props übernehmen (danach frei bearbeitbar)
+  // Take initial values from the props once (freely editable afterwards)
   const init = untrack(() => ({ customerId, status }));
   let customer = $state(init.customerId ?? sidebar.customers[0]?.id ?? 0);
   let name = $state('');
@@ -45,7 +45,7 @@
         try {
           await api.post(`/projects/${p.id}/checklists/from-template`, { template_id: templateId, title: '' });
         } catch (err) {
-          toast(errorText(err)); // Projekt ist angelegt, nur die Vorlage fehlt
+          toast(errorText(err)); // project was created, only the template is missing
         }
       }
       refreshSidebar(0);

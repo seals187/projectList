@@ -2,7 +2,7 @@ export type Role = 'admin' | 'member' | 'viewer';
 export type ProjectStatus = 'planning' | 'active' | 'review' | 'blocked' | 'done' | 'archived';
 export type Kind = 'item' | 'h1' | 'h2' | 'h3' | 'h4' | 'text' | 'bullet' | 'numbered' | 'quote' | 'code' | 'divider';
 export type NoteColor = '' | 'green' | 'orange' | 'red' | 'indigo';
-// '' = wie Abschnitt, 'none' = ausdrücklich ohne, sonst Werte aus $lib/palette (z. B. "yellow-strong")
+// '' = same as section, 'none' = explicitly none, otherwise values from $lib/palette (e.g. "yellow-strong")
 export type BgColor = string;
 
 export interface User {
@@ -27,7 +27,7 @@ export interface Customer {
   created_at: string;
 }
 
-/** /api/customers: Kunde mit letzter Aktivität. */
+/** /api/customers: customer with last activity. */
 export interface CustomerListItem extends Customer {
   last_activity: string;
 }
@@ -48,7 +48,7 @@ export interface ProjectWithProgress extends Project {
   done: number;
 }
 
-/** Gemeinsame Felder von Checklisten- und Template-Einträgen. */
+/** Common fields of checklist and template items. */
 export interface Row {
   id: number;
   kind: Kind;
@@ -69,7 +69,7 @@ export interface Item extends Row {
   done_at: string | null;
   done_by: number | null;
   done_by_name: string | null;
-  status: string; // Freitext, z. B. "Erfüllt"
+  status: string; // free text, e.g. "Erfüllt"
 }
 
 export interface TemplateItem extends Row {
@@ -99,7 +99,7 @@ export interface ChecklistSummary {
   done: number;
   due_date: string;
   assignee_id: number | null;
-  assignee_name: string; // leer = niemand
+  assignee_name: string; // empty = nobody
 }
 
 export interface Assignee {
@@ -137,7 +137,7 @@ export interface SidebarChecklist {
   title: string;
   total: number;
   done: number;
-  next_due: string; // nächste Fälligkeit offener Einträge, "" = keine
+  next_due: string; // next due date of open items, "" = none
 }
 
 export interface SidebarProject {
@@ -178,7 +178,7 @@ export interface SearchResult {
   checklists: { id: number; title: string; project_id: number; project_name: string; customer_id: number }[];
 }
 
-/** API-Operationen, die der Listen-Editor für Checklisten bzw. Templates nutzt. */
+/** API operations the list editor uses for checklists or templates. */
 export interface Ops<R> {
   create: (body: Record<string, unknown>) => Promise<R>;
   patch: (id: number, body: Record<string, unknown>) => Promise<R>;
@@ -187,7 +187,7 @@ export interface Ops<R> {
   toggle?: (id: number, done: boolean) => Promise<R>;
 }
 
-/** Schnittstelle zwischen Editor und Toolbar. */
+/** Interface between editor and toolbar. */
 export interface EditorApi {
   readonly canUndo: boolean;
   readonly canRedo: boolean;
@@ -205,7 +205,7 @@ export interface EditorApi {
   add(kind: Kind): void;
 }
 
-/** Einer Person zugewiesene Checkliste (GET /my-checklists). */
+/** Checklist assigned to a person (GET /my-checklists). */
 export interface MyChecklist {
   id: number;
   title: string;
@@ -218,19 +218,19 @@ export interface MyChecklist {
   due_date: string;
 }
 
-/** /api/overview: Ergänzungen je Projekt-ID für die Übersicht. */
+/** /api/overview: extras per project ID for the overview. */
 export interface OverviewExtra {
   team: { id: number; name: string }[];
-  next_step: string; // Rich-Text-HTML
+  next_step: string; // rich-text HTML
 }
 
-/** Zuletzt besuchte Seite (Seitenleiste). */
+/** Recently visited page (sidebar). */
 export interface RecentEntry {
   kind: 'customer' | 'project' | 'checklist' | 'template';
   id: number;
 }
 
-/** Vom Server aufgelöster Eintrag: Titel und übergeordnetes Element (Kunde bzw. Projekt). */
+/** Entry resolved by the server: title and parent element (customer or project). */
 export interface RecentItem extends RecentEntry {
   title: string;
   parent: string;

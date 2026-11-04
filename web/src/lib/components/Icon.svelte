@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Kleine Inline-SVG-Icons (statt Icon-Library).
+  // Small inline SVG icons (instead of an icon library).
   const paths = {
     menu: 'M4 6h16M4 12h16M4 18h16',
     sidebar: 'M4 5h16v14H4zM9 5v14',

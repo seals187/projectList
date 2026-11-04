@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Kundenübersicht: Liste (aufklappbar mit Projekten) oder Karten, Suche,
-  // Filter (alle / mit aktiven Projekten / kritisch / ohne Projekt), Sortierung.
+  // Customer overview: list (expandable with projects) or cards, search,
+  // filter (all / with active projects / critical / without project), sorting.
   import { SvelteSet } from 'svelte/reactivity';
   import { api } from '$lib/api';
   import { canWrite, isAdmin, openNewProject, prefs, refreshSidebar, setPref, sidebar } from '$lib/state.svelte';
@@ -58,7 +58,7 @@
   const chipCls = (on: boolean) =>
     `rounded-md border px-2.5 py-1 text-xs font-medium ${on ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900' : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300'}`;
 
-  // Spalten: Kunde | Ansprechpartner | Projekte | Offen | Fortschritt | Nächste Fälligkeit | Status | Menü
+  // Columns: customer | contact | projects | open | progress | next due date | status | menu
   const cols = 'grid grid-cols-[minmax(14rem,1.6fr)_minmax(11rem,1.3fr)_5.5rem_4.5rem_9.5rem_8.5rem_7.5rem_2rem] items-center gap-x-4';
 </script>
 
@@ -87,7 +87,7 @@
   </div>
 </header>
 
-<!-- Suche, Filter, Sortierung -->
+<!-- Search, filter, sorting -->
 <div class="mb-4 flex flex-wrap items-center gap-2">
   <label class="relative w-full sm:w-72">
     <Icon name="search" size={14} class="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-zinc-400" />
@@ -170,7 +170,7 @@
 {:else if visible.length === 0}
   <p class="py-4 text-sm text-zinc-400">{t('customers.noMatch')}</p>
 {:else if prefs.customersView === 'cards'}
-  <!-- Karten -->
+  <!-- Cards -->
   <div class="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-4">
     {#each visible as r (r.customer.id)}
       <a href="/customers/{r.customer.id}" class="card block p-4 transition-shadow hover:shadow-md">
@@ -201,7 +201,7 @@
     {/each}
   </div>
 {:else}
-  <!-- Liste -->
+  <!-- List -->
   <div class="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
     <div class="min-w-[60rem]">
       <div class="{cols} border-b border-zinc-200 px-4 py-2.5 text-[11px] font-semibold tracking-wider text-zinc-400 uppercase dark:border-zinc-800">

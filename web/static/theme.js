@@ -1,6 +1,6 @@
-// Setzt Farbschema und Schrift vor dem ersten Rendern (verhindert Aufblitzen).
-// "dim" = Dunkelgrau: Dunkelmodus mit helleren Grautönen (Klasse .dim zusätzlich zu .dark).
-// Schrift: html[data-font] / html[data-heading], siehe app.css und $lib/fonts.ts.
+// Sets color scheme and font before the first render (prevents flashing).
+// "dim" = dark gray: dark mode with lighter gray tones (class .dim in addition to .dark).
+// Font: html[data-font] / html[data-heading], see app.css and $lib/fonts.ts.
 (function () {
   var el = document.documentElement;
   var t = null;

@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Übersicht „Board“: Spalten je Status, Projekte per Drag & Drop verschieben,
-  // oben Filter nach Kunden.
+  // "Board" overview: one column per status, move projects via drag & drop,
+  // customer filter at the top.
   import { SvelteSet } from 'svelte/reactivity';
   import { fmtDate, t } from '$lib/i18n.svelte';
   import { barCls, BOARD_STATUSES, customerCode, customerTone, STATUS_DOT } from '$lib/projectStatus';
@@ -24,7 +24,7 @@
     onmove: (p: OvProject, status: ProjectStatus) => void;
   } = $props();
 
-  // ausgeblendete Kunden (leer = alle sichtbar)
+  // hidden customers (empty = all visible)
   const hidden = new SvelteSet<number>();
   const toggle = (id: number) => (hidden.has(id) ? hidden.delete(id) : hidden.add(id));
 
@@ -61,7 +61,7 @@
   {/each}
 </div>
 
-<!-- schmal: horizontal scrollen; breit: fünf gleich breite Spalten -->
+<!-- narrow: scroll horizontally; wide: five equal-width columns -->
 <div class="flex min-h-[60vh] gap-3 overflow-x-auto pb-2 xl:grid xl:grid-cols-5 xl:overflow-visible">
   {#each columns as col (col.status)}
     <section

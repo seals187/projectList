@@ -1,7 +1,7 @@
-// Wählbare Schriften (Einstellungen). Alle selbst gehostet über @fontsource
-// (Open Font License, keine externen Anfragen); geladen wird nur die gerade
-// verwendete Schrift. Die Zuordnung id → font-family steht in app.css (html[data-font=…]).
-import '@fontsource-variable/inter/opsz.css'; // mit optischer Größe (große Titel wie „Inter Display“)
+// Selectable fonts (settings). All self-hosted via @fontsource
+// (Open Font License, no external requests); only the font currently in use
+// is loaded. The mapping id → font-family is in app.css (html[data-font=…]).
+import '@fontsource-variable/inter/opsz.css'; // with optical size (large titles like "Inter Display")
 import '@fontsource-variable/geist';
 import '@fontsource-variable/mona-sans';
 import '@fontsource-variable/instrument-sans';
@@ -15,18 +15,18 @@ import '@fontsource-variable/ibm-plex-sans';
 import '@fontsource-variable/source-serif-4';
 import '@fontsource-variable/jetbrains-mono';
 
-/** `hint`: wo die Schrift (bzw. ihr Stil) bekannt ist – Orientierung in den Einstellungen. */
+/** `hint`: products known for the font (proper names, not translated); null = short style description from i18n (`font.hint.<id>`). */
 export const FONTS = [
   { id: 'inter', label: 'Inter', family: "'Inter Variable'", hint: 'Linear, Figma, Raycast' },
   { id: 'geist', label: 'Geist', family: "'Geist Variable'", hint: 'Vercel' },
   { id: 'mona', label: 'Mona Sans', family: "'Mona Sans Variable'", hint: 'GitHub' },
-  { id: 'instrument', label: 'Instrument Sans', family: "'Instrument Sans Variable'", hint: 'Clean, kompakt' },
-  { id: 'figtree', label: 'Figtree', family: "'Figtree Variable'", hint: 'Freundlich, geometrisch' },
-  { id: 'onest', label: 'Onest', family: "'Onest Variable'", hint: 'Ruhig, gut lesbar' },
-  { id: 'jakarta', label: 'Plus Jakarta Sans', family: "'Plus Jakarta Sans Variable'", hint: 'SaaS-Dashboards' },
-  { id: 'manrope', label: 'Manrope', family: "'Manrope Variable'", hint: 'Modern, technisch' },
-  { id: 'dmsans', label: 'DM Sans', family: "'DM Sans Variable'", hint: 'Geometrisch, leicht' },
-  { id: 'schibsted', label: 'Schibsted Grotesk', family: "'Schibsted Grotesk Variable'", hint: 'Editorial' },
+  { id: 'instrument', label: 'Instrument Sans', family: "'Instrument Sans Variable'", hint: null },
+  { id: 'figtree', label: 'Figtree', family: "'Figtree Variable'", hint: null },
+  { id: 'onest', label: 'Onest', family: "'Onest Variable'", hint: null },
+  { id: 'jakarta', label: 'Plus Jakarta Sans', family: "'Plus Jakarta Sans Variable'", hint: null },
+  { id: 'manrope', label: 'Manrope', family: "'Manrope Variable'", hint: null },
+  { id: 'dmsans', label: 'DM Sans', family: "'DM Sans Variable'", hint: null },
+  { id: 'schibsted', label: 'Schibsted Grotesk', family: "'Schibsted Grotesk Variable'", hint: null },
   { id: 'plex', label: 'IBM Plex Sans', family: "'IBM Plex Sans Variable'", hint: 'IBM Carbon' },
   { id: 'system', label: 'System', family: "system-ui, -apple-system, 'Segoe UI Variable Text', 'Segoe UI', Roboto, sans-serif", hint: 'Segoe UI / SF Pro' }
 ] as const;
@@ -36,7 +36,7 @@ export type HeadingFont = 'serif' | 'sans';
 export const FONT_IDS: readonly FontId[] = FONTS.map((f) => f.id);
 export const DEFAULT_FONT: FontId = 'inter';
 
-/** Schrift sofort auf <html> anwenden (theme.js macht das beim Laden). */
+/** Apply the font to <html> immediately (theme.js does this on load). */
 export function applyFonts(font: FontId, heading: HeadingFont) {
   const el = document.documentElement;
   if (font === DEFAULT_FONT) delete el.dataset.font;

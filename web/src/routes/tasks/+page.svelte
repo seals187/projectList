@@ -1,10 +1,10 @@
 <script lang="ts">
-  // Meine Aufgaben:
-  //  - „Kunden“: Kunden → Projekte → Checklisten, in denen mir etwas zugewiesen ist
-  //    (Checkliste oder Eintrag), mit Kundenfortschritt und Schalter je Projekt,
-  //    ob es in den Kundenfortschritt einfliesst.
-  //  - „Persönlich“: mir zugewiesene Einträge zum Abhaken.
-  //  Filter: Offen / Heute (fällig oder überfällig) / Erledigt.
+  // My tasks:
+  //  - "Customers": customers → projects → checklists in which something is assigned to me
+  //    (checklist or item), with customer progress and a toggle per project
+  //    for whether it counts toward the customer progress.
+  //  - "Personal": items assigned to me to check off.
+  //  Filter: open / today (due or overdue) / done.
   import { SvelteSet } from 'svelte/reactivity';
   import { api, errorText } from '$lib/api';
   import { refreshSidebar, session, sidebar, toast } from '$lib/state.svelte';
@@ -27,8 +27,8 @@
   let extra = $state<Record<string, OverviewExtra>>({});
   let openTasks = $state<Task[] | null>(null);
   let doneTasks = $state<Task[] | null>(null);
-  const closedCustomers = new SvelteSet<number>(); // Standard: Kunden offen
-  const openProjects = new SvelteSet<number>(); // Standard: Projekte zu
+  const closedCustomers = new SvelteSet<number>(); // default: customers expanded
+  const openProjects = new SvelteSet<number>(); // default: projects collapsed
 
   $effect(() => {
     refreshSidebar(0);
@@ -49,7 +49,7 @@
       );
   });
 
-  // ---- Kunden-Ansicht ----------------------------------------------------------
+  // ---- Customer view -----------------------------------------------------------
   const isMine = (p: SidebarProject) => !!extra[p.id]?.team.some((m) => m.id === session.user?.id);
   const clOpen = (cl: SidebarChecklist) => cl.total === 0 || cl.done < cl.total;
   const clDueToday = (cl: SidebarChecklist) => !!cl.next_due && cl.next_due <= today;
@@ -74,7 +74,7 @@
       .filter((g) => g.projects.length > 0)
   );
 
-  // ---- Persönlich ----------------------------------------------------------------
+  // ---- Personal ------------------------------------------------------------------
   let personal = $state<Task[]>([]);
   $effect(() => {
     const src = filter === 'done' ? (doneTasks ?? []) : (openTasks ?? []);
@@ -84,7 +84,7 @@
     filter === 'done' ? (doneTasks?.length ?? 0) : filter === 'today' ? (openTasks ?? []).filter((x) => x.due_date && x.due_date <= today).length : (openTasks?.length ?? 0)
   );
 
-  // ---- Darstellung -----------------------------------------------------------------
+  // ---- Display ---------------------------------------------------------------------
   const dateLine = new Date().toLocaleDateString(locale(), { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
   const shortDate = (iso: string) => new Date(iso + 'T00:00:00').toLocaleDateString(locale(), { day: '2-digit', month: '2-digit' });
   function dueLabel(iso: string): { text: string; cls: string } {
@@ -101,7 +101,7 @@
     `rounded-full px-3 py-1 text-xs font-medium ${on ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700'}`;
   const toggleSet = (s: SvelteSet<number>, id: number) => (s.has(id) ? s.delete(id) : s.add(id));
 
-  // Spalten einer Projekt-/Checklistenzeile: Pfeil | Name | Fortschritt | Fällig | Schalter | Link
+  // Columns of a project/checklist row: arrow | name | progress | due | toggle | link
   const rowCols = 'grid grid-cols-[1.5rem_minmax(0,1fr)_11rem_4rem_2rem_1.25rem] items-center gap-x-3';
 </script>
 
@@ -169,7 +169,7 @@
                 {@const pOpen = openProjects.has(p.id)}
                 {@const muted = !p.include_in_customer_progress}
                 <li class="py-1">
-                  <!-- Projektzeile: Klick klappt die Checklisten auf -->
+                  <!-- project row: click expands the checklists -->
                   <div
                     class="{rowCols} cursor-pointer rounded-lg px-1 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
                     role="button"

@@ -13,8 +13,8 @@ import (
 
 const MinPasswordLen = 8
 
-// EnsureAdmin legt beim ersten Start (leere users-Tabelle) einen Admin aus
-// ADMIN_EMAIL/ADMIN_PASSWORD an. Existieren bereits Benutzer, passiert nichts.
+// EnsureAdmin creates an admin from ADMIN_EMAIL/ADMIN_PASSWORD on first start
+// (empty users table). If users already exist, nothing happens.
 func EnsureAdmin(ctx context.Context, q *sqlc.Queries, email, password, name string, log *slog.Logger) error {
 	n, err := q.CountUsers(ctx)
 	if err != nil {

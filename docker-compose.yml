@@ -1,22 +1,17 @@
+# Fixed project name: keeps the volume name (projectlist_projectlist-data) independent of the folder name
 name: projectlist
 
 services:
   projectlist:
-    # Fertiges Image von GitHub (amd64/arm64): `docker compose up -d` lädt es herunter.
-    # Andere Version: PROJECTLIST_TAG=0.0.2 docker compose up -d
-    image: ghcr.io/seals187/projectlist:${PROJECTLIST_TAG:-latest}
-    # Selbst aus dem Quellcode bauen: `docker compose build` (ersetzt das Image lokal)
-    build:
-      context: .
-      args:
-        VERSION: ${VERSION:-0.0.2} # Versionsnummer im Binary (projectlist version, Log beim Start)
+    # Version via PROJECTLIST_VERSION in .env (latest = newest release, edge = development state)
+    image: ghcr.io/seals187/projectlist:${PROJECTLIST_VERSION:-latest}
     container_name: projectlist
     restart: unless-stopped
     env_file: .env
     environment:
       DB_PATH: /data/projectlist.db
       LISTEN_ADDR: ":8080"
-      # Weiches Speicherlimit für die Go-Runtime (GC arbeitet aggressiver darunter).
+      # Soft memory limit for the Go runtime (GC works harder below it)
       GOMEMLIMIT: 64MiB
     ports:
       - "${PORT:-8080}:8080"
@@ -31,4 +26,5 @@ services:
       start_period: 10s
 
 volumes:
+  # SQLite database and backups (do not rename: existing data lives in this volume)
   projectlist-data:

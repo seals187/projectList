@@ -1,5 +1,5 @@
-// Minimalistische i18n ohne Library: flache Schlüssel, {param}-Platzhalter.
-// Die Sprache ist reaktiver Zustand – Templates aktualisieren sich beim Wechsel.
+// Minimalist i18n without a library: flat keys, {param} placeholders.
+// The language is reactive state – templates update when it changes.
 
 export type Lang = 'en' | 'de' | 'fr';
 export const LANGS: { code: Lang; label: string }[] = [
@@ -351,6 +351,13 @@ const en = {
   'settings.defaultViewHint': 'The overview opens in this view. The view you switch to stays until you close the app.',
   'settings.font': 'Font',
   'settings.fontSample': 'The quick brown fox · 0123456789',
+  'font.hint.instrument': 'Clean, compact',
+  'font.hint.figtree': 'Friendly, geometric',
+  'font.hint.onest': 'Calm, very legible',
+  'font.hint.jakarta': 'SaaS dashboards',
+  'font.hint.manrope': 'Modern, technical',
+  'font.hint.dmsans': 'Geometric, light',
+  'font.hint.schibsted': 'Editorial',
   'settings.headings': 'Headings',
   'settings.heading.serif': 'Serif',
   'settings.heading.sans': 'Same as text',
@@ -771,6 +778,13 @@ const de: Dict = {
   'settings.defaultViewHint': 'So öffnet sich die Übersicht. Die Ansicht, zu der du wechselst, bleibt erhalten, bis du die App schließt.',
   'settings.font': 'Schrift',
   'settings.fontSample': 'Größe und Übersicht · 0123456789',
+  'font.hint.instrument': 'Klar, kompakt',
+  'font.hint.figtree': 'Freundlich, geometrisch',
+  'font.hint.onest': 'Ruhig, gut lesbar',
+  'font.hint.jakarta': 'SaaS-Dashboards',
+  'font.hint.manrope': 'Modern, technisch',
+  'font.hint.dmsans': 'Geometrisch, leicht',
+  'font.hint.schibsted': 'Redaktionell',
   'settings.headings': 'Überschriften',
   'settings.heading.serif': 'Serif',
   'settings.heading.sans': 'Wie Text',
@@ -1188,6 +1202,13 @@ const fr: Dict = {
   'settings.defaultViewHint': 'La vue d’ensemble s’ouvre dans cette vue. La vue choisie reste active jusqu’à la fermeture de l’application.',
   'settings.font': 'Police',
   'settings.fontSample': 'Élégance et clarté · 0123456789',
+  'font.hint.instrument': 'Net, compact',
+  'font.hint.figtree': 'Amical, géométrique',
+  'font.hint.onest': 'Calme, très lisible',
+  'font.hint.jakarta': 'Tableaux de bord SaaS',
+  'font.hint.manrope': 'Moderne, technique',
+  'font.hint.dmsans': 'Géométrique, léger',
+  'font.hint.schibsted': 'Éditorial',
   'settings.headings': 'Titres',
   'settings.heading.serif': 'Serif',
   'settings.heading.sans': 'Comme le texte',
@@ -1270,7 +1291,7 @@ function detect(): Lang {
     const saved = localStorage.getItem('lang');
     if (saved === 'en' || saved === 'de' || saved === 'fr') return saved;
   } catch {
-    /* ignorieren */
+    /* ignore */
   }
   const nav = (navigator.language || 'en').slice(0, 2);
   return nav === 'de' || nav === 'fr' ? nav : 'en';
@@ -1286,18 +1307,18 @@ export function setLang(lang: Lang) {
   try {
     localStorage.setItem('lang', lang);
   } catch {
-    /* ignorieren */
+    /* ignore */
   }
 }
 
-/** Übersetzt einen Schlüssel; {param}-Platzhalter werden ersetzt. */
+/** Translates a key; {param} placeholders are replaced. */
 export function t(key: Key, params: Record<string, string | number> = {}): string {
   let s: string = dicts[i18n.lang][key] ?? en[key] ?? key;
   for (const [k, v] of Object.entries(params)) s = s.replaceAll(`{${k}}`, String(v));
   return s;
 }
 
-/** Übersetzung für dynamische Schlüssel (z. B. Fehlercodes); null, wenn unbekannt. */
+/** Translation for dynamic keys (e.g. error codes); null if unknown. */
 export function tMaybe(key: string, params: Record<string, string | number> = {}): string | null {
   return key in en ? t(key as Key, params) : null;
 }
@@ -1306,7 +1327,7 @@ export function locale() {
   return locales[i18n.lang];
 }
 
-/** "2026-11-13" → lokalisiertes Datum (z. B. 13/11/2026, 13.11.2026). */
+/** "2026-11-13" → localized date (e.g. 13/11/2026, 13.11.2026). */
 export function fmtDate(isoDate: string) {
   return new Date(isoDate + 'T00:00:00').toLocaleDateString(locale(), { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
@@ -1333,7 +1354,7 @@ export function todayISO() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-/** „ohne N Projekt(e)“ – Projekte ausserhalb des Kundenfortschritts. */
+/** "without N project(s)" – projects outside the customer progress. */
 export function withoutText(n: number): string {
   return n === 1 ? t('progress.withoutOne') : t('progress.withoutMany', { n });
 }

@@ -17,17 +17,17 @@ import (
 
 const CookieName = "pl_session"
 
-// Identity ist eine geladene, gültige Session.
+// Identity is a loaded, valid session.
 type Identity struct {
 	User      authz.User
 	SessionID string
 	CSRFToken string
 }
 
-// Sessions verwaltet serverseitige Sessions. In der DB wird nur der
-// SHA-256-Hash des Tokens gespeichert; der Klartext existiert nur im Cookie.
-// Der CSRF-Token wird ebenfalls aus dem Token abgeleitet, ist aber nicht
-// umkehrbar und für fremde Seiten nicht lesbar (Cookie ist httpOnly).
+// Sessions manages server-side sessions. Only the SHA-256 hash of the token
+// is stored in the DB; the plaintext exists only in the cookie.
+// The CSRF token is also derived from the token, but is not reversible
+// and not readable by foreign sites (the cookie is httpOnly).
 type Sessions struct {
 	Q      *sqlc.Queries
 	TTL    time.Duration
@@ -52,7 +52,7 @@ func csrfToken(token string) string {
 	return base64.RawURLEncoding.EncodeToString(sum[:])
 }
 
-// Create legt eine Session an, setzt das Cookie und gibt den CSRF-Token zurück.
+// Create creates a session, sets the cookie and returns the CSRF token.
 func (s *Sessions) Create(ctx context.Context, w http.ResponseWriter, userID int64) (string, error) {
 	raw := make([]byte, 32)
 	if _, err := rand.Read(raw); err != nil {
@@ -69,8 +69,8 @@ func (s *Sessions) Create(ctx context.Context, w http.ResponseWriter, userID int
 	return csrfToken(token), nil
 }
 
-// Load liest die Session aus dem Request. (nil, nil) = nicht angemeldet.
-// Läuft die Session bald ab (weniger als halbe TTL), wird sie verlängert.
+// Load reads the session from the request. (nil, nil) = not logged in.
+// If the session expires soon (less than half the TTL), it is extended.
 func (s *Sessions) Load(ctx context.Context, w http.ResponseWriter, r *http.Request) (*Identity, error) {
 	c, err := r.Cookie(CookieName)
 	if err != nil || c.Value == "" || len(c.Value) > 100 {
@@ -98,13 +98,13 @@ func (s *Sessions) Load(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	}, nil
 }
 
-// Destroy löscht die Session und das Cookie.
+// Destroy deletes the session and the cookie.
 func (s *Sessions) Destroy(ctx context.Context, w http.ResponseWriter, sessionID string) error {
 	s.setCookie(w, "", time.Unix(0, 0))
 	return s.Q.DeleteSession(ctx, sessionID)
 }
 
-// Cleanup entfernt abgelaufene Sessions.
+// Cleanup removes expired sessions.
 func (s *Sessions) Cleanup(ctx context.Context) (int64, error) {
 	return s.Q.DeleteExpiredSessions(ctx, s.now())
 }

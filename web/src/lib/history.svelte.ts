@@ -1,10 +1,10 @@
-// Undo/Redo für den Block-Editor. Einträge sind Paare aus undo/redo-Aktionen;
-// mehrere Aktionen lassen sich zu einem Schritt bündeln (batch).
+// Undo/redo for the block editor. Entries are pairs of undo/redo actions;
+// several actions can be bundled into one step (batch).
 
 export interface Step {
   undo: () => void | Promise<void>;
   redo: () => void | Promise<void>;
-  /** Zum Zusammenfassen schneller Texteingaben im selben Feld. */
+  /** For merging rapid text input in the same field. */
   mergeKey?: string;
   at?: number;
 }
@@ -31,7 +31,7 @@ export class History {
     const last = this.undoStack[this.undoStack.length - 1];
     const now = Date.now();
     if (step.mergeKey && last?.mergeKey === step.mergeKey && now - (last.at ?? 0) < 2000) {
-      // Texteingabe zusammenfassen: altes undo behalten, neues redo übernehmen
+      // merge text input: keep the old undo, take the new redo
       this.undoStack[this.undoStack.length - 1] = { ...last, redo: step.redo, at: now };
     } else {
       this.undoStack.push({ ...step, at: now });
@@ -40,7 +40,7 @@ export class History {
     this.redoStack = [];
   }
 
-  /** Führt fn aus und fasst alle dabei aufgezeichneten Schritte zusammen. */
+  /** Runs fn and merges all steps recorded during it. */
   group(fn: () => void) {
     const outer = this.batch;
     this.batch = outer ?? [];

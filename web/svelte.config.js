@@ -5,7 +5,7 @@ import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 const config = {
   preprocess: vitePreprocess(),
   kit: {
-    // Reine SPA: Go liefert index.html als Fallback für alle Routen aus.
+    // Pure SPA: Go serves index.html as the fallback for all routes.
     adapter: adapter({ pages: 'build', assets: 'build', fallback: 'index.html', precompress: true }),
     paths: { relative: false },
     csp: {

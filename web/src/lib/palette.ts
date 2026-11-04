@@ -1,17 +1,17 @@
-// Farbpalette für Zeilen-/Abschnittsfarben, angelehnt an Word/Excel:
-// je Farbton drei Stufen – hell (dezent), mittel, kräftig (Textmarker/„Neon“).
-// Werte: "<farbton>" | "<farbton>-mid" | "<farbton>-strong".
-// Muss mit bgColors (internal/httpapi/dto.go) übereinstimmen.
+// Color palette for row/section colors, modeled on Word/Excel:
+// three shades per hue – light (subtle), medium, strong (highlighter/"neon").
+// Values: "<hue>" | "<hue>-mid" | "<hue>-strong".
+// Must match bgColors (internal/httpapi/dto.go).
 //
-// Im Dunkelmodus werden die Farben transparent über den dunklen Hintergrund
-// gelegt, damit heller Text lesbar bleibt.
-// Alle Klassen stehen hier ausgeschrieben, damit Tailwind sie findet.
+// In dark mode the colors are laid transparently over the dark background
+// so that light text stays readable.
+// All classes are written out here so Tailwind finds them.
 
 export const HUES = ['gray', 'yellow', 'green', 'blue', 'red', 'purple'] as const;
 export const SHADES = ['', '-mid', '-strong'] as const;
 export type Shade = (typeof SHADES)[number];
 
-/** Hintergrund einer Zeile bzw. eines Abschnitts. */
+/** Background of a row or section. */
 export const ROW_BG: Record<string, string> = {
   gray: 'bg-zinc-100/80 dark:bg-zinc-800/50',
   yellow: 'bg-amber-50 dark:bg-amber-400/[0.08]',
@@ -35,7 +35,7 @@ export const ROW_BG: Record<string, string> = {
   'purple-strong': 'bg-[#ff00ff] dark:bg-[#ff00ff]/30'
 };
 
-/** Farbfelder im Auswahlmenü (so, wie die Farbe im hellen Modus wirkt). */
+/** Swatches in the picker menu (as the color looks in light mode). */
 export const SWATCH: Record<string, string> = {
   gray: 'bg-zinc-100',
   yellow: 'bg-amber-100',
@@ -59,13 +59,13 @@ export const SWATCH: Record<string, string> = {
   'purple-strong': 'bg-[#ff00ff]'
 };
 
-/** Name für Tooltip: Farbton + Stufe. */
+/** Name for tooltip: hue + shade. */
 export function colorLabel(value: string, tr: (k: string) => string): string {
   const [hue, shade] = value.split('-');
   return shade ? `${tr(`color.${hue}`)} (${tr(`color.shade.${shade}`)})` : tr(`color.${hue}`);
 }
 
-/** Textfarbe im Menü (Buchstabe „A“), wie [data-color] in app.css. */
+/** Text color in the menu (letter "A"), like [data-color] in app.css. */
 export const TEXT_SWATCH: Record<string, string> = {
   gray: 'text-zinc-500 dark:text-zinc-400',
   yellow: 'text-amber-500 dark:text-amber-400',
@@ -87,7 +87,7 @@ export const TEXT_SWATCH: Record<string, string> = {
   'purple-strong': 'text-[#7030a0] dark:text-[#b07ce0]'
 };
 
-/** Textmarker im Menü, wie mark[data-bg] in app.css (heller Modus). */
+/** Highlighter in the menu, like mark[data-bg] in app.css (light mode). */
 export const MARK_SWATCH: Record<string, string> = {
   gray: 'bg-zinc-200',
   yellow: 'bg-yellow-200',

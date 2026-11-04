@@ -8,7 +8,7 @@ import (
 	"github.com/seals187/projectList/internal/db/sqlc"
 )
 
-// customerListItem: Kunde mit letzter Aktivität (Kundenübersicht, Sortierung).
+// customerListItem: customer with latest activity (customer overview, sorting).
 type customerListItem struct {
 	sqlc.Customer
 	LastActivity string `json:"last_activity"`
@@ -44,7 +44,7 @@ type customerReq struct {
 	ContactEmail *string `json:"contact_email"`
 }
 
-// contactFields prüft Ort und Ansprechpartner; leere E-Mail ist erlaubt.
+// contactFields checks location and contact person; an empty email is allowed.
 func (v validator) contactFields(req customerReq, location, name, email *string) {
 	if req.Location != nil {
 		*location = v.text("location", *req.Location, 0, 100)

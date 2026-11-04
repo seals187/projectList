@@ -31,7 +31,7 @@ type sidebarChecklist struct {
 	Title   string `json:"title"`
 	Total   int64  `json:"total"`
 	Done    int64  `json:"done"`
-	NextDue string `json:"next_due"` // nächste Fälligkeit offener Einträge, "" = keine
+	NextDue string `json:"next_due"` // next due date of open entries, "" = none
 }
 
 type sidebarProject struct {
@@ -51,8 +51,8 @@ type sidebarCustomer struct {
 	Projects []sidebarProject `json:"projects"`
 }
 
-// sidebar liefert den Baum Kunden → Projekte → Checklisten inkl. Fortschritt
-// sowie die Anzahl offener eigener Aufgaben – mit vier Abfragen insgesamt.
+// sidebar returns the tree customers → projects → checklists incl. progress
+// plus the number of the user's own open tasks – with four queries in total.
 func (s *Server) sidebar(w http.ResponseWriter, r *http.Request, u authz.User) error {
 	ctx, filter := r.Context(), u.VisibilityFilter()
 	customers, err := s.q.ListCustomers(ctx, filter)
@@ -119,11 +119,11 @@ type overviewPerson struct {
 
 type overviewProject struct {
 	Team     []overviewPerson `json:"team"`
-	NextStep string           `json:"next_step"` // Rich-Text-HTML des ersten offenen Eintrags
+	NextStep string           `json:"next_step"` // rich-text HTML of the first open entry
 }
 
-// overview ergänzt die Sidebar-Daten für die Übersicht: je Projekt das Team
-// (zugewiesene Personen) und den nächsten offenen Schritt.
+// overview supplements the sidebar data for the overview: per project the team
+// (assigned people) and the next open step.
 func (s *Server) overview(w http.ResponseWriter, r *http.Request, u authz.User) error {
 	ctx, filter := r.Context(), u.VisibilityFilter()
 	teams, err := s.q.ListProjectTeams(ctx, filter)
@@ -147,8 +147,8 @@ func (s *Server) overview(w http.ResponseWriter, r *http.Request, u authz.User) 
 	return nil
 }
 
-// myTasks liefert die offenen, dem Benutzer zugewiesenen Einträge.
-// ?done=1: erledigte eigene Einträge der letzten 30 Tage.
+// myTasks returns the open entries assigned to the user.
+// ?done=1: the user's own done entries from the last 30 days.
 func (s *Server) myTasks(w http.ResponseWriter, r *http.Request, u authz.User) error {
 	if r.URL.Query().Get("done") == "1" {
 		rows, err := s.q.ListMyDoneTasks(r.Context(), sqlc.ListMyDoneTasksParams{AssigneeID: &u.ID, UserID: u.VisibilityFilter()})
@@ -166,7 +166,7 @@ func (s *Server) myTasks(w http.ResponseWriter, r *http.Request, u authz.User) e
 	return nil
 }
 
-// myChecklists: Checklisten, die dem angemeldeten Benutzer zugewiesen sind.
+// myChecklists: checklists assigned to the logged-in user.
 func (s *Server) myChecklists(w http.ResponseWriter, r *http.Request, u authz.User) error {
 	rows, err := s.q.ListMyChecklists(r.Context(), sqlc.ListMyChecklistsParams{AssigneeID: &u.ID, UserID: u.VisibilityFilter()})
 	if err != nil {
@@ -199,7 +199,7 @@ func (s *Server) search(w http.ResponseWriter, r *http.Request, u authz.User) er
 	return nil
 }
 
-// backup erzeugt per VACUUM INTO eine konsistente Kopie und liefert sie als Download.
+// backup creates a consistent copy via VACUUM INTO and serves it as a download.
 func (s *Server) backup(w http.ResponseWriter, r *http.Request, _ authz.User) error {
 	name := fmt.Sprintf("projectlist-%s.db", time.Now().UTC().Format("20060102-150405"))
 	tmp := filepath.Join(filepath.Dir(s.dbPath), ".backup-"+name)

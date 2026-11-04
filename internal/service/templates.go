@@ -1,5 +1,5 @@
-// Package service enthält Geschäftslogik, die mehrere Abfragen in einer
-// Transaktion bündelt.
+// Package service contains business logic that bundles several queries into
+// one transaction.
 package service
 
 import (
@@ -10,10 +10,10 @@ import (
 	"github.com/seals187/projectList/internal/db/sqlc"
 )
 
-// ApplyTemplate erzeugt eine neue Checkliste im Projekt als SNAPSHOT des
-// Templates: Einträge und Überschriften werden kopiert; spätere
-// Template-Änderungen wirken sich nicht auf die Checkliste aus. template_id ist
-// nur eine Herkunftsreferenz. Ist title leer, wird der Template-Name verwendet.
+// ApplyTemplate creates a new checklist in the project as a SNAPSHOT of the
+// template: entries and headings are copied; later template changes
+// do not affect the checklist. template_id is only an origin
+// reference. If title is empty, the template name is used.
 func ApplyTemplate(ctx context.Context, d *sql.DB, projectID, templateID int64, title string) (sqlc.Checklist, error) {
 	var cl sqlc.Checklist
 	err := db.WithTx(ctx, d, func(q *sqlc.Queries) error {
@@ -51,8 +51,8 @@ func ApplyTemplate(ctx context.Context, d *sql.DB, projectID, templateID int64, 
 	return cl, err
 }
 
-// SaveChecklistAsTemplate legt ein neues Template mit Titeln, Überschriften und
-// Notizen der Checkliste an (ohne Status, Zuständige, Fälligkeit).
+// SaveChecklistAsTemplate creates a new template with the titles, headings and
+// notes of the checklist (without status, assignees, due dates).
 func SaveChecklistAsTemplate(ctx context.Context, d *sql.DB, checklistID int64, name, description string) (sqlc.ChecklistTemplate, error) {
 	var tmpl sqlc.ChecklistTemplate
 	err := db.WithTx(ctx, d, func(q *sqlc.Queries) error {

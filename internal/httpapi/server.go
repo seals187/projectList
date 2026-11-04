@@ -1,4 +1,4 @@
-// Package httpapi stellt die JSON-API und das Routing bereit.
+// Package httpapi provides the JSON API and routing.
 package httpapi
 
 import (
@@ -28,14 +28,14 @@ type Server struct {
 
 type Options struct {
 	DB       *sql.DB
-	DBPath   string // für Backups (Zielverzeichnis für temporäre Datei)
+	DBPath   string // for backups (target directory for the temporary file)
 	Sessions *auth.Sessions
 	Logger   *slog.Logger
-	Static   http.Handler // SPA; nil = keine statischen Dateien
-	Subtitle string       // APP_SUBTITLE, wird in /api/auth/me mitgeliefert
+	Static   http.Handler // SPA; nil = no static files
+	Subtitle string       // APP_SUBTITLE, included in /api/auth/me
 }
 
-// handlerFunc ist ein API-Handler für angemeldete Benutzer.
+// handlerFunc is an API handler for logged-in users.
 type handlerFunc func(w http.ResponseWriter, r *http.Request, u authz.User) error
 
 type ctxKey struct{}
@@ -65,28 +65,28 @@ func New(o Options) http.Handler {
 	mux.Handle("GET /api/auth/me", s.authed(s.me))
 	mux.Handle("PUT /api/auth/password", s.authed(s.changePassword))
 
-	// Benutzerverwaltung (Admin)
+	// User management (admin)
 	mux.Handle("GET /api/users", s.admin(s.listUsers))
 	mux.Handle("POST /api/users", s.admin(s.createUser))
 	mux.Handle("PATCH /api/users/{id}", s.admin(s.updateUser))
 	mux.Handle("DELETE /api/users/{id}", s.admin(s.deleteUser))
 	mux.Handle("PUT /api/users/{id}/customers", s.admin(s.setUserCustomers))
 
-	// Kunden
+	// Customers
 	mux.Handle("GET /api/customers", s.authed(s.listCustomers))
 	mux.Handle("POST /api/customers", s.admin(s.createCustomer))
 	mux.Handle("GET /api/customers/{id}", s.authed(s.getCustomer))
 	mux.Handle("PATCH /api/customers/{id}", s.writer(s.updateCustomer))
 	mux.Handle("DELETE /api/customers/{id}", s.admin(s.deleteCustomer))
 
-	// Projekte
+	// Projects
 	mux.Handle("GET /api/customers/{id}/projects", s.authed(s.listProjects))
 	mux.Handle("POST /api/customers/{id}/projects", s.writer(s.createProject))
 	mux.Handle("GET /api/projects/{id}", s.authed(s.getProject))
 	mux.Handle("PATCH /api/projects/{id}", s.writer(s.updateProject))
 	mux.Handle("DELETE /api/projects/{id}", s.writer(s.deleteProject))
 
-	// Checklisten
+	// Checklists
 	mux.Handle("GET /api/projects/{id}/checklists", s.authed(s.listChecklists))
 	mux.Handle("POST /api/projects/{id}/checklists", s.writer(s.createChecklist))
 	mux.Handle("POST /api/projects/{id}/checklists/from-template", s.writer(s.createChecklistFromTemplate))
@@ -114,7 +114,7 @@ func New(o Options) http.Handler {
 	mux.Handle("PATCH /api/template-items/{id}", s.writer(s.updateTemplateItem))
 	mux.Handle("DELETE /api/template-items/{id}", s.writer(s.deleteTemplateItem))
 
-	// Sonstiges
+	// Miscellaneous
 	mux.Handle("GET /api/sidebar", s.authed(s.sidebar))
 	mux.Handle("GET /api/search", s.authed(s.search))
 	mux.Handle("GET /api/my-tasks", s.authed(s.myTasks))
@@ -136,14 +136,14 @@ func New(o Options) http.Handler {
 	return s.recoverer(s.logRequests(securityHeaders(s.originCheck(mux))))
 }
 
-// ---- Auth-Wrapper ------------------------------------------------------------
+// ---- Auth wrappers -----------------------------------------------------------
 
 func isUnsafe(method string) bool {
 	return method != http.MethodGet && method != http.MethodHead && method != http.MethodOptions
 }
 
-// authed verlangt eine gültige Session und für schreibende Requests einen
-// gültigen CSRF-Token im Header X-CSRF-Token.
+// authed requires a valid session and, for write requests, a valid
+// CSRF token in the X-CSRF-Token header.
 func (s *Server) authed(h handlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id, err := s.sessions.Load(r.Context(), w, r)
@@ -184,8 +184,8 @@ func (s *Server) writer(h handlerFunc) http.Handler {
 	})
 }
 
-// requireCustomer prüft den Zugriff auf einen Kunden. Fehlt die Leseberechtigung,
-// wird 404 geliefert (Existenz nicht verraten).
+// requireCustomer checks access to a customer. If read permission is missing,
+// 404 is returned (do not reveal existence).
 func (s *Server) requireCustomer(ctx context.Context, u authz.User, customerID int64) error {
 	ok, err := authz.CanAccessCustomer(ctx, s.q, u, customerID)
 	if err != nil {
@@ -199,8 +199,8 @@ func (s *Server) requireCustomer(ctx context.Context, u authz.User, customerID i
 
 // ---- Middleware --------------------------------------------------------------
 
-// originCheck weist schreibende Requests mit fremdem Origin ab (zusätzlich zu
-// SameSite=Lax und CSRF-Token; schützt auch den Login vor Login-CSRF).
+// originCheck rejects write requests with a foreign origin (in addition to
+// SameSite=Lax and the CSRF token; also protects the login against login CSRF).
 func (s *Server) originCheck(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if isUnsafe(r.Method) {

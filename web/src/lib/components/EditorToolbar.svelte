@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Formatierungsleiste des Block-Editors. Alle Buttons verhindern per
-  // mousedown.preventDefault, dass der Fokus/die Auswahl im Block verloren geht.
+  // Formatting toolbar of the block editor. All buttons use
+  // mousedown.preventDefault so the block does not lose focus/selection.
   import { KINDS } from '$lib/blocks';
   import { t, tMaybe, type Key } from '$lib/i18n.svelte';
   import { colorLabel, HUES, MARK_SWATCH, SHADES, TEXT_SWATCH } from '$lib/palette';
@@ -64,7 +64,7 @@
   </button>
   <span class={sep}></span>
 
-  <!-- Blocktyp -->
+  <!-- Block type -->
   <div class="relative">
     <button type="button" class="{btn(menu === 'kind')} w-32 justify-between! gap-1" onmousedown={keep} onclick={() => toggle('kind')} title={t('editor.blockType')}>
       <span class="truncate">{t(kindLabel)}</span>
@@ -100,7 +100,7 @@
   <button type="button" class="{btn(api.marks.code)} font-mono text-xs" onmousedown={keep} onclick={() => api.format('code')} title={t('editor.inlineCode')}>&lt;/&gt;</button>
   <span class={sep}></span>
 
-  <!-- Farben -->
+  <!-- Colors -->
   <div class="relative">
     <button type="button" class="{btn(menu === 'color')} gap-0.5" onmousedown={keep} onclick={() => toggle('color')} title={t('editor.textColor')}>
       <span class="flex flex-col items-center leading-none"><span class="font-semibold">A</span><span class="mt-0.5 h-[3px] w-3.5 rounded-full bg-red-500"></span></span>
@@ -111,7 +111,7 @@
         <button type="button" class="mb-1.5 flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800" onmousedown={keep} onclick={() => pick(() => api.color(''))}>
           <span class="w-4 text-center font-semibold">A</span>{t('editor.colorDefault')}
         </button>
-        <!-- gleiches Raster wie der Zeilen-Farbwähler: Zeilen = hell, mittel, kräftig -->
+        <!-- same grid as the row color picker: rows = light, medium, strong -->
         <div class="grid grid-cols-6 gap-1">
           {#each SHADES as shade (shade)}
             {#each HUES as hue (hue)}
@@ -142,7 +142,7 @@
         <button type="button" class="mb-1.5 flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800" onmousedown={keep} onclick={() => pick(() => api.highlight(''))}>
           <span class="size-4 rounded border border-zinc-300 dark:border-zinc-600"></span>{t('editor.none')}
         </button>
-        <!-- gleiches Raster wie der Zeilen-Farbwähler: Zeilen = hell, mittel, kräftig (Word) -->
+        <!-- same grid as the row color picker: rows = light, medium, strong (Word) -->
         <div class="grid grid-cols-6 gap-1">
           {#each SHADES as shade (shade)}
             {#each HUES as hue (hue)}
@@ -162,7 +162,7 @@
   </div>
   <span class={sep}></span>
 
-  <!-- Blöcke -->
+  <!-- Blocks -->
   {#each lists as l (l.kind)}
     <button type="button" class={btn(api.kind === l.kind)} onmousedown={keep} onclick={() => api.setKind(l.kind)} title={t(l.label)}>
       <BlockIcon kind={l.icon} size={15} />
@@ -179,13 +179,13 @@
     <Icon name="eraser" size={15} />
   </button>
 
-  <!-- rechte Gruppe: bleibt beim Umbrechen zusammen und rechtsbündig -->
+  <!-- right group: stays together and right-aligned when wrapping -->
   <div class="ml-auto flex shrink-0 items-center pl-2">
-  <!-- Rahmenlinien ein/aus (persönlich, pro Browser) -->
+  <!-- Grid lines on/off (personal, per browser) -->
   <button type="button" class="{btn(prefs.gridLines)} mr-1.5" onmousedown={keep} onclick={() => setPref('gridLines', !prefs.gridLines)} aria-pressed={prefs.gridLines} title={t('settings.gridLines')} aria-label={t('settings.gridLines')}>
     <Icon name="rows" size={15} />
   </button>
-  <!-- Größe der Checkliste (persönlich, pro Browser) -->
+  <!-- Checklist size (personal, per browser) -->
   <div class="mr-1.5 flex shrink-0 items-center rounded-md border border-zinc-200 dark:border-zinc-700" role="group" aria-label={t('editor.size')}>
     <button type="button" class="{btn()} h-6! min-w-6! rounded-r-none!" onmousedown={keep} onclick={() => stepZoom(-1)} disabled={prefs.zoom <= ZOOM_STEPS[0]} title={t('editor.smaller')} aria-label={t('editor.smaller')}>
       <Icon name="minus" size={13} />

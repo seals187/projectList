@@ -1,12 +1,12 @@
-// Inline-Formatierung im Browser: Bereinigung (spiegelt die Server-Whitelist),
-// Formatieren der Auswahl und Cursor-Hilfen für contenteditable-Blöcke.
+// Inline formatting in the browser: sanitizing (mirrors the server whitelist),
+// formatting the selection and caret helpers for contenteditable blocks.
 
 import { HUES, SHADES } from './palette';
 
-// Textfarben/Textmarker: gleiche Farbtöne und Stufen wie die Zeilenfarben;
-// muss mit richtext.TextColors/HighlightColors übereinstimmen.
+// Text colors/highlighters: same hues and shades as the row colors;
+// must match richtext.TextColors/HighlightColors.
 const PALETTE: readonly string[] = SHADES.flatMap((s) => HUES.map((h) => h + s));
-export const TEXT_COLORS: readonly string[] = [...PALETTE, 'orange']; // "orange": ältere Einträge
+export const TEXT_COLORS: readonly string[] = [...PALETTE, 'orange']; // "orange": older entries
 export const HIGHLIGHTS: readonly string[] = PALETTE;
 
 const TAGS: Record<string, string> = {
@@ -61,18 +61,18 @@ function renderNode(n: Node, out: string[], depth: number) {
   if (open) out.push(`</${tag}>`);
 }
 
-/** Bereinigt HTML auf die erlaubten Inline-Elemente (wie der Server). */
+/** Sanitizes HTML down to the allowed inline elements (like the server). */
 export function sanitizeHtml(html: string): string {
   if (!html) return '';
   if (!/[<&]/.test(html)) return esc(html);
   const doc = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
   const out: string[] = [];
   doc.body.childNodes.forEach((c) => renderNode(c, out, 0));
-  // Ein einzelnes abschließendes <br> (contenteditable-Artefakt) entfernen.
+  // Remove a single trailing <br> (contenteditable artifact).
   return out.join('').replace(/(<br>)+$/, '').trim();
 }
 
-/** Reiner Text aus (bereinigtem) HTML. */
+/** Plain text from (sanitized) HTML. */
 export function htmlToText(html: string): string {
   if (!html) return '';
   if (!/[<&]/.test(html)) return html;
@@ -80,7 +80,7 @@ export function htmlToText(html: string): string {
   return doc.body.textContent ?? '';
 }
 
-// ---- Auswahl & Cursor ----------------------------------------------------------
+// ---- Selection & cursor --------------------------------------------------------
 
 export function selectionIn(root: HTMLElement): Range | null {
   const sel = getSelection();
@@ -89,7 +89,7 @@ export function selectionIn(root: HTMLElement): Range | null {
   return root.contains(r.commonAncestorContainer) ? r : null;
 }
 
-/** Textlänge vom Anfang von root bis zum Cursor. */
+/** Text length from the start of root to the cursor. */
 export function caretOffset(root: HTMLElement): number {
   const r = selectionIn(root);
   if (!r) return 0;
@@ -120,7 +120,7 @@ function caretRect(root: HTMLElement): DOMRect | null {
   return rects.length ? rects[0] : null;
 }
 
-/** Steht der Cursor in der ersten bzw. letzten Zeile des Elements? */
+/** Is the cursor on the first or last line of the element? */
 export function caretOnFirstLine(root: HTMLElement) {
   if (caretAtStart(root)) return true;
   const c = caretRect(root);
@@ -135,7 +135,7 @@ export function caretOnLastLine(root: HTMLElement) {
   return root.getBoundingClientRect().bottom - c.bottom < c.height * 0.8;
 }
 
-/** Setzt den Cursor an eine Text-Position (Ende bei -1). */
+/** Places the cursor at a text position (end for -1). */
 export function placeCaret(root: HTMLElement, offset: number) {
   root.focus({ preventScroll: false });
   const sel = getSelection();
@@ -169,7 +169,7 @@ export function placeCaret(root: HTMLElement, offset: number) {
   sel.addRange(range);
 }
 
-/** Teilt den Inhalt am Cursor: gibt das HTML nach dem Cursor zurück und entfernt es aus root. */
+/** Splits the content at the cursor: returns the HTML after the cursor and removes it from root. */
 export function extractAfterCaret(root: HTMLElement): string {
   const r = selectionIn(root);
   if (!r) return '';
@@ -193,7 +193,7 @@ function unwrap(el: Element) {
   parent.removeChild(el);
 }
 
-/** Entfernt passende Elemente, die die Auswahl berühren (inkl. umschließender). */
+/** Removes matching elements touching the selection (including enclosing ones). */
 export function unwrapInSelection(root: HTMLElement, selector: string) {
   const r = selectionIn(root);
   if (!r) return;
@@ -209,7 +209,7 @@ export function unwrapInSelection(root: HTMLElement, selector: string) {
   hits.forEach(unwrap);
 }
 
-/** Umschließt die Auswahl mit einem Element (vorher gleichartige entfernen). */
+/** Wraps the selection in an element (removing elements of the same kind first). */
 export function wrapSelection(root: HTMLElement, tag: string, attrs: Record<string, string> = {}, sameSelector?: string) {
   if (sameSelector) unwrapInSelection(root, sameSelector);
   const r = selectionIn(root);
@@ -227,7 +227,7 @@ export function wrapSelection(root: HTMLElement, tag: string, attrs: Record<stri
   sel.addRange(nr);
 }
 
-/** Ist die Auswahl (teilweise) in einem passenden Element? */
+/** Is the selection (partially) inside a matching element? */
 export function selectionWithin(root: HTMLElement, selector: string) {
   const r = selectionIn(root);
   if (!r) return false;
@@ -239,7 +239,7 @@ export function selectionWithin(root: HTMLElement, selector: string) {
   return false;
 }
 
-/** Formatierung entfernen: Auswahl oder (ohne Auswahl) den ganzen Block. */
+/** Clear formatting: the selection or (without a selection) the whole block. */
 export function clearFormatting(root: HTMLElement) {
   const r = selectionIn(root);
   if (!r || r.collapsed) {

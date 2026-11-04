@@ -156,7 +156,7 @@ func (s *Server) updateUser(w http.ResponseWriter, r *http.Request, me authz.Use
 			if err := q.UpdateUserPassword(r.Context(), sqlc.UpdateUserPasswordParams{PasswordHash: hash, ID: id}); err != nil {
 				return err
 			}
-			if id != me.ID { // fremde Sessions nach Passwort-Reset beenden
+			if id != me.ID { // end other users' sessions after password reset
 				if err := q.DeleteSessionsForUser(r.Context(), id); err != nil {
 					return err
 				}

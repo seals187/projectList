@@ -8,7 +8,7 @@ import (
 	"github.com/seals187/projectList/internal/db/sqlc"
 )
 
-// projectStatuses: Phasen auf dem Board (Übersicht) plus "archived" zum Ausblenden.
+// projectStatuses: phases on the board (overview) plus "archived" for hiding.
 var projectStatuses = []string{"planning", "active", "review", "blocked", "done", "archived"}
 
 func (s *Server) listProjects(w http.ResponseWriter, r *http.Request, u authz.User) error {
@@ -31,8 +31,8 @@ type projectReq struct {
 	Name        *string     `json:"name"`
 	Description *string     `json:"description"`
 	Status      *string     `json:"status"`
-	DueDate     Opt[string] `json:"due_date"` // YYYY-MM-DD, null/"" = keins
-	// ob das Projekt in den Gesamtfortschritt des Kunden einfliesst
+	DueDate     Opt[string] `json:"due_date"` // YYYY-MM-DD, null/"" = none
+	// whether the project counts towards the customer's overall progress
 	IncludeInCustomerProgress *bool `json:"include_in_customer_progress"`
 }
 
@@ -67,7 +67,7 @@ func (s *Server) createProject(w http.ResponseWriter, r *http.Request, u authz.U
 	return nil
 }
 
-// loadProject lädt ein Projekt und prüft den Zugriff.
+// loadProject loads a project and checks access.
 func (s *Server) loadProject(ctx context.Context, u authz.User, id int64) (sqlc.Project, error) {
 	p, err := s.q.GetProject(ctx, id)
 	if err != nil {
@@ -76,9 +76,9 @@ func (s *Server) loadProject(ctx context.Context, u authz.User, id int64) (sqlc.
 	return p, s.requireCustomer(ctx, u, p.CustomerID)
 }
 
-// projectChecklists lädt alle Checklisten samt Items mit genau zwei Abfragen.
-// getProject liefert das Projekt mit seinen Checklisten; Fortschritt und
-// Fälligkeit je Checkliste werden per SQL aggregiert (keine Items geladen).
+// projectChecklists loads all checklists incl. items with exactly two queries.
+// getProject returns the project with its checklists; progress and
+// due date per checklist are aggregated in SQL (no items loaded).
 func (s *Server) getProject(w http.ResponseWriter, r *http.Request, u authz.User) error {
 	id, err := pathID(r, "id")
 	if err != nil {

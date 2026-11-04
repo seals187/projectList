@@ -1,6 +1,6 @@
 -- +goose Up
--- „Zuletzt besucht“ auch für Templates. Neuaufbau ist hier unkritisch:
--- user_recent wird von keiner anderen Tabelle referenziert.
+-- "Recently visited" for templates too. Rebuilding is safe here:
+-- user_recent is not referenced by any other table.
 CREATE TABLE user_recent_new (
     user_id    INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     kind       TEXT    NOT NULL CHECK (kind IN ('customer', 'project', 'checklist', 'template')),

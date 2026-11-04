@@ -1,10 +1,10 @@
 <script lang="ts">
-  // Codeblock: hervorgehobene Anzeige mit Zeilennummern; beim Bearbeiten liegt
-  // ein transparentes <textarea> exakt über dem Code (gleiche Schrift/Breite).
+  // Code block: highlighted display with line numbers; while editing, a
+  // transparent <textarea> sits exactly over the code (same font/width).
   import { CODE_LANGS, guessLang, highlightLine } from '$lib/highlight';
   import { t } from '$lib/i18n.svelte';
   import Icon from './Icon.svelte';
-  import { prefs } from '$lib/state.svelte'; // prefs.codeBg: Einstellungen → Checklisten → Codeblock
+  import { prefs } from '$lib/state.svelte'; // prefs.codeBg: Settings → Checklists → Code block
 
   let {
     code,
@@ -42,7 +42,7 @@
     try {
       await navigator.clipboard.writeText(code);
     } catch {
-      // Fallback für unsichere Kontexte (HTTP über IP)
+      // Fallback for insecure contexts (HTTP via IP)
       const tmp = document.createElement('textarea');
       tmp.value = code;
       document.body.appendChild(tmp);
@@ -79,7 +79,7 @@
     {:else}
       <span>{label}</span>
     {/if}
-    <!-- Hintergrund: Einstellungen → Checklisten → Codeblock -->
+    <!-- Background: Settings → Checklists → Code block -->
     <button type="button" class="code-hover code-btn ml-auto inline-flex items-center gap-1 rounded px-1.5 py-0.5" onclick={copy}>
       <Icon name={copied ? 'check' : 'copy'} size={12} />
       {copied ? t('code.copied') : t('code.copy')}

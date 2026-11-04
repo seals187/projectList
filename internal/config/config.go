@@ -1,4 +1,4 @@
-// Package config liest die Konfiguration aus Umgebungsvariablen.
+// Package config reads the configuration from environment variables.
 package config
 
 import (
@@ -16,7 +16,7 @@ type Config struct {
 	AdminEmail    string
 	AdminPassword string
 	AdminName     string
-	AppSubtitle   string // Untertitel unter "ProjectList" in der Seitenleiste (optional)
+	AppSubtitle   string // subtitle below "ProjectList" in the sidebar (optional)
 	CookieSecure  bool
 	SessionTTL    time.Duration
 	LogLevel      slog.Level

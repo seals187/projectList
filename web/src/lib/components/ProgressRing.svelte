@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Kreisförmiger Fortschritt mit Prozentzahl in der Mitte (Board-Karten).
+  // Circular progress with the percentage in the center (board cards).
   let { done, total, size = 34 }: { done: number; total: number; size?: number } = $props();
   const pct = $derived(total ? Math.round((done / total) * 100) : 0);
   const r = 15.5;

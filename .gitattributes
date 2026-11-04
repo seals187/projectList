@@ -1,8 +1,8 @@
-# Zeilenenden: im Repository und im Arbeitsverzeichnis immer LF
-# (auch unter Windows; Go, Node und Docker arbeiten durchgehend mit LF).
+# Line endings: always LF in the repository and in the working tree
+# (also on Windows; Go, Node and Docker use LF throughout).
 * text=auto eol=lf
 
-# Binärdateien nie umwandeln
+# Never convert binary files
 *.png    binary
 *.jpg    binary
 *.jpeg   binary

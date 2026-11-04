@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Befehlsmenü beim Tippen von "/" in einem Block.
+  // Command menu when typing "/" in a block.
   import type { KINDS } from '$lib/blocks';
   import { t } from '$lib/i18n.svelte';
   import type { Kind } from '$lib/types';

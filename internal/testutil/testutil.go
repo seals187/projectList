@@ -1,4 +1,4 @@
-// Package testutil stellt eine migrierte In-Memory-SQLite-Datenbank für Tests bereit.
+// Package testutil provides a migrated in-memory SQLite database for tests.
 package testutil
 
 import (

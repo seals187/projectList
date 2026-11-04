@@ -1,7 +1,7 @@
 -- +goose Up
--- bg_color ohne CHECK: die erlaubten Farben (inkl. kraeftiger Stufen wie
--- "yellow-strong") prueft der Server (httpapi.bgColors). So muss die Tabelle
--- fuer neue Farben nicht jedes Mal neu aufgebaut werden.
+-- bg_color without CHECK: the allowed colors (incl. strong shades like
+-- "yellow-strong") are checked by the server (httpapi.bgColors). This way the
+-- table does not have to be rebuilt for every new color.
 CREATE TABLE checklist_items_new (
     id           INTEGER PRIMARY KEY,
     checklist_id INTEGER  NOT NULL REFERENCES checklists (id) ON DELETE CASCADE,
@@ -52,7 +52,7 @@ ALTER TABLE template_items_new RENAME TO template_items;
 CREATE INDEX idx_template_items_template_id ON template_items (template_id, position);
 
 -- +goose Down
--- Kein Rueckbau des CHECK (wuerde bei kraeftigen Farben fehlschlagen); diese
--- werden auf die helle Stufe zurueckgesetzt.
+-- The CHECK is not restored (it would fail for strong colors); those
+-- are reset to the light shade.
 UPDATE checklist_items SET bg_color = replace(replace(bg_color, '-strong', ''), '-mid', '');
 UPDATE template_items SET bg_color = replace(replace(bg_color, '-strong', ''), '-mid', '');

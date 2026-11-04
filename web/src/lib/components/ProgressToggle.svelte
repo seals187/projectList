@@ -1,7 +1,7 @@
 <script lang="ts">
-  // Schalter „zählt zum Kundenfortschritt“ für ein Projekt (Tortendiagramm-Icon).
-  // An: lila auf hellem Lila; aus: grau. Admins und Members ändern per Klick
-  // (sofort sichtbar, bei Fehler zurück), Viewer sehen nur den Zustand.
+  // Toggle "counts toward customer progress" for a project (pie chart icon).
+  // On: purple on light purple; off: gray. Admins and members change it by click
+  // (visible immediately, reverted on error), viewers only see the state.
   import { api, errorText } from '$lib/api';
   import { canWrite, toast } from '$lib/state.svelte';
   import { t } from '$lib/i18n.svelte';
@@ -20,7 +20,7 @@
   );
 
   async function toggle(e: MouseEvent) {
-    e.preventDefault(); // liegt in Links/Zeilen: Projekt nicht öffnen
+    e.preventDefault(); // sits inside links/rows: don't open the project
     e.stopPropagation();
     if (!editable) return;
     const next = !on;

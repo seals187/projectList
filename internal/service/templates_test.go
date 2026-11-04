@@ -58,7 +58,7 @@ func TestApplyTemplateCreatesSnapshot(t *testing.T) {
 		t.Fatalf("Items nicht korrekt kopiert: %+v", items)
 	}
 
-	// Template nachträglich ändern: Checkliste darf sich NICHT ändern.
+	// Change template afterwards: checklist must NOT change.
 	if _, err := q.UpdateTemplateItem(ctx, sqlc.UpdateTemplateItemParams{ID: firstItem.ID, Kind: "item", Title: "GEÄNDERT"}); err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestApplyTemplateCreatesSnapshot(t *testing.T) {
 		t.Fatalf("Template-Änderung hat bestehende Checkliste beeinflusst: %+v", items)
 	}
 
-	// Template löschen: Checkliste bleibt, template_id wird NULL.
+	// Delete template: checklist remains, template_id becomes NULL.
 	if err := q.DeleteTemplate(ctx, tmpl.ID); err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestApplyTemplateCreatesSnapshot(t *testing.T) {
 		t.Fatal("Items nach Template-Löschung verloren")
 	}
 
-	// Zweite Anwendung mit eigenem Titel hängt hinten an.
+	// Second application with a custom title is appended at the end.
 	tmpl2, _ := q.CreateTemplate(ctx, sqlc.CreateTemplateParams{Name: "Leer"})
 	cl2, err := service.ApplyTemplate(ctx, d, p.ID, tmpl2.ID, "Eigener Titel")
 	if err != nil {
@@ -106,7 +106,7 @@ func TestApplyTemplateRollsBackOnError(t *testing.T) {
 	if !errors.Is(err, sql.ErrNoRows) {
 		t.Fatalf("erwartet ErrNoRows, bekommen %v", err)
 	}
-	// Ungültiges Projekt (FK-Verletzung) → nichts darf übrig bleiben.
+	// Invalid project (FK violation) → nothing may be left behind.
 	tmpl, _ := q.CreateTemplate(ctx, sqlc.CreateTemplateParams{Name: "T"})
 	_, _ = q.CreateTemplateItem(ctx, sqlc.CreateTemplateItemParams{TemplateID: tmpl.ID, Kind: "item", Title: "x"})
 	if _, err := service.ApplyTemplate(ctx, d, 4242, tmpl.ID, ""); err == nil {

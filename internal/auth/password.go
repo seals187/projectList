@@ -1,4 +1,4 @@
-// Package auth: Passwort-Hashing (Argon2id), Sessions, Login-Limiter, Admin-Bootstrap.
+// Package auth: password hashing (Argon2id), sessions, login limiter, admin bootstrap.
 package auth
 
 import (
@@ -15,9 +15,9 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
-// Parameter nach OWASP-Empfehlung (19 MiB, t=2, p=1): sicher und trotzdem
-// verträglich mit dem RAM-Ziel. hashSlots begrenzt parallele Hash-Vorgänge,
-// damit gleichzeitige Logins den Speicher nicht sprengen.
+// Parameters per OWASP recommendation (19 MiB, t=2, p=1): secure yet still
+// compatible with the RAM target. hashSlots limits parallel hash operations
+// so that concurrent logins do not blow up memory.
 const (
 	argonTime    = 2
 	argonMemory  = 19 * 1024
@@ -79,17 +79,17 @@ var (
 	dummyHash string
 )
 
-// VerifyDummy verbraucht dieselbe Zeit wie eine echte Prüfung, damit über die
-// Antwortzeit nicht erkennbar ist, ob eine E-Mail-Adresse existiert.
+// VerifyDummy takes the same time as a real check so that the response time
+// does not reveal whether an email address exists.
 func VerifyDummy(password string) {
 	dummyOnce.Do(func() { dummyHash, _ = HashPassword("dummy-password-for-timing") })
 	_, _ = VerifyPassword(password, dummyHash)
 }
 
-// Argon2 belegt pro Hash ~19 MiB. Ohne weitere Allokationen läuft danach
-// kein GC-Zyklus, und die Go-Runtime behält den Speicher. Kurz nach dem
-// letzten Hash-Vorgang wird er daher explizit ans Betriebssystem zurückgegeben
-// (mehrere Logins kurz hintereinander werden zusammengefasst).
+// Argon2 uses ~19 MiB per hash. Without further allocations no GC cycle runs
+// afterwards, and the Go runtime keeps the memory. Shortly after the last
+// hash operation it is therefore explicitly returned to the operating system
+// (several logins in quick succession are coalesced).
 var (
 	freeMu    sync.Mutex
 	freeTimer *time.Timer

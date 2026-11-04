@@ -8,7 +8,7 @@ CREATE TABLE users (
     created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- id = SHA-256 des Session-Tokens (der Klartext-Token existiert nur im Cookie)
+-- id = SHA-256 of the session token (the plaintext token exists only in the cookie)
 CREATE TABLE sessions (
     id         TEXT     PRIMARY KEY,
     user_id    INTEGER  NOT NULL REFERENCES users (id) ON DELETE CASCADE,
@@ -64,7 +64,7 @@ CREATE TABLE checklists (
     id          INTEGER PRIMARY KEY,
     project_id  INTEGER NOT NULL REFERENCES projects (id) ON DELETE CASCADE,
     title       TEXT    NOT NULL,
-    -- reine Herkunftsreferenz; Inhalte werden beim Anwenden kopiert
+    -- origin reference only; contents are copied when the template is applied
     template_id INTEGER REFERENCES checklist_templates (id) ON DELETE SET NULL,
     position    INTEGER NOT NULL DEFAULT 0
 );
@@ -81,12 +81,12 @@ CREATE TABLE checklist_items (
     due_date     TEXT,
     done_at      DATETIME,
     done_by      INTEGER  REFERENCES users (id) ON DELETE SET NULL,
-    -- Blocktyp; nur 'item' (Checkbox) zählt zum Fortschritt
+    -- block type; only 'item' (checkbox) counts towards progress
     kind         TEXT     NOT NULL DEFAULT 'item' CHECK (kind IN ('item', 'h1', 'h2', 'h3', 'h4', 'text', 'bullet', 'numbered', 'quote', 'code', 'divider')),
-    -- Einrückung (0-4) und Sprache bei Codeblöcken
+    -- indentation (0-4) and language for code blocks
     indent       INTEGER  NOT NULL DEFAULT 0 CHECK (indent BETWEEN 0 AND 4),
     lang         TEXT     NOT NULL DEFAULT '',
-    -- Farbmarkierung der Notiz (description); title/description sind bereinigtes HTML
+    -- color marker of the note (description); title/description are sanitized HTML
     note_color   TEXT     NOT NULL DEFAULT '' CHECK (note_color IN ('', 'green', 'orange', 'red', 'indigo'))
 );
 CREATE INDEX idx_checklist_items_checklist_id ON checklist_items (checklist_id, position);

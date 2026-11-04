@@ -1,12 +1,12 @@
 <script lang="ts" generics="T extends Row">
-  // Block-Editor für Checklisten und Templates.
+  // Block editor for checklists and templates.
   //
-  // Jeder Block ist eine Zeile (eigene DB-Zeile) mit contenteditable-Titel und
-  // einer Notiz in der rechten Spalte. Lokaler Zustand ist maßgeblich; alle
-  // Schreibzugriffe laufen der Reihe nach über eine Warteschlange, damit
-  // Positionen und neu angelegte IDs konsistent bleiben. Neue Blöcke bekommen
-  // sofort eine negative lokale ID (Fokus/Tippen ohne Wartezeit); die
-  // Server-ID wird in realIds nachgetragen.
+  // Each block is a row (its own DB row) with a contenteditable title and
+  // a note in the right column. Local state is authoritative; all
+  // writes run sequentially through a queue so that
+  // positions and newly created IDs stay consistent. New blocks get
+  // a negative local ID immediately (focus/typing without waiting); the
+  // server ID is filled in later in realIds.
   import { tick } from 'svelte';
   import { errorText } from '$lib/api';
   import { checkRadius, prefs, session, toast } from '$lib/state.svelte';
@@ -59,7 +59,7 @@
     assignees?: Assignee[];
     onchange?: () => void;
     onerror?: () => void;
-    /** Schlüssel für den lokal gespeicherten Einklapp-Zustand (z. B. "checklist:1"). */
+    /** Key for the locally stored collapse state (e.g. "checklist:1"). */
     collapseKey?: string;
   } = $props();
 
@@ -71,15 +71,15 @@
   const nums = $derived(numbering(items));
   const hStats = $derived(headingStats(items));
 
-  // ---- Abschnittsfarben ---------------------------------------------------------
-  // Die Farbe hängt an der Überschrift (bg_color) und gilt für ihren Abschnitt.
-  // Abgerundet wird nur am Anfang/Ende eines farbigen Bereichs (sichtbare Zeilen).
+  // ---- Section colors -----------------------------------------------------------
+  // The color belongs to the heading (bg_color) and applies to its section.
+  // Only the start/end of a colored area is rounded (visible rows).
 
   const secColors = $derived(sectionColors(items));
-  // Farbe, die eine Zeile ohne eigene Farbe vom Abschnitt erben würde (für "Wie Abschnitt")
+  // Color a row without its own color would inherit from the section (for "Same as section")
   const inheritedColors = $derived(sectionColors(items.map((b) => (isHeading(b.kind) ? b : { ...b, bg_color: '' as const }))));
-  // Ränder (Abstand, Rundung) nur an den Grenzen farbiger Abschnitte (Überschriften).
-  // Einzeln gefärbte Zeilen ändern nur den Hintergrund und schließen lückenlos an.
+  // Edges (spacing, rounding) only at the boundaries of colored sections (headings).
+  // Individually colored rows only change the background and join seamlessly.
   const secEdges = $derived.by(() => {
     const vis = blocks.filter((b) => !hidden.has(b.id));
     const out = new Map<number, { first: boolean; last: boolean }>();
@@ -96,20 +96,20 @@
   let bgMenu = $state<number | null>(null);
 
   function sectionRowCls(key: number): string {
-    const sec = secColors.get(key); // tatsächliche Farbe (eigene Zeilenfarbe oder Abschnitt)
-    const e = secEdges.get(key); // Lage im farbigen Abschnitt
+    const sec = secColors.get(key); // actual color (own row color or section)
+    const e = secEdges.get(key); // position within the colored section
     const bg = sec ? (ROW_BG[sec.color] ?? '') : '';
     const g = grid.get(key);
-    // Rasterzeilen: eckig, Abstand am Abschnittsende außen statt innen (sonst wird die Zelle höher)
+    // Grid rows: square corners, spacing at section end outside instead of inside (otherwise the cell gets taller)
     if (g) return `${bg} ${gridCls} ${g.joinPrev ? '-mt-px' : ''} ${e?.last ? 'mb-1.5' : ''}`;
     if (!e) return `${bg} rounded-md`;
     const radius = e.first && e.last ? 'rounded-md' : e.first ? 'rounded-t-md' : e.last ? 'rounded-b-md' : '';
     return `${bg} ${radius} ${e.first ? 'mt-1' : ''} ${e.last ? 'mb-1 pb-1.5' : ''}`;
   }
 
-  // ---- Rasterlinien -------------------------------------------------------------
-  // Mit prefs.gridLines bekommt jede Inhaltszeile (nicht Überschriften/Trennlinien)
-  // einen Rahmen; aufeinanderfolgende Zeilen teilen sich die Linie (-mt-px).
+  // ---- Grid lines ---------------------------------------------------------------
+  // With prefs.gridLines every content row (not headings/dividers) gets
+  // a border; consecutive rows share the line (-mt-px).
   const gridCls = 'border border-zinc-300 dark:border-zinc-700';
   const isCell = (b: Blk) => !isHeading(b.kind) && b.kind !== 'divider';
   const grid = $derived.by(() => {
@@ -125,7 +125,7 @@
     return out;
   });
 
-  // ---- Status (Freitext rechts neben der Checkbox) -----------------------------
+  // ---- Status (free text right of the checkbox) --------------------------------
   const statusOptions = $derived.by(() => {
     const set = new Set<string>(t('checklist.statusSuggestions').split('|'));
     for (const b of blocks) if (b.status) set.add(b.status);
@@ -133,9 +133,9 @@
   });
   const listId = `status-${Math.random().toString(36).slice(2, 8)}`;
 
-  // ---- Einklappen ---------------------------------------------------------------
-  // Pro Benutzer/Browser in localStorage, nicht in der Datenbank: Einklappen ist
-  // eine Ansichtssache und soll andere Bearbeiter nicht beeinflussen.
+  // ---- Collapsing ---------------------------------------------------------------
+  // Per user/browser in localStorage, not in the database: collapsing is
+  // a view concern and should not affect other editors.
 
   const collapsed = new SvelteSet<number>(loadCollapsed());
   const hidden = $derived(hiddenBlocks(items, collapsed));
@@ -159,14 +159,14 @@
       if (ids.length) localStorage.setItem(`collapsed:${collapseKey}`, JSON.stringify(ids));
       else localStorage.removeItem(`collapsed:${collapseKey}`);
     } catch {
-      /* privater Modus o. Ä. */
+      /* private mode or similar */
     }
   }
 
   function toggleCollapse(key: number) {
     if (collapsed.has(key)) collapsed.delete(key);
     else collapsed.add(key);
-    // Lag der Fokus in einem jetzt verborgenen Block, wandert er auf die Überschrift.
+    // If focus was in a now hidden block, it moves to the heading.
     const row = (document.activeElement as HTMLElement | null)?.closest('[data-id]') as HTMLElement | null;
     if (row && hiddenBlocks(items, collapsed).has(Number(row.dataset.id))) focusBlock(key, 'end');
     saveCollapsed();
@@ -178,7 +178,7 @@
     saveCollapsed();
   }
 
-  /** Klappt alle Überschriften auf, unter denen der Block verborgen ist. */
+  /** Expands all headings under which the block is hidden. */
   function reveal(key: number) {
     let i = indexOf(key);
     if (i < 0) return;
@@ -194,7 +194,7 @@
     if (changed) saveCollapsed();
   }
 
-  /** Drag & Drop liefert nur sichtbare IDs; verborgene Blöcke wandern mit ihrer Überschrift. */
+  /** Drag & drop only yields visible IDs; hidden blocks move along with their heading. */
   function reorderVisible(visible: number[]) {
     const groups = new Map<number, number[]>();
     let cur: number[] | null = null;
@@ -207,7 +207,7 @@
     reorder(visible.flatMap((id) => groups.get(id) ?? []));
   }
 
-  // ---- Zustand ----------------------------------------------------------------
+  // ---- State ------------------------------------------------------------------
 
   let focused = $state<{ key: number; field: 'title' | 'note' } | null>(null);
   let slash = $state<{ key: number; query: string; active: number } | null>(null);
@@ -219,14 +219,14 @@
   const noteEls = new Map<number, HTMLElement>();
   const codeEls = new Map<number, HTMLTextAreaElement>();
   const realIds = new Map<number, number>();
-  const saved = new Map<string, string>(); // zuletzt gespeicherter Text je key:field
+  const saved = new Map<string, string>(); // last saved text per key:field
   const timers = new Map<string, ReturnType<typeof setTimeout>>();
   let tempKey = -1;
   let savedRange: Range | null = null;
 
   const slashList = $derived(slash ? filterKinds(slash.query, t) : []);
 
-  // ---- Warteschlange & Server -------------------------------------------------
+  // ---- Queue & server ---------------------------------------------------------
 
   let queue: Promise<unknown> = Promise.resolve();
   function enqueue(fn: () => Promise<unknown>) {
@@ -243,7 +243,7 @@
   const find = (key: number) => blocks.find((b) => b.id === key);
   const indexOf = (key: number) => blocks.findIndex((b) => b.id === key);
 
-  /** Übernimmt serverseitig berechnete Felder (Namen, Zeitstempel), nie den Text. */
+  /** Applies server-computed fields (names, timestamps), never the text. */
   function mergeServer(key: number, res: Partial<Item>) {
     const b = find(key);
     if (!b) return;
@@ -302,7 +302,7 @@
     }
   }
 
-  // ---- Block-Operationen (mit Undo) -------------------------------------------
+  // ---- Block operations (with undo) -------------------------------------------
 
   function updateBlock(key: number, patch: Partial<Blk>, record = true) {
     const b = find(key);
@@ -330,7 +330,7 @@
     } as Partial<Blk>;
   }
 
-  /** Fügt einen Block nach afterKey ein (null = an den Anfang) und gibt die lokale ID zurück. */
+  /** Inserts a block after afterKey (null = at the start) and returns the local ID. */
   function insertBlock(afterKey: number | null, data: Partial<Blk>, opts: { key?: number; record?: boolean; focus?: 'start' | 'end' } = {}) {
     const key = opts.key ?? tempKey--;
     const ai = afterKey == null ? -1 : indexOf(afterKey);
@@ -446,7 +446,7 @@
     await history.redo();
   }
 
-  // ---- Fokus & Navigation -----------------------------------------------------
+  // ---- Focus & navigation -----------------------------------------------------
 
   async function focusBlock(key: number, where: 'start' | 'end' | number, field: 'title' | 'note' = 'title') {
     reveal(key);
@@ -475,7 +475,7 @@
     return null;
   }
 
-  // ---- Tastatur im Titel --------------------------------------------------------
+  // ---- Keyboard in the title ----------------------------------------------------
 
   function onTitleKey(e: KeyboardEvent, b: Blk) {
     const el = e.currentTarget as HTMLElement;
@@ -533,7 +533,7 @@
     const key = b.id;
     const listy = b.kind === 'item' || b.kind === 'bullet' || b.kind === 'numbered' || b.kind === 'quote';
     if (listy && !el.textContent) {
-      // Leerer Listeneintrag + Enter → Liste verlassen
+      // Empty list item + Enter → leave the list
       if (b.indent > 0) updateBlock(key, { indent: b.indent - 1 } as Partial<Blk>);
       else updateBlock(key, { kind: 'text' } as Partial<Blk>);
       return;
@@ -583,7 +583,7 @@
     focusBlock(prev.id, offset);
   }
 
-  /** Slash-Menü und Markdown-Kürzel nach einer Eingabe im Titel. */
+  /** Slash menu and Markdown shortcuts after input in the title. */
   function afterTitleInput(b: Blk, el: HTMLElement) {
     const text = el.textContent ?? '';
     if (text.startsWith('/') && !/\s/.test(text) && text.length <= 20) {
@@ -607,7 +607,7 @@
     convert(key, kind, true);
   }
 
-  /** Wandelt einen Block um (clear = Text leeren, z. B. nach "/befehl"). */
+  /** Converts a block (clear = empty the text, e.g. after "/command"). */
   function convert(key: number, kind: Kind, clear = false) {
     const b = find(key);
     if (!b) return;
@@ -625,7 +625,7 @@
     focusBlock(key, 'end');
   }
 
-  // ---- Einfügen aus der Zwischenablage ---------------------------------------
+  // ---- Pasting from the clipboard --------------------------------------------
 
   function onPaste(e: ClipboardEvent, b: Blk, field: 'title' | 'note') {
     e.preventDefault();
@@ -635,7 +635,7 @@
       insertPlainText(text);
       return;
     }
-    // Mehrzeilig in den Titel: erste Zeile hier, weitere Zeilen als neue Blöcke.
+    // Multiline into the title: first line here, further lines as new blocks.
     history.group(() => {
       insertPlainText(lines[0]);
       const el = titleEls.get(b.id);
@@ -650,7 +650,7 @@
     });
   }
 
-  // ---- Inline-Formatierung (Toolbar) ------------------------------------------
+  // ---- Inline formatting (toolbar) --------------------------------------------
 
   function activeEl(): HTMLElement | null {
     if (!focused) return null;
@@ -706,9 +706,9 @@
     savedRange = r ? r.cloneRange() : null;
   }
 
-  // ---- Links: Text und Adresse bearbeiten ----------------------------------------
-  // Klick auf einen Link (oder der Link-Button) öffnet einen kleinen Dialog mit
-  // Text + URL. Ohne Auswahl wird ein neuer Link an der Cursorposition eingefügt.
+  // ---- Links: edit text and address ---------------------------------------------
+  // Clicking a link (or the link button) opens a small dialog with
+  // text + URL. Without a selection, a new link is inserted at the cursor position.
 
   let linkEdit = $state<{
     el: HTMLElement;
@@ -720,7 +720,7 @@
     y: number;
   } | null>(null);
 
-  /** Ohne Schema: E-Mail-Adresse → mailto:, sonst https:// (nur http(s)/mailto sind erlaubt). */
+  /** Without a scheme: email address → mailto:, otherwise https:// (only http(s)/mailto are allowed). */
   function normalizeUrl(u: string) {
     u = u.trim();
     if (!u) return '';
@@ -743,7 +743,7 @@
     };
   }
 
-  /** Toolbar: bestehenden Link unter dem Cursor bearbeiten oder neuen anlegen. */
+  /** Toolbar: edit the existing link under the cursor or create a new one. */
   function openLink() {
     const el = activeEl();
     if (!el) return;
@@ -782,7 +782,7 @@
         r.deleteContents();
         na.textContent = text || url.replace(/^mailto:/i, '');
       }
-      na.querySelectorAll('a').forEach((x) => x.replaceWith(...x.childNodes)); // keine verschachtelten Links
+      na.querySelectorAll('a').forEach((x) => x.replaceWith(...x.childNodes)); // no nested links
       r.insertNode(na);
       caretAfter = na;
     }
@@ -819,7 +819,7 @@
     convert(b.id, b.kind === kind && kind !== 'text' ? 'text' : kind);
   }
 
-  /** Neuen Block nach dem fokussierten (oder am Ende) einfügen. */
+  /** Insert a new block after the focused one (or at the end). */
   function add(kind: Kind) {
     const after = focused && find(focused.key) ? focused.key : (blocks[blocks.length - 1]?.id ?? null);
     const indent = focused ? (find(focused.key)?.indent ?? 0) : 0;
@@ -833,7 +833,7 @@
     insertBlock(after, { kind, indent: isHeading(kind) ? 0 : indent } as Partial<Blk>, { focus: 'start' });
   }
 
-  /** "+" am Zeilenrand: neuer Block darunter mit geöffnetem Befehlsmenü. */
+  /** "+" at the row edge: new block below with the command menu open. */
   async function plus(afterKey: number) {
     const key = insertBlock(afterKey, { kind: 'text', title: '/' } as Partial<Blk>, { focus: 'end' });
     await tick();
@@ -865,7 +865,7 @@
     add
   };
 
-  // ---- contenteditable-Anbindung ---------------------------------------------
+  // ---- contenteditable binding -----------------------------------------------
 
   function rich(node: HTMLElement, p: { html: string; key: number; field: 'title' | 'note'; editable: boolean }) {
     let cur = p;
@@ -888,7 +888,7 @@
         e.preventDefault();
         window.open(a.href, '_blank', 'noopener');
       } else if (a && node.isContentEditable && node.contains(a)) {
-        // Klick in einen Link: Text/Adresse bearbeiten (Strg+Klick öffnet ihn)
+        // Click in a link: edit text/address (Ctrl+click opens it)
         openLinkEditor(node, a as HTMLAnchorElement, null);
       }
     };
@@ -917,7 +917,7 @@
 
   function onRootKey(e: KeyboardEvent) {
     if (!(e.ctrlKey || e.metaKey)) return;
-    // Im Status-Feld gilt das native Rückgängig des Eingabefelds.
+    // In the status field, the input's native undo applies.
     if ((e.target as HTMLElement).tagName === "INPUT") return;
     const k = e.key.toLowerCase();
     if (k === 'z' || k === 'y') {
@@ -929,7 +929,7 @@
 
   function onFocusOut(e: FocusEvent) {
     if (root && !root.contains(e.relatedTarget as Node | null)) {
-      // Fokus verlässt den Editor (Toolbar-Buttons verhindern das per mousedown)
+      // Focus leaves the editor (toolbar buttons prevent this via mousedown)
       setTimeout(() => {
         if (root && !root.contains(document.activeElement)) {
           focused = null;
@@ -951,9 +951,9 @@
     };
   });
 
-  // ---- Darstellung ------------------------------------------------------------
+  // ---- Rendering --------------------------------------------------------------
 
-  // Farben: siehe $lib/palette (ROW_BG für Zeilen/Abschnitte, SWATCH für das Auswahlmenü)
+  // Colors: see $lib/palette (ROW_BG for rows/sections, SWATCH for the picker menu)
   const iconMt: Partial<Record<Kind, string>> = { h1: 'mt-1', h2: 'mt-0.5', h3: 'mt-0.5', h4: 'mt-0' };
 
   const barColors: Record<NoteColor, string> = {
@@ -978,7 +978,7 @@
     code: '',
     divider: ''
   };
-  // vertikale Mitte der ersten Zeile je Überschriftengröße (Zeilenhöhe 28/24/24/20 px)
+  // vertical center of the first line per heading size (line height 28/24/24/20 px)
   const headingMt: Partial<Record<Kind, string>> = { h1: 'mt-1.5', h2: 'mt-1', h3: 'mt-1', h4: 'mt-0.5' };
   const rowSpacing: Partial<Record<Kind, string>> = { h1: 'pt-5', h2: 'pt-3', h3: 'pt-2', h4: 'pt-2' };
   const spacingPx: Partial<Record<Kind, number>> = { h1: 20, h2: 12, h3: 8, h4: 8 };
@@ -1005,7 +1005,7 @@
   {#if editable}<EditorToolbar {api} />{/if}
 
   {#if linkEdit}
-    <!-- Link bearbeiten: außerhalb des gezoomten Bereichs, damit die Position stimmt -->
+    <!-- Edit link: outside the zoomed area so the position is correct -->
     <form
       data-linkpop
       class="fixed z-50 w-[340px] space-y-2.5 rounded-lg border border-zinc-200 bg-white p-3 shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
@@ -1043,7 +1043,7 @@
     </form>
   {/if}
 
-  <!-- Checkbox eines Eintrags; Position (links/rechts) und Form kommen aus den persönlichen Einstellungen -->
+  <!-- Checkbox of an item; position (left/right) and shape come from the personal settings -->
   {#snippet checkbox(b: Blk, done: boolean, extra: string)}
     <button
       type="button"
@@ -1060,7 +1060,7 @@
     </button>
   {/snippet}
 
-  <!-- Hintergrundfarbe: bei Überschriften für den ganzen Abschnitt, sonst nur für die Zeile -->
+  <!-- Background color: for headings it applies to the whole section, otherwise only to the row -->
   {#snippet bgPicker(b: Blk, cls: string, label: string, hide: string)}
   <div class="relative shrink-0 {cls}" data-bgmenu>
     <button
@@ -1075,7 +1075,7 @@
       <Icon name="droplet" size={13} />
     </button>
     {#if bgMenu === b.id}
-      <!-- Zeile in farbigem Abschnitt: "Wie Abschnitt" ('') und "Ohne Farbe" ('none') unterscheiden -->
+      <!-- Row in a colored section: distinguish "Same as section" ('') and "No color" ('none') -->
       {@const inherited = isHeading(b.kind) ? undefined : inheritedColors.get(b.id)?.color}
       {@const noneValue = inherited ? 'none' : ''}
       {@const sel = 'ring-2 ring-accent-500 ring-offset-1 dark:ring-offset-zinc-900'}
@@ -1110,7 +1110,7 @@
           <Icon name="x" size={12} />
         </button>
         </div>
-        <!-- je Zeile eine Stufe: hell, mittel, kräftig (wie Word/Excel) -->
+        <!-- one shade per row: light, medium, strong (like Word/Excel) -->
         <div class="grid grid-cols-6 gap-1">
           {#each SHADES as shade (shade)}
             {#each HUES as hue (hue)}
@@ -1134,7 +1134,7 @@
   </div>
   {/snippet}
 
-  <!-- Status-Freitext eines Eintrags ("Erfüllt", "Erreicht" …); feste Breite = bündige Spalte -->
+  <!-- Free-text status of an item ("Fulfilled", "Achieved" …); fixed width = aligned column -->
   {#snippet statusField(b: Blk)}
     {#if editable}
       <input
@@ -1172,7 +1172,7 @@
     {#each statusOptions as o (o)}<option value={o}></option>{/each}
   </datalist>
 
-  <!-- Größe per CSS zoom: skaliert Text, Checkboxen und Notizspalte gemeinsam -->
+  <!-- Size via CSS zoom: scales text, checkboxes and note column together -->
   <div style:zoom={prefs.zoom === 1 ? undefined : prefs.zoom}>
 
   <div class="grid md:grid-cols-[minmax(0,1fr)_18rem] 2xl:grid-cols-[minmax(0,1fr)_24rem]">
@@ -1202,7 +1202,7 @@
         class="group/row relative scroll-mt-20 {sectionRowCls(b.id)} {hidden.has(b.id) ? 'hidden' : 'grid'} md:grid-cols-[minmax(0,1fr)_18rem] 2xl:grid-cols-[minmax(0,1fr)_24rem]
           {isFocused && editable ? 'ring-1 ring-accent-400/80 dark:ring-accent-500/60' : ''}
           [&.dragging]:bg-white [&.dragging]:shadow-lg dark:[&.dragging]:bg-zinc-900">
-        <!-- Hauptspalte -->
+        <!-- Main column -->
         <div class="relative flex min-w-0 items-start gap-2 py-[3px] pr-2 {i > 0 ? (rowSpacing[b.kind] ?? '') : ''}" style:padding-left="{32 + b.indent * 24}px">
           {#if editable}
             <div class="absolute flex items-center" style:left="{b.indent * 24}px" style:top="{(i > 0 ? (spacingPx[b.kind] ?? 0) : 0) + (b.kind === "h1" ? 7 : b.kind === "h2" ? 5 : 3)}px">
@@ -1269,11 +1269,11 @@
                   }
                 }} />
             </div>
-            <!-- Platzhalter wie Checkbox (rechts) und Status: Codeblock endet bündig mit dem Text der Einträge -->
+            <!-- Placeholders like checkbox (right) and status: code block ends flush with the item text -->
             {#if prefs.checkPos === 'right'}<span class="ml-1 size-4 shrink-0" aria-hidden="true"></span>{/if}
             {#if isChecklist}<span class="w-20 shrink-0 md:w-28" aria-hidden="true"></span>{/if}
           {:else}
-            <!-- Marker je Blocktyp -->
+            <!-- Marker per block type -->
             {#if b.kind === 'item' && prefs.checkPos === 'left'}
               {@render checkbox(b, done, '')}
             {:else if b.kind === 'bullet'}
@@ -1325,12 +1325,12 @@
             {#if isHeading(b.kind)}<span class="flex-1"></span>{/if}
 
             {#if isHeading(b.kind) && editable}
-              <!-- Abschnittsfarbe -->
+              <!-- Section color -->
               {@render bgPicker(b, iconMt[b.kind] ?? "", t("editor.sectionColor"), "max-md:opacity-100")}
             {/if}
 
             {#if isChecklist && b.kind === 'item'}
-              <!-- Zuständig -->
+              <!-- Assignee -->
               {#if editField?.key === b.id && editField.field === 'assignee'}
                 <select
                   class="input w-auto! py-0! text-xs!"
@@ -1358,7 +1358,7 @@
                   onclick={() => (editField = { key: b.id, field: 'assignee' })}><Icon name="user" size={14} /></button>
               {/if}
 
-              <!-- Fälligkeit -->
+              <!-- Due date -->
               {#if editField?.key === b.id && editField.field === 'due'}
                 <input
                   type="date"
@@ -1397,7 +1397,7 @@
 
           {#if editable}
             {#if editable && ['text', 'bullet', 'numbered', 'quote', 'h1', 'h2', 'h3', 'h4'].includes(b.kind)}
-              <!-- in einen Checklistenpunkt (mit Checkbox) umwandeln -->
+              <!-- convert into a checklist item (with checkbox) -->
               <button
                 type="button"
                 class="mt-px flex size-5 shrink-0 items-center justify-center rounded text-zinc-400 opacity-0 group-hover/row:opacity-100 hover:bg-black/5 hover:text-accent-600 focus:opacity-100 max-md:hidden dark:hover:bg-white/10 dark:hover:text-accent-400
@@ -1410,7 +1410,7 @@
               </button>
             {/if}
             {#if editable && !isHeading(b.kind) && b.kind !== 'divider'}
-              <!-- Zeilenfarbe -->
+              <!-- Row color -->
               {@render bgPicker(b, 'mt-px max-md:hidden', t('editor.rowColor'), '')}
             {/if}
             <span class="flex shrink-0 opacity-0 group-hover/row:opacity-100 focus-within:opacity-100 max-md:hidden">
@@ -1423,7 +1423,7 @@
           {/if}
         </div>
 
-        <!-- Notiz -->
+        <!-- Note -->
         <div
           class="min-w-0 items-start gap-2.5 pb-1 pl-8 bg-white md:border-l md:border-zinc-300 md:py-[3px] md:pl-4 dark:bg-zinc-950 dark:md:border-zinc-700 {i > 0 ? (noteSpacing[b.kind] ?? "") : ""}
             {b.description ? "flex" : "hidden group-focus-within/row:flex md:flex"}">

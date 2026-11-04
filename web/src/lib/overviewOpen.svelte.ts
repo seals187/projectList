@@ -1,5 +1,5 @@
-// Übersicht (Karten und Liste): welche Kunden ihre Projekte aufgeklappt zeigen.
-// Standard: eingeklappt. Gemerkt werden nur die aufgeklappten Kunden (pro Browser).
+// Overview (cards and list): which customers show their projects expanded.
+// Default: collapsed. Only expanded customers are remembered (per browser).
 import { SvelteSet } from 'svelte/reactivity';
 
 const KEY = 'overview-open';
@@ -19,7 +19,7 @@ function persist() {
   try {
     localStorage.setItem(KEY, JSON.stringify([...openCustomers]));
   } catch {
-    /* ignorieren */
+    /* ignore */
   }
 }
 
@@ -29,7 +29,7 @@ export function toggleCustomer(id: number) {
   persist();
 }
 
-/** Alle auf- bzw. zuklappen. */
+/** Expand or collapse all. */
 export function setAllCustomers(ids: number[], open: boolean) {
   openCustomers.clear();
   if (open) ids.forEach((id) => openCustomers.add(id));

@@ -1,9 +1,9 @@
-// Command projectlist ist der ProjectList-Server samt Hilfsbefehlen.
+// Command projectlist is the ProjectList server plus helper commands.
 //
-//	projectlist [serve]          Server starten (Standard)
-//	projectlist backup [ziel]    Konsistente DB-Kopie per VACUUM INTO
-//	projectlist migrate          Nur Migrationen ausführen
-//	projectlist healthcheck      /healthz prüfen (für Docker-Healthcheck)
+//	projectlist [serve]          Start the server (default)
+//	projectlist backup [target]  Consistent DB copy via VACUUM INTO
+//	projectlist migrate          Run migrations only
+//	projectlist healthcheck      Check /healthz (for Docker healthcheck)
 //	projectlist version
 package main
 
@@ -117,7 +117,7 @@ func serve(cfg config.Config, log *slog.Logger) error {
 		}),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       30 * time.Second,
-		WriteTimeout:      5 * time.Minute, // Backup-Download
+		WriteTimeout:      5 * time.Minute, // backup download
 		IdleTimeout:       2 * time.Minute,
 		MaxHeaderBytes:    64 << 10,
 		ErrorLog:          slog.NewLogLogger(log.Handler(), slog.LevelWarn),
@@ -144,7 +144,7 @@ func serve(cfg config.Config, log *slog.Logger) error {
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		return fmt.Errorf("shutdown: %w", err)
 	}
-	// WAL in die Hauptdatei zurückschreiben, damit die DB-Datei für sich konsistent ist.
+	// Write the WAL back into the main file so the DB file is consistent on its own.
 	if _, err := database.ExecContext(shutdownCtx, "PRAGMA wal_checkpoint(TRUNCATE)"); err != nil {
 		log.Warn("wal checkpoint fehlgeschlagen", "err", err)
 	}

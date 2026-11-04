@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Neuen Kunden anlegen (Admin): Name, Ort, Ansprechpartner, E-Mail.
+  // Create a new customer (admin): name, location, contact person, email.
   import { goto } from '$app/navigation';
   import { api, errorText } from '$lib/api';
   import { refreshSidebar, toast } from '$lib/state.svelte';

@@ -1,14 +1,14 @@
-// Package richtext bereinigt die Inline-Formatierung der Blöcke (Titel und
-// Notizen) per Whitelist. Erlaubt sind nur:
+// Package richtext sanitizes the inline formatting of blocks (titles and
+// notes) via a whitelist. Only the following is allowed:
 //
 //	<b> <i> <u> <s> <code> <br>
-//	<a href="http(s)://…|mailto:…">           (target/rel werden erzwungen)
+//	<a href="http(s)://…|mailto:…">           (target/rel are enforced)
 //	<span data-color="gray|red|orange|green|blue|purple">
 //	<mark data-bg="yellow|green|blue|red|purple">
 //
-// Synonyme (strong, em, strike, del) werden normalisiert. Alle anderen Tags
-// werden entfernt, ihr Text bleibt erhalten; script/style samt Inhalt fallen
-// komplett weg. Attribute außer den genannten werden verworfen.
+// Synonyms (strong, em, strike, del) are normalized. All other tags are
+// removed while their text is kept; script/style including their content are
+// dropped entirely. Attributes other than those listed are discarded.
 package richtext
 
 import (
@@ -18,9 +18,9 @@ import (
 	"golang.org/x/net/html/atom"
 )
 
-// Textfarben und Textmarker: 6 Farbtöne × 3 Stufen (hell, "-mid", "-strong"),
-// gleich wie die Zeilenfarben (web/src/lib/palette.ts). "orange" bleibt als
-// Textfarbe für ältere Einträge gültig.
+// Text colors and highlights: 6 hues × 3 shades (light, "-mid", "-strong"),
+// same as the row colors (web/src/lib/palette.ts). "orange" remains valid as
+// a text color for older entries.
 var (
 	TextColors      = palette("orange")
 	HighlightColors = palette()
@@ -51,7 +51,7 @@ var tagMap = map[string]string{
 	"br":   "br",
 }
 
-// Sanitize gibt bereinigtes HTML zurück.
+// Sanitize returns sanitized HTML.
 func Sanitize(in string) string {
 	if !strings.ContainsAny(in, "<&") {
 		return html.EscapeString(in)
@@ -63,7 +63,7 @@ func Sanitize(in string) string {
 	}
 	var b strings.Builder
 	for i, n := range nodes {
-		// Top-Level-Blöcke (z. B. <div>-Zeilen aus contenteditable) als Umbruch erhalten.
+		// Keep top-level blocks (e.g. <div> lines from contenteditable) as line breaks.
 		if i > 0 && n.Type == html.ElementNode && isBlock(n.DataAtom) {
 			b.WriteString("<br>")
 		}
@@ -72,7 +72,7 @@ func Sanitize(in string) string {
 	return strings.TrimSpace(b.String())
 }
 
-// Text liefert den reinen Text (z. B. für Längenprüfung oder Suche).
+// Text returns the plain text (e.g. for length checks or search).
 func Text(in string) string {
 	nodes, err := html.ParseFragment(strings.NewReader(in), &html.Node{Type: html.ElementNode, Data: "div", DataAtom: atom.Div})
 	if err != nil {
@@ -135,7 +135,7 @@ func render(b *strings.Builder, n *html.Node, depth int) {
 			open = "<" + tag + ">"
 		}
 	}
-	// Block-Elemente (div, p, li …) als Zeilenumbruch erhalten.
+	// Keep block elements (div, p, li …) as line breaks.
 	if !ok && isBlock(n.DataAtom) && n.PrevSibling != nil {
 		b.WriteString("<br>")
 	}

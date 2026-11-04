@@ -72,14 +72,14 @@ func TestSessionLifecycle(t *testing.T) {
 		t.Fatal("Token darf nicht im Klartext als Session-ID gespeichert werden")
 	}
 
-	// Gefälschter Token → keine Session
+	// Forged token → no session
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	req.AddCookie(&http.Cookie{Name: auth.CookieName, Value: "gefaelscht"})
 	if id, _ := s.Load(ctx, httptest.NewRecorder(), req); id != nil {
 		t.Fatal("gefälschter Token akzeptiert")
 	}
 
-	// Abgelaufen
+	// Expired
 	now = now.Add(2 * time.Hour)
 	if load() != nil {
 		t.Fatal("abgelaufene Session akzeptiert")
@@ -119,7 +119,7 @@ func TestEnsureAdmin(t *testing.T) {
 	if err != nil || u.Role != "admin" {
 		t.Fatalf("Admin nicht angelegt: %+v %v", u, err)
 	}
-	// Zweiter Aufruf: keine Änderung, kein Fehler
+	// Second call: no change, no error
 	if err := auth.EnsureAdmin(ctx, q, "other@example.com", "langes-passwort", "X", log); err != nil {
 		t.Fatal(err)
 	}

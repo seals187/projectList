@@ -1,4 +1,4 @@
-// Package migrations enthält die goose-SQL-Migrationen, eingebettet ins Binary.
+// Package migrations contains the goose SQL migrations, embedded in the binary.
 package migrations
 
 import "embed"

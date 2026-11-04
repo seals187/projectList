@@ -14,7 +14,7 @@ import (
 	"unicode/utf8"
 )
 
-// ---- Fehler ------------------------------------------------------------------
+// ---- Errors ------------------------------------------------------------------
 
 type httpError struct {
 	Status int               `json:"-"`
@@ -83,7 +83,7 @@ func pathID(r *http.Request, name string) (int64, error) {
 	return id, nil
 }
 
-// Opt unterscheidet in PATCH-Requests "Feld fehlt" von "Feld ist null".
+// Opt distinguishes "field missing" from "field is null" in PATCH requests.
 type Opt[T any] struct {
 	Set  bool
 	Null bool
@@ -99,11 +99,11 @@ func (o *Opt[T]) UnmarshalJSON(b []byte) error {
 	return json.Unmarshal(b, &o.V)
 }
 
-// ---- Validierung -------------------------------------------------------------
+// ---- Validation --------------------------------------------------------------
 
 type validator map[string]string
 
-// text trimmt s und prüft die Länge in Zeichen.
+// text trims s and checks its length in characters.
 func (v validator) text(field, s string, min, max int) string {
 	s = strings.TrimSpace(s)
 	n := utf8.RuneCountInString(s)
@@ -154,7 +154,7 @@ func (v validator) err() error {
 	return &httpError{Status: http.StatusBadRequest, Msg: "validation", Fields: v}
 }
 
-// orderReq ist der Body für Sortier-Endpunkte.
+// orderReq is the body for sort endpoints.
 type orderReq struct {
 	IDs []int64 `json:"ids"`
 }
@@ -173,8 +173,8 @@ func (o orderReq) validate() error {
 	return nil
 }
 
-// optDate wertet ein optionales Datumsfeld aus: nicht gesendet → cur,
-// null oder "" → nil, sonst geprüftes YYYY-MM-DD.
+// optDate evaluates an optional date field: not sent → cur,
+// null or "" → nil, otherwise a validated YYYY-MM-DD.
 func (v validator) optDate(field string, o Opt[string], cur *string) *string {
 	if !o.Set {
 		return cur

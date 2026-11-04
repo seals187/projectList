@@ -1,5 +1,5 @@
 -- +goose Up
--- Freitext-Status eines Checklisten-Eintrags (z. B. "erfuellt", "erreicht").
+-- Free-text status of a checklist entry (e.g. "erfuellt", "erreicht").
 ALTER TABLE checklist_items ADD COLUMN status TEXT NOT NULL DEFAULT '';
 
 -- +goose Down

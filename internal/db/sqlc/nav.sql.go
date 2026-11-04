@@ -48,6 +48,21 @@ func (q *Queries) DeleteRecentBefore(ctx context.Context, arg DeleteRecentBefore
 	return err
 }
 
+const deleteRecentEntry = `-- name: DeleteRecentEntry :exec
+DELETE FROM user_recent WHERE user_id = ? AND kind = ? AND target_id = ?
+`
+
+type DeleteRecentEntryParams struct {
+	UserID   int64  `json:"user_id"`
+	Kind     string `json:"kind"`
+	TargetID int64  `json:"target_id"`
+}
+
+func (q *Queries) DeleteRecentEntry(ctx context.Context, arg DeleteRecentEntryParams) error {
+	_, err := q.db.ExecContext(ctx, deleteRecentEntry, arg.UserID, arg.Kind, arg.TargetID)
+	return err
+}
+
 const listFavorites = `-- name: ListFavorites :many
 SELECT project_id FROM user_favorites WHERE user_id = ? ORDER BY created_at, project_id
 `
@@ -78,7 +93,7 @@ func (q *Queries) ListFavorites(ctx context.Context, userID int64) ([]int64, err
 const listRecent = `-- name: ListRecent :many
 SELECT kind, target_id, visited_at FROM user_recent
 WHERE user_id = ?
-ORDER BY visited_at DESC
+ORDER BY visited_at DESC, rowid DESC
 LIMIT 20
 `
 
@@ -88,6 +103,8 @@ type ListRecentRow struct {
 	VisitedAt string `json:"visited_at"`
 }
 
+// Newest first. rowid breaks ties between visits in the same millisecond:
+// TouchRecent re-inserts the row, so a later visit always has a larger rowid.
 func (q *Queries) ListRecent(ctx context.Context, userID int64) ([]ListRecentRow, error) {
 	rows, err := q.db.QueryContext(ctx, listRecent, userID)
 	if err != nil {
@@ -128,7 +145,6 @@ func (q *Queries) RemoveFavorite(ctx context.Context, arg RemoveFavoriteParams) 
 const touchRecent = `-- name: TouchRecent :exec
 INSERT INTO user_recent (user_id, kind, target_id, visited_at)
 VALUES (?, ?, ?, strftime('%Y-%m-%d %H:%M:%f', 'now'))
-ON CONFLICT (user_id, kind, target_id) DO UPDATE SET visited_at = excluded.visited_at
 `
 
 type TouchRecentParams struct {
@@ -137,6 +153,7 @@ type TouchRecentParams struct {
 	TargetID int64  `json:"target_id"`
 }
 
+// Always called after DeleteRecentEntry in the same transaction (new rowid).
 func (q *Queries) TouchRecent(ctx context.Context, arg TouchRecentParams) error {
 	_, err := q.db.ExecContext(ctx, touchRecent, arg.UserID, arg.Kind, arg.TargetID)
 	return err

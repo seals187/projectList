@@ -10,7 +10,7 @@ import (
 	"github.com/seals187/projectList/internal/db/sqlc"
 )
 
-// loadItem lädt ein Item und prüft den Zugriff über den Kunden.
+// loadItem loads an item and checks access via the customer.
 func (s *Server) loadItem(ctx context.Context, u authz.User, id int64) (sqlc.GetItemWithCustomerRow, error) {
 	it, err := s.q.GetItemWithCustomer(ctx, id)
 	if err != nil {
@@ -28,12 +28,12 @@ func (s *Server) itemResponse(w http.ResponseWriter, r *http.Request, status int
 	return nil
 }
 
-// validateAssignee stellt sicher, dass der Zuständige Zugriff auf den Kunden hat.
+// validateAssignee ensures that the assignee has access to the customer.
 func (s *Server) validateAssignee(ctx context.Context, v validator, assigneeID, customerID int64) error {
 	user, err := s.q.GetUserByID(ctx, assigneeID)
 	if err != nil {
 		v["assignee_id"] = "unknown_user"
-		return nil //nolint:nilerr // als Validierungsfehler gemeldet
+		return nil //nolint:nilerr // reported as a validation error
 	}
 	ok, err := authz.CanAccessCustomer(ctx, s.q, authz.User{ID: user.ID, Role: user.Role}, customerID)
 	if err != nil {
@@ -55,13 +55,13 @@ type itemReq struct {
 	Lang        Opt[string] `json:"lang"`
 	AssigneeID  Opt[int64]  `json:"assignee_id"`
 	DueDate     Opt[string] `json:"due_date"`
-	Status      Opt[string] `json:"status"` // Freitext, nur bei Einträgen
-	// Position: Einfügen vor dem Eintrag an dieser Position (0-basiert).
-	// Fehlt sie, wird am Ende angehängt. Nur beim Anlegen.
+	Status      Opt[string] `json:"status"` // free text, entries only
+	// Position: insert before the entry at this position (0-based).
+	// If missing, it is appended at the end. Only on create.
 	Position Opt[int64] `json:"position"`
 }
 
-// apply überträgt gesetzte Felder auf b.
+// apply copies the fields that are set onto b.
 func (req itemReq) apply(b *block) {
 	if req.Kind.Set {
 		b.Kind = req.Kind.V
@@ -169,7 +169,7 @@ func (s *Server) updateItem(w http.ResponseWriter, r *http.Request, u authz.User
 	}
 	v := validator{}
 	if req.Position.Set {
-		v["position"] = "invalid_value" // Reihenfolge nur über den Sortier-Endpunkt
+		v["position"] = "invalid_value" // order only via the sort endpoint
 	}
 	b := block{Kind: cur.Kind, Title: cur.Title, Description: cur.Description, NoteColor: cur.NoteColor, BgColor: cur.BgColor, Indent: cur.Indent, Lang: cur.Lang}
 	req.apply(&b)
@@ -211,8 +211,8 @@ func (s *Server) updateItem(w http.ResponseWriter, r *http.Request, u authz.User
 	return s.itemResponse(w, r, http.StatusOK, id)
 }
 
-// setItemDone setzt den Status idempotent (gut für Optimistic Updates):
-// {"done": true} hakt ab und merkt sich wer/wann, {"done": false} hebt auf.
+// setItemDone sets the status idempotently (good for optimistic updates):
+// {"done": true} checks off and records who/when, {"done": false} unchecks.
 func (s *Server) setItemDone(w http.ResponseWriter, r *http.Request, u authz.User) error {
 	id, err := pathID(r, "id")
 	if err != nil {
@@ -236,7 +236,7 @@ func (s *Server) setItemDone(w http.ResponseWriter, r *http.Request, u authz.Use
 	}
 	p := sqlc.SetItemDoneParams{ID: id}
 	if *req.Done {
-		if it.DoneAt != nil { // bereits erledigt → nichts überschreiben
+		if it.DoneAt != nil { // already done → overwrite nothing
 			return s.itemResponse(w, r, http.StatusOK, id)
 		}
 		now := time.Now().UTC()

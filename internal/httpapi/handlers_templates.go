@@ -8,8 +8,8 @@ import (
 	"github.com/seals187/projectList/internal/db/sqlc"
 )
 
-// Templates sind global: alle angemeldeten Benutzer dürfen sie lesen,
-// Admins und Member dürfen sie bearbeiten.
+// Templates are global: all logged-in users may read them,
+// admins and members may edit them.
 
 func (s *Server) listTemplates(w http.ResponseWriter, r *http.Request, _ authz.User) error {
 	ts, err := s.q.ListTemplates(r.Context())
@@ -28,10 +28,10 @@ type templateItemReq struct {
 	BgColor     *string `json:"bg_color"`
 	Indent      *int64  `json:"indent"`
 	Lang        *string `json:"lang"`
-	Position    *int64  `json:"position"` // nur beim Anlegen: einfügen vor dieser Position
+	Position    *int64  `json:"position"` // only on create: insert before this position
 }
 
-// apply überträgt gesetzte Felder auf b.
+// apply copies the fields that are set onto b.
 func (it templateItemReq) apply(b *block) {
 	if it.Kind != nil {
 		b.Kind = *it.Kind
@@ -56,7 +56,7 @@ func (it templateItemReq) apply(b *block) {
 	}
 }
 
-// fill validiert die Felder für das Anlegen eines Template-Eintrags.
+// fill validates the fields for creating a template entry.
 func (it templateItemReq) fill(v validator, p *sqlc.CreateTemplateItemParams, _ string) {
 	b := block{Kind: kindItem}
 	it.apply(&b)
@@ -168,7 +168,7 @@ func (s *Server) deleteTemplate(w http.ResponseWriter, r *http.Request, _ authz.
 	if _, err := s.q.GetTemplate(r.Context(), id); err != nil {
 		return err
 	}
-	// Bestehende Checklisten bleiben erhalten (template_id → NULL).
+	// Existing checklists are kept (template_id → NULL).
 	if err := s.q.DeleteTemplate(r.Context(), id); err != nil {
 		return err
 	}

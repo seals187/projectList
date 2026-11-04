@@ -1,9 +1,9 @@
-// Leichtgewichtiges Drag & Drop zum Sortieren mit Pointer-Events
-// (funktioniert mit Maus, Touch und Stift). Das DOM wird während des Ziehens
-// nur per transform verschoben; die echte Umsortierung macht Svelte, sobald
-// onsort die neue Reihenfolge übernimmt.
+// Lightweight drag & drop for sorting with pointer events
+// (works with mouse, touch and pen). While dragging, the DOM is only
+// moved via transform; Svelte does the actual reordering once
+// onsort applies the new order.
 //
-// Verwendung:
+// Usage:
 //   <ul use:sortable={{ onsort: (ids) => …, disabled }}>
 //     <li data-id={x.id}> <button data-handle>⋮⋮</button> … </li>
 //   </ul>
@@ -24,8 +24,8 @@ export function sortable(node: HTMLElement, options: SortableOptions) {
     if (!el || el.parentElement !== node) return;
     e.preventDefault();
 
-    // Nur sichtbare Einträge (eingeklappte Abschnitte haben display:none);
-    // onsort erhält dann die Reihenfolge der sichtbaren IDs.
+    // Only visible entries (collapsed sections have display:none);
+    // onsort then receives the order of the visible IDs.
     const items = Array.from(node.children).filter(
       (c): c is HTMLElement => c instanceof HTMLElement && !!c.dataset.id && c.getClientRects().length > 0
     );
@@ -34,7 +34,7 @@ export function sortable(node: HTMLElement, options: SortableOptions) {
     const gap = rects.length > 1 ? Math.max(0, rects[1].top - rects[0].bottom) : 0;
     const shift = rects[from].height + gap;
     const startY = e.clientY;
-    // Bei CSS zoom sind Bildschirm- und Elementkoordinaten unterschiedlich skaliert.
+    // With CSS zoom, screen and element coordinates are scaled differently.
     const scale = el.offsetHeight ? rects[from].height / el.offsetHeight : 1;
     let to = from;
 
@@ -97,7 +97,7 @@ export function sortable(node: HTMLElement, options: SortableOptions) {
   };
 }
 
-/** Ordnet ein Array nach der übergebenen ID-Reihenfolge neu. */
+/** Reorders an array according to the given ID order. */
 export function reorder<T extends { id: number }>(list: T[], ids: number[]): T[] {
   const byId = new Map(list.map((x) => [x.id, x]));
   return ids.map((id) => byId.get(id)!).filter(Boolean);

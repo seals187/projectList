@@ -1,11 +1,12 @@
-# CI und Container-Image
+# CI and container image
 #
-# - Push auf main / Pull Request: Tests (go vet, go test, Frontend-Build) im Docker-Build.
-# - Tag v* (z. B. v0.0.2): Image für linux/amd64 und linux/arm64 bauen und nach
-#   ghcr.io/<owner>/projectlist pushen – Tags :0.0.2, :0.0 und :latest.
-# - Manuell (Actions → „CI und Container-Image“ → Run workflow): ein bestehendes
-#   Tag nachträglich veröffentlichen, z. B. v0.0.1.
-name: CI und Container-Image
+# - Pull request: tests (go vet, go test, frontend build) inside the Docker build.
+# - Push to main: tests, then publish the development state as :edge.
+# - Tag v* (e.g. v0.0.2): build the image for linux/amd64 and linux/arm64 and push it to
+#   ghcr.io/<owner>/projectlist – tags :0.0.2, :0.0 and :latest.
+# - Manually (Actions → "CI and container image" → Run workflow): publish an existing
+#   tag afterwards, e.g. v0.0.1.
+name: CI and container image
 
 on:
   push:
@@ -15,7 +16,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Bestehendes Git-Tag, das als Image veröffentlicht werden soll (z. B. v0.0.1)'
+        description: 'Existing git tag to publish as an image (e.g. v0.0.1)'
         required: true
 
 permissions:
@@ -33,7 +34,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
-      - name: go vet, go test und Frontend-Build
+      - name: go vet, go test and frontend build
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -43,27 +44,38 @@ jobs:
           cache-to: type=gha,mode=max
 
   image:
-    name: Image veröffentlichen
+    name: Publish image
     needs: test
-    # bei Tags v* und manuellem Start; needs.test wird beim manuellen Start übersprungen
-    if: always() && (startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch') && (needs.test.result == 'success' || needs.test.result == 'skipped')
+    # on main (:edge), tags v* and manual runs; needs.test is skipped on manual runs
+    if: always() && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch') && (needs.test.result == 'success' || needs.test.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     steps:
-      - name: Version bestimmen
+      - name: Determine version
         id: v
         env:
           TAG: ${{ inputs.tag || github.ref_name }}
           OWNER: ${{ github.repository_owner }}
+          EVENT: ${{ github.event_name }}
+          REF: ${{ github.ref }}
+          SHA: ${{ github.sha }}
         run: |
+          image="ghcr.io/${OWNER,,}/projectlist"
+          if [[ "$EVENT" != "workflow_dispatch" && "$REF" == "refs/heads/main" ]]; then
+            {
+              echo "ref=$SHA"
+              echo "version=edge-${SHA::7}"
+              echo "tags=$image:edge"
+            } >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if ! [[ "$TAG" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-            echo "Tag '$TAG' ist keine Version der Form vX.Y.Z" >&2
+            echo "Tag '$TAG' is not a version of the form vX.Y.Z" >&2
             exit 1
           fi
           version="${TAG#v}"
-          image="ghcr.io/${OWNER,,}/projectlist"
           {
             echo "ref=refs/tags/$TAG"
             echo "version=$version"
@@ -81,14 +93,14 @@ jobs:
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
 
-      - name: Bei ghcr.io anmelden
+      - name: Log in to ghcr.io
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Bauen und pushen (amd64, arm64)
+      - name: Build and push (amd64, arm64)
         uses: docker/build-push-action@v6
         with:
           context: .

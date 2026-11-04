@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Seitenleiste: Suche + Neues Projekt, Navigation, Favoriten, Zuletzt besucht,
-  // Kunden → Projekte → Checklisten → Abschnitte, unten Benutzer, Theme, Abmelden.
+  // Sidebar: search + new project, navigation, favorites, recently visited,
+  // customers → projects → checklists → sections, at the bottom user, theme, logout.
   import { untrack } from 'svelte';
   import { SvelteSet } from 'svelte/reactivity';
   import { page } from '$app/state';
@@ -16,7 +16,7 @@
   import Icon from './Icon.svelte';
   import Avatar from './Avatar.svelte';
 
-  // Aufgeklappte Kunden pro Browser merken (Standard: zu; der aktive Kunde klappt automatisch auf).
+  // Remember expanded customers per browser (default: collapsed; the active customer expands automatically).
   let expanded = $state<Record<number, boolean>>(loadExpanded());
 
   function loadExpanded(): Record<number, boolean> {
@@ -34,11 +34,11 @@
     try {
       localStorage.setItem('sidebar-expanded', JSON.stringify(expanded));
     } catch {
-      /* ignorieren */
+      /* ignore */
     }
   }
 
-  // Nachschlagetabellen für Favoriten und „Zuletzt“
+  // Lookup tables for favorites and "Recent"
   const lookup = $derived.by(() => {
     const customers = new Map<number, SidebarCustomer>();
     const projects = new Map<number, { p: SidebarProject; c: SidebarCustomer }>();
@@ -53,7 +53,7 @@
     return { customers, projects, checklists };
   });
 
-  // Aktive Elemente aus der URL ableiten.
+  // Derive the active elements from the URL.
   const active = $derived.by(() => {
     const m = page.url.pathname.match(/^\/(customers|projects|checklists)\/(\d+)/);
     let customerId: number | null = null,
@@ -76,8 +76,8 @@
     return { customerId, projectId, checklistId };
   });
 
-  // Beim Wechsel zu einem anderen Kunden (bzw. dessen Projekt/Checkliste) diesen
-  // einmal aufklappen. Danach darf man ihn frei zuklappen – auch während man dort ist.
+  // When switching to another customer (or its project/checklist), expand it
+  // once. Afterwards it can be collapsed freely – even while you are there.
   let lastAutoOpened: number | null = null;
   $effect(() => {
     const cid = active.customerId;
@@ -86,9 +86,9 @@
     if (cid) untrack(() => !isOpen(cid) && toggleCustomer(cid));
   });
 
-  // Projekte: Checklisten darunter auf-/zuklappen. Beim Öffnen eines Projekts
-  // (oder einer seiner Checklisten) klappt es einmal auf; ein weiterer Klick auf
-  // das Projekt, während man darauf ist, klappt es wieder zu.
+  // Projects: expand/collapse the checklists below. Opening a project
+  // (or one of its checklists) expands it once; another click on
+  // the project while you are on it collapses it again.
   const openProjects = new SvelteSet<number>();
   let lastAutoProject: number | null = null;
   $effect(() => {
@@ -98,8 +98,8 @@
     if (pid) openProjects.add(pid);
   });
 
-  // Klick auf einen Kunden: aufgeklappt → zuklappen (ohne Seitenwechsel);
-  // zugeklappt → aufklappen und zum Kunden wechseln.
+  // Click on a customer: expanded → collapse (without navigating);
+  // collapsed → expand and navigate to the customer.
   function onCustomerClick(e: MouseEvent, id: number) {
     if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
     if (isOpen(id)) e.preventDefault();
@@ -107,9 +107,9 @@
   }
 
   function onProjectClick(e: MouseEvent, id: number) {
-    if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return; // neuer Tab usw.
+    if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return; // new tab etc.
     if (active.projectId === id && !active.checklistId) {
-      // schon auf dem Projekt: nur auf-/zuklappen
+      // already on the project: only expand/collapse
       e.preventDefault();
       if (openProjects.has(id)) openProjects.delete(id);
       else openProjects.add(id);
@@ -118,9 +118,9 @@
     }
   }
 
-  // Favoriten/Zuletzt: pro Benutzer laden, Besuche merken
+  // Favorites/recent: load per user, remember visits
   $effect(() => {
-    if (sidebar.customers.length) untrack(migrateLocalFavorites); // einmalig alte Browser-Favoriten übernehmen
+    if (sidebar.customers.length) untrack(migrateLocalFavorites); // migrate old browser favorites once
   });
   const visit = $derived.by((): { kind: RecentKind; id: number } | null => {
     const tpl = page.url.pathname.match(/^\/templates\/(\d+)/);
@@ -133,11 +133,11 @@
   });
   $effect(() => {
     const v = visit;
-    if (v && session.user) untrack(() => rememberVisit(v.kind, v.id)); // liest+schreibt recent → nicht abhängig machen
+    if (v && session.user) untrack(() => rememberVisit(v.kind, v.id)); // reads+writes recent → don't make it a dependency
   });
 
   const favorites = $derived(sidebar.favorites.map((id) => lookup.projects.get(id)).filter((x) => !!x));
-  // „Zuletzt“: Titel/übergeordnetes Element liefert der Server; die aktuelle Seite bleibt (hervorgehoben) drin.
+  // "Recent": the server provides title/parent; the current page stays in the list (highlighted).
   const RECENT_META = {
     customer: { icon: 'briefcase', path: '/customers/' },
     project: { icon: 'board', path: '/projects/' },
@@ -156,7 +156,7 @@
     }))
   );
 
-  // Abschnitte (Favoriten, Zuletzt, Kunden) einklappbar, pro Browser gemerkt
+  // Sections (favorites, recent, customers) collapsible, remembered per browser
   type SectionKey = 'favorites' | 'recent' | 'customers';
   let closedSections = $state<Partial<Record<SectionKey, boolean>>>(loadSections());
   function loadSections() {
@@ -171,11 +171,11 @@
     try {
       localStorage.setItem('sidebar-sections', JSON.stringify(closedSections));
     } catch {
-      /* ignorieren */
+      /* ignore */
     }
   }
 
-  // Theme per Klick durchschalten: Hell → Dunkel → Dunkelgrau → System
+  // Cycle the theme by click: light → dark → dim → system
   const THEME_ORDER: Theme[] = ['light', 'dark', 'dim', 'system'];
   const themeIcon = $derived(theme.value === 'light' ? 'sun' : theme.value === 'system' ? 'monitor' : 'moon');
   const nextTheme = () => setTheme(THEME_ORDER[(THEME_ORDER.indexOf(theme.value) + 1) % THEME_ORDER.length]);
@@ -214,7 +214,7 @@
 </script>
 
 <nav class="flex h-full flex-col text-sm">
-  <!-- Kopf: Logo, Name, Untertitel, Einklappen -->
+  <!-- Header: logo, name, subtitle, collapse -->
   <div class="flex items-center gap-2.5 pt-4 pr-3 pb-3 pl-4">
     <a href="/" class="flex min-w-0 flex-1 items-center gap-2.5">
       <img src="/favicon.svg" alt="" width="30" height="30" class="shrink-0" />
@@ -233,7 +233,7 @@
     </button>
   </div>
 
-  <!-- Suche + Neues Projekt -->
+  <!-- Search + new project -->
   <div class="flex gap-2 px-3">
     <button
       type="button"
@@ -424,7 +424,7 @@
     </ul>
   </div>
 
-  <!-- Fuß: Benutzer (→ Einstellungen), Theme, Abmelden -->
+  <!-- Footer: user (→ settings), theme, logout -->
   <div class="flex items-center gap-1 border-t border-zinc-200 px-3 py-2.5 dark:border-zinc-800">
     <a
       href="/settings"

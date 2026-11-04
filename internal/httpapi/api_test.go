@@ -19,7 +19,7 @@ import (
 	"github.com/seals187/projectList/internal/testutil"
 )
 
-// ---- Test-Infrastruktur --------------------------------------------------------
+// ---- Test infrastructure -------------------------------------------------------
 
 type env struct {
 	t   *testing.T
@@ -51,7 +51,7 @@ func (e *env) anon() *client {
 	return &client{e: e, http: &http.Client{Jar: jar}}
 }
 
-// user legt einen Benutzer an und meldet ihn an.
+// user creates a user and logs them in.
 func (e *env) user(email, role string, customerIDs ...int64) *client {
 	e.t.Helper()
 	u := testutil.CreateUser(e.t, e.q, email, "passwort-123", role)
@@ -136,7 +136,7 @@ func TestLoginLogoutAndMe(t *testing.T) {
 		User      map[string]any `json:"user"`
 		CSRFToken string         `json:"csrf_token"`
 	}
-	// E-Mail ist case-insensitive
+	// Email is case-insensitive
 	expect(t, "login", c.do("POST", "/api/auth/login", map[string]string{"email": "ALICE@example.com", "password": "passwort-123"}, &res), 200)
 	if res.CSRFToken == "" || res.User["email"] != "alice@example.com" {
 		t.Fatalf("login-antwort unvollständig: %+v", res)
@@ -146,7 +146,7 @@ func TestLoginLogoutAndMe(t *testing.T) {
 	}
 	expect(t, "me", c.do("GET", "/api/auth/me", nil, nil), 200)
 
-	// Logout ohne CSRF-Token wird abgelehnt
+	// Logout without CSRF token is rejected
 	expect(t, "logout ohne csrf", c.do("POST", "/api/auth/logout", nil, nil), 403)
 	c.csrf = res.CSRFToken
 	expect(t, "logout", c.do("POST", "/api/auth/logout", nil, nil), 204)
@@ -173,7 +173,7 @@ func TestCSRFAndOrigin(t *testing.T) {
 	admin.csrf = token
 	expect(t, "korrekter csrf", admin.do("POST", "/api/customers", map[string]string{"name": "X"}, nil), 201)
 
-	// Fremder Origin
+	// Foreign origin
 	req, _ := http.NewRequest("POST", e.srv.URL+"/api/customers", strings.NewReader(`{"name":"Y"}`))
 	req.Header.Set("X-CSRF-Token", token)
 	req.Header.Set("Origin", "https://evil.example")
@@ -185,7 +185,7 @@ func TestCSRFAndOrigin(t *testing.T) {
 	expect(t, "fremder origin", resp.StatusCode, 403)
 }
 
-// ---- Rechte ------------------------------------------------------------------
+// ---- Permissions -------------------------------------------------------------
 
 func TestPermissions(t *testing.T) {
 	e := newEnv(t)
@@ -198,7 +198,7 @@ func TestPermissions(t *testing.T) {
 	member := e.user("member@example.com", "member", c1.ID)
 	viewer := e.user("viewer@example.com", "viewer", c1.ID)
 
-	// Sichtbarkeit
+	// Visibility
 	var list []idResp
 	expect(t, "member kunden", member.do("GET", "/api/customers", nil, &list), 200)
 	if len(list) != 1 || list[0].ID != c1.ID {
@@ -210,20 +210,20 @@ func TestPermissions(t *testing.T) {
 	}
 	expect(t, "fremder kunde", member.do("GET", fmt.Sprintf("/api/customers/%d", c2.ID), nil, nil), 404)
 
-	// Admin-Endpunkte
+	// Admin endpoints
 	expect(t, "member legt kunden an", member.do("POST", "/api/customers", map[string]string{"name": "X"}, nil), 403)
 	expect(t, "member löscht kunden", member.do("DELETE", fmt.Sprintf("/api/customers/%d", c1.ID), nil, nil), 403)
 	expect(t, "member listet benutzer", member.do("GET", "/api/users", nil, nil), 403)
 	expect(t, "member backup", member.do("GET", "/api/admin/backup", nil, nil), 403)
 
-	// Member: Projekt/Checkliste/Item im eigenen Kunden
+	// Member: project/checklist/item in own customer
 	var p1, cl, item idResp
 	expect(t, "member projekt", member.do("POST", fmt.Sprintf("/api/customers/%d/projects", c1.ID), map[string]string{"name": "P1"}, &p1), 201)
 	expect(t, "member projekt fremd", member.do("POST", fmt.Sprintf("/api/customers/%d/projects", c2.ID), map[string]string{"name": "P"}, nil), 404)
 	expect(t, "checkliste", member.do("POST", fmt.Sprintf("/api/projects/%d/checklists", p1.ID), map[string]string{"title": "CL"}, &cl), 201)
 	expect(t, "item", member.do("POST", fmt.Sprintf("/api/checklists/%d/items", cl.ID), map[string]string{"title": "Aufgabe"}, &item), 201)
 
-	// Abhaken mit done_by/done_at
+	// Checking off with done_by/done_at
 	var done struct {
 		DoneAt     *string `json:"done_at"`
 		DoneByName *string `json:"done_by_name"`
@@ -233,13 +233,13 @@ func TestPermissions(t *testing.T) {
 		t.Fatalf("done_at/done_by nicht gesetzt: %+v", done)
 	}
 
-	// Viewer: lesen ja, schreiben nein
+	// Viewer: read yes, write no
 	expect(t, "viewer liest projekt", viewer.do("GET", fmt.Sprintf("/api/projects/%d", p1.ID), nil, nil), 200)
 	expect(t, "viewer hakt ab", viewer.do("POST", fmt.Sprintf("/api/items/%d/done", item.ID), map[string]bool{"done": false}, nil), 403)
 	expect(t, "viewer projekt", viewer.do("POST", fmt.Sprintf("/api/customers/%d/projects", c1.ID), map[string]string{"name": "X"}, nil), 403)
 	expect(t, "viewer template", viewer.do("POST", "/api/templates", map[string]string{"name": "X"}, nil), 403)
 
-	// Admin-Projekt im Kunden 2: für den Member unsichtbar
+	// Admin project in customer 2: invisible to the member
 	var p2, cl2, item2 idResp
 	admin.do("POST", fmt.Sprintf("/api/customers/%d/projects", c2.ID), map[string]string{"name": "Geheim"}, &p2)
 	admin.do("POST", fmt.Sprintf("/api/projects/%d/checklists", p2.ID), map[string]string{"title": "CL"}, &cl2)
@@ -250,14 +250,14 @@ func TestPermissions(t *testing.T) {
 	expect(t, "fremdes item löschen", member.do("DELETE", fmt.Sprintf("/api/items/%d", item2.ID), nil, nil), 404)
 	expect(t, "fremdes template anwenden", member.do("POST", fmt.Sprintf("/api/projects/%d/checklists/from-template", p2.ID), map[string]int64{"template_id": 1}, nil), 404)
 
-	// Fremde Items dürfen nicht in die eigene Checkliste sortiert werden
+	// Foreign items must not be sorted into the own checklist
 	expect(t, "sortieren mit fremder id", member.do("PUT", fmt.Sprintf("/api/checklists/%d/items/order", cl.ID), map[string][]int64{"ids": {item.ID, item2.ID}}, nil), 400)
 
-	// Zuständiger ohne Zugriff auf den Kunden wird abgelehnt
+	// Assignee without access to the customer is rejected
 	other := testutil.CreateUser(t, e.q, "other@example.com", "passwort-123", "member")
 	expect(t, "assignee ohne zugriff", member.do("PATCH", fmt.Sprintf("/api/items/%d", item.ID), map[string]int64{"assignee_id": other.ID}, nil), 400)
 
-	// Suche & Sidebar respektieren Sichtbarkeit
+	// Search & sidebar respect visibility
 	var sr struct {
 		Projects []idResp `json:"projects"`
 	}
@@ -288,7 +288,7 @@ func TestPermissions(t *testing.T) {
 		t.Fatalf("sidebar falsch: %+v", sb)
 	}
 
-	// Zuordnung entfernen → Zugriff sofort weg
+	// Remove assignment → access gone immediately
 	var users []struct {
 		ID    int64  `json:"id"`
 		Email string `json:"email"`
@@ -383,7 +383,7 @@ func TestTemplateFlowViaAPI(t *testing.T) {
 		t.Fatalf("gespeichertes template falsch: %+v", detail)
 	}
 
-	// Projekt-Detail: Fortschritt per Aggregation
+	// Project detail: progress via aggregation
 	var pd struct {
 		Progress struct{ Total, Done int } `json:"progress"`
 	}
@@ -415,10 +415,10 @@ func TestHeadingsNotesAndInsertPosition(t *testing.T) {
 	expect(t, "ungültige kind", admin.do("POST", items, map[string]string{"kind": "x", "title": "X"}, nil), 400)
 	expect(t, "ungültige farbe", admin.do("POST", items, map[string]string{"title": "X", "note_color": "pink"}, nil), 400)
 
-	// Zwischen A und B einfügen (Position 2)
+	// Insert between A and B (position 2)
 	expect(t, "einfügen", admin.do("POST", items, map[string]any{"title": "Mitte", "position": 2}, &mid), 201)
 
-	// Überschrift ist nicht abhakbar
+	// Heading cannot be checked off
 	expect(t, "heading abhaken", admin.do("POST", fmt.Sprintf("/api/items/%d/done", h.ID), map[string]bool{"done": true}, nil), 400)
 	admin.do("POST", fmt.Sprintf("/api/items/%d/done", a.ID), map[string]bool{"done": true}, nil)
 
@@ -451,7 +451,7 @@ func TestHeadingsNotesAndInsertPosition(t *testing.T) {
 		t.Fatalf("kind/note_color falsch: %+v", detail.Checklist.Items)
 	}
 
-	// Projekt- und Sidebar-Aggregation zählen ebenfalls keine Überschriften
+	// Project and sidebar aggregation do not count headings either
 	var pd struct {
 		Progress   struct{ Total, Done int } `json:"progress"`
 		Checklists []struct {
@@ -465,7 +465,7 @@ func TestHeadingsNotesAndInsertPosition(t *testing.T) {
 		t.Fatalf("projekt-aggregation falsch: %+v", pd)
 	}
 
-	// Snapshot übernimmt Überschriften und Notizen
+	// Snapshot carries over headings and notes
 	var tmpl idResp
 	admin.do("POST", fmt.Sprintf("/api/checklists/%d/save-as-template", cl.ID), map[string]string{"name": "T"}, &tmpl)
 	var cl2 struct {
@@ -549,7 +549,7 @@ func TestBlocksRichTextAndKinds(t *testing.T) {
 	admin.do("POST", fmt.Sprintf("/api/projects/%d/checklists", p.ID), map[string]string{"title": "CL"}, &cl)
 	items := fmt.Sprintf("/api/checklists/%d/items", cl.ID)
 
-	// HTML wird bereinigt (Whitelist)
+	// HTML is sanitized (whitelist)
 	var got struct {
 		Title       string `json:"title"`
 		Description string `json:"description"`
@@ -568,7 +568,7 @@ func TestBlocksRichTextAndKinds(t *testing.T) {
 		t.Fatalf("notiz nicht bereinigt: %q", got.Description)
 	}
 
-	// Codeblock speichert Klartext unverändert
+	// Code block stores plain text unchanged
 	src := "New-ADUser -Name \"Laura\" `\n  -Enabled $true <tag>"
 	expect(t, "code", admin.do("POST", items, map[string]any{"kind": "code", "lang": "powershell", "title": src, "indent": 1}, &code), 201)
 	admin.do("GET", fmt.Sprintf("/api/checklists/%d", cl.ID), nil, nil)
@@ -591,7 +591,7 @@ func TestBlocksRichTextAndKinds(t *testing.T) {
 		t.Fatalf("nur Checklisten-Einträge zählen: total=%d", detail.Checklist.Total)
 	}
 
-	// Typ wechseln (Eintrag → Überschrift), ungültige Werte ablehnen
+	// Change type (entry → heading), reject invalid values
 	admin.do("POST", items, map[string]string{"title": "x"}, &it)
 	expect(t, "typ wechseln", admin.do("PATCH", fmt.Sprintf("/api/items/%d", it.ID), map[string]any{"kind": "h2"}, &got), 200)
 	if got.Kind != "h2" {
@@ -602,7 +602,7 @@ func TestBlocksRichTextAndKinds(t *testing.T) {
 	expect(t, "ungültige einrückung", admin.do("PATCH", fmt.Sprintf("/api/items/%d", it.ID), map[string]int{"indent": 9}, nil), 400)
 	expect(t, "leerer titel erlaubt", admin.do("POST", items, map[string]string{"kind": "text", "title": ""}, nil), 201)
 
-	// Abschnittsfarbe: gültige Werte speichern, unbekannte ablehnen, Template übernimmt sie
+	// Section color: store valid values, reject unknown ones, template carries them over
 	var colored struct {
 		BgColor string `json:"bg_color"`
 	}
@@ -650,7 +650,7 @@ func TestChecklistAssignee(t *testing.T) {
 	admin.do("POST", fmt.Sprintf("/api/checklists/%d/items", cl.ID), map[string]string{"title": "x"}, nil)
 	url := fmt.Sprintf("/api/checklists/%d", cl.ID)
 
-	// ohne Kundenzugriff nicht zuweisbar
+	// not assignable without customer access
 	expect(t, "fremder benutzer", admin.do("PATCH", url, map[string]any{"assignee_id": otherMe.User.ID}, nil), 400)
 
 	var res struct {
@@ -682,7 +682,7 @@ func TestChecklistAssignee(t *testing.T) {
 		t.Fatal("assignee_name fehlt in der Checkliste")
 	}
 
-	// Titel ändern lässt die Zuweisung stehen; null hebt sie auf
+	// Changing the title keeps the assignment; null removes it
 	member.do("PATCH", url, map[string]any{"title": "Neu"}, &res)
 	if res.AssigneeID == nil || res.Title != "Neu" {
 		t.Fatalf("titel-update hat zuweisung verändert: %+v", res)
@@ -728,7 +728,7 @@ func TestItemStatus(t *testing.T) {
 		t.Fatalf("status nicht geleert: %+v", got)
 	}
 
-	// Zeilenfarbe "none" (ausdrücklich ohne Hintergrund, auch im farbigen Abschnitt)
+	// Row color "none" (explicitly no background, even in a colored section)
 	var bg struct {
 		BgColor string `json:"bg_color"`
 	}
@@ -736,7 +736,7 @@ func TestItemStatus(t *testing.T) {
 	if bg.BgColor != "none" {
 		t.Fatalf("bg_color none nicht gespeichert: %+v", bg)
 	}
-	// kräftige Stufen (wie Word/Excel); unbekannte Werte lehnt der Server ab
+	// strong shades (like Word/Excel); the server rejects unknown values
 	expect(t, "kräftige farbe", admin.do("PATCH", url, map[string]string{"bg_color": "yellow-strong"}, &bg), 200)
 	if bg.BgColor != "yellow-strong" {
 		t.Fatalf("bg_color yellow-strong: %+v", bg)
@@ -781,7 +781,7 @@ func TestProjectStatusDueAndOverview(t *testing.T) {
 		t.Fatalf("datum nicht gelöscht: %+v", pr)
 	}
 
-	// Team und nächster Schritt
+	// Team and next step
 	admin.do("POST", fmt.Sprintf("/api/projects/%d/checklists", p.ID), map[string]string{"title": "CL"}, &cl)
 	var first idResp
 	admin.do("POST", fmt.Sprintf("/api/checklists/%d/items", cl.ID), map[string]string{"title": "erster"}, &first)
@@ -847,14 +847,14 @@ func TestFavoritesAndRecent(t *testing.T) {
 	if len(s.Recent) != 2 || s.Recent[0].Kind != "customer" || s.Recent[1].Kind != "checklist" {
 		t.Fatalf("zuletzt falsch (neuester zuerst, ohne duplikate): %+v", s.Recent)
 	}
-	// Admin sieht seine eigenen (leeren) Listen
+	// Admin sees their own (empty) lists
 	var as side
 	admin.do("GET", "/api/sidebar", nil, &as)
 	if len(as.Favorites) != 0 || len(as.Recent) != 0 {
 		t.Fatalf("listen sind pro benutzer: %+v", as)
 	}
 
-	// auf 20 begrenzt
+	// limited to 20
 	for i := 0; i < 25; i++ {
 		var c idResp
 		admin.do("POST", fmt.Sprintf("/api/projects/%d/checklists", p.ID), map[string]string{"title": fmt.Sprint("X", i)}, &c)
@@ -886,7 +886,7 @@ func TestFavoritesAndRecent(t *testing.T) {
 	}
 
 	expect(t, "favorit entfernen", member.do("DELETE", fav, nil, nil), 204)
-	// gelöschtes Projekt verschwindet aus den Favoriten
+	// deleted project disappears from favorites
 	admin.do("PUT", fav, nil, nil)
 	admin.do("DELETE", fmt.Sprintf("/api/projects/%d", p.ID), nil, nil)
 	admin.do("GET", "/api/sidebar", nil, &as)

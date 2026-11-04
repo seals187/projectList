@@ -5,12 +5,12 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   plugins: [tailwindcss(), sveltekit()],
   build: {
-    // Schriften nie als data:-URL einbetten (die CSP erlaubt Schriften nur von 'self');
-    // sonst gilt Vites Standardgrenze (4 KB).
+    // Never inline fonts as data: URLs (the CSP only allows fonts from 'self');
+    // otherwise Vite's default limit (4 KB) applies.
     assetsInlineLimit: (file) => (/\.(woff2?|ttf|otf)$/.test(file) ? false : undefined)
   },
   server: {
-    // Für die Entwicklung: API an den lokal laufenden Go-Server weiterreichen.
+    // For development: forward the API to the locally running Go server.
     proxy: { '/api': 'http://localhost:8080', '/healthz': 'http://localhost:8080' }
   }
 });

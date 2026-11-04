@@ -1,4 +1,4 @@
-// Package db kapselt das Öffnen der SQLite-Datenbank, Migrationen und Transaktionen.
+// Package db encapsulates opening the SQLite database, migrations and transactions.
 package db
 
 import (
@@ -12,22 +12,22 @@ import (
 	"time"
 
 	"github.com/pressly/goose/v3"
-	_ "modernc.org/sqlite" // registriert den Treiber "sqlite" (pure Go, kein CGO)
+	_ "modernc.org/sqlite" // registers the "sqlite" driver (pure Go, no CGO)
 
 	"github.com/seals187/projectList/internal/db/sqlc"
 	"github.com/seals187/projectList/migrations"
 )
 
-// pragmas gelten für jede neue Verbindung im Pool.
+// pragmas apply to every new connection in the pool.
 const pragmas = "_pragma=foreign_keys(1)" +
 	"&_pragma=journal_mode(WAL)" +
 	"&_pragma=busy_timeout(5000)" +
 	"&_pragma=synchronous(NORMAL)" +
-	"&_pragma=cache_size(-2000)" + // max. ~2 MB Page-Cache pro Verbindung
-	"&_txlock=immediate" + // Schreib-Transaktionen sperren sofort → keine Upgrade-Deadlocks
+	"&_pragma=cache_size(-2000)" + // max. ~2 MB page cache per connection
+	"&_txlock=immediate" + // write transactions lock immediately → no upgrade deadlocks
 	"&_time_format=sqlite"
 
-// Open öffnet (bzw. erstellt) die Datenbankdatei.
+// Open opens (or creates) the database file.
 func Open(path string) (*sql.DB, error) {
 	if dir := filepath.Dir(path); dir != "" {
 		if err := os.MkdirAll(dir, 0o750); err != nil {
@@ -49,8 +49,8 @@ func Open(path string) (*sql.DB, error) {
 	return d, nil
 }
 
-// OpenMemory öffnet eine In-Memory-Datenbank (für Tests). Eine einzige
-// Verbindung, da jede :memory:-Verbindung eine eigene Datenbank wäre.
+// OpenMemory opens an in-memory database (for tests). A single
+// connection, since every :memory: connection would be its own database.
 func OpenMemory() (*sql.DB, error) {
 	d, err := sql.Open("sqlite", "file::memory:?"+pragmas)
 	if err != nil {
@@ -60,7 +60,7 @@ func OpenMemory() (*sql.DB, error) {
 	return d, d.Ping()
 }
 
-// Migrate führt alle ausstehenden goose-Migrationen aus.
+// Migrate runs all pending goose migrations.
 func Migrate(ctx context.Context, d *sql.DB, log *slog.Logger) error {
 	p, err := goose.NewProvider(goose.DialectSQLite3, d, migrations.FS)
 	if err != nil {
@@ -76,20 +76,20 @@ func Migrate(ctx context.Context, d *sql.DB, log *slog.Logger) error {
 	return nil
 }
 
-// WithTx führt fn in einer Transaktion aus; bei Fehler wird zurückgerollt.
+// WithTx runs fn in a transaction; on error it is rolled back.
 func WithTx(ctx context.Context, d *sql.DB, fn func(q *sqlc.Queries) error) error {
 	tx, err := d.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback() //nolint:errcheck // nach Commit wirkungslos
+	defer tx.Rollback() //nolint:errcheck // no-op after Commit
 	if err := fn(sqlc.New(tx)); err != nil {
 		return err
 	}
 	return tx.Commit()
 }
 
-// VacuumInto erzeugt eine konsistente Kopie der Datenbank (auch im laufenden Betrieb).
+// VacuumInto creates a consistent copy of the database (also while running).
 func VacuumInto(ctx context.Context, d *sql.DB, dest string) error {
 	if _, err := os.Stat(dest); err == nil {
 		return fmt.Errorf("zieldatei existiert bereits: %s", dest)

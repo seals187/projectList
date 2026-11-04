@@ -242,7 +242,7 @@ type ListProjectsWithProgressRow struct {
 	Done                      int64   `json:"done"`
 }
 
-// Sidebar: alle sichtbaren Projekte samt Fortschritt in einer Abfrage.
+// Sidebar: all visible projects incl. progress in one query.
 func (q *Queries) ListProjectsWithProgress(ctx context.Context, userID interface{}) ([]ListProjectsWithProgressRow, error) {
 	rows, err := q.db.QueryContext(ctx, listProjectsWithProgress, userID)
 	if err != nil {

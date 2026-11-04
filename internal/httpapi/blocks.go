@@ -7,18 +7,18 @@ import (
 	"github.com/seals187/projectList/internal/richtext"
 )
 
-// Blocktypen des Editors. Nur "item" (Checkbox) zählt zum Fortschritt.
+// Block types of the editor. Only "item" (checkbox) counts towards progress.
 var blockKinds = []string{"item", "h1", "h2", "h3", "h4", "text", "bullet", "numbered", "quote", "code", "divider"}
 
-// Sprachen für Codeblöcke ("" = automatisch/Plain).
+// Languages for code blocks ("" = automatic/plain).
 var codeLangs = []string{"", "bash", "powershell", "sql", "json", "yaml", "javascript", "python", "text"}
 
 const (
-	maxRichLen = 20000 // bereinigtes HTML eines Titels/einer Notiz
-	maxCodeLen = 50000 // Codeblock (Klartext)
+	maxRichLen = 20000 // sanitized HTML of a title/note
+	maxCodeLen = 50000 // code block (plain text)
 )
 
-// block sind die inhaltlichen Felder eines Checklisten- oder Template-Eintrags.
+// block holds the content fields of a checklist or template entry.
 type block struct {
 	Kind        string
 	Title       string
@@ -29,8 +29,8 @@ type block struct {
 	Lang        string
 }
 
-// normalize validiert und bereinigt einen Block. Titel und Notiz sind
-// Inline-HTML (Whitelist), Codeblöcke speichern Klartext.
+// normalize validates and sanitizes a block. Title and note are
+// inline HTML (whitelist), code blocks store plain text.
 func (v validator) normalize(b *block) {
 	v.oneOf("kind", b.Kind, blockKinds...)
 	switch b.Kind {
@@ -66,7 +66,7 @@ func (v validator) rich(field, s string) string {
 	return s
 }
 
-// status prüft den Freitext-Status eines Eintrags: Klartext, eine Zeile, max. 60 Zeichen.
+// status checks the free-text status of an entry: plain text, one line, max. 60 characters.
 func (v validator) status(s string) string {
 	if strings.ContainsAny(s, "\r\n\t") {
 		v["status"] = "invalid_chars"

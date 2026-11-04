@@ -8,10 +8,22 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unveröffentlicht]
 
+### Hinzugefügt
+
+- Image `:edge` mit dem aktuellen Entwicklungsstand, bei jedem Push auf `main` nach grünen Tests
+
 ### Geändert
 
-- `docker-compose.yml` verwendet das veröffentlichte Image `ghcr.io/seals187/projectlist:latest`
-  (Version wählbar über `PROJECTLIST_TAG`); `docker compose build` baut weiterhin lokal aus dem Quellcode
+- `docker-compose.yml` verwendet nur noch das veröffentlichte Image
+  `ghcr.io/seals187/projectlist`, ohne `build`/`args`; Version über `PROJECTLIST_VERSION` in der `.env`
+  (`latest` = neuestes Release, `edge` = Entwicklungsstand, oder z. B. `0.0.2`)
+- Alle Code-Kommentare auf Englisch (Oberflächentexte unverändert)
+
+### Behoben
+
+- Kurzbeschreibungen der Schriften in den Einstellungen erscheinen jetzt in der gewählten Sprache (waren immer Deutsch)
+- „Zuletzt besucht“: Besuche innerhalb derselben Millisekunde wurden manchmal in falscher Reihenfolge
+  angezeigt; dadurch schlug auch der Test auf GitHub Actions zufällig fehl
 
 ## [0.0.2] – 2026-11-04
 

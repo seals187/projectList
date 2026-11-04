@@ -5,11 +5,12 @@ import (
 	"net/http"
 
 	"github.com/seals187/projectList/internal/authz"
+	"github.com/seals187/projectList/internal/db"
 	"github.com/seals187/projectList/internal/db/sqlc"
 )
 
-// Favoriten und „Zuletzt besucht“ der Seitenleiste – pro Benutzer in der DB,
-// damit sie auf allen Geräten gleich sind. Gelesen werden beide über /api/sidebar.
+// Favorites and "recently visited" of the sidebar – stored per user in the DB
+// so they are the same on all devices. Both are read via /api/sidebar.
 
 const maxRecent = 20
 
@@ -18,8 +19,8 @@ type recentEntry struct {
 	ID   int64  `json:"id"`
 }
 
-// recentItem ist ein aufgelöster Eintrag für die Seitenleiste: Titel und
-// übergeordnetes Element (Kunde eines Projekts, Projekt einer Checkliste).
+// recentItem is a resolved entry for the sidebar: title and
+// parent element (customer of a project, project of a checklist).
 type recentItem struct {
 	Kind   string `json:"kind"`
 	ID     int64  `json:"id"`
@@ -27,15 +28,15 @@ type recentItem struct {
 	Parent string `json:"parent"`
 }
 
-// sidebarNames: Namen der für den Benutzer sichtbaren Elemente (aus den Sidebar-Daten).
+// sidebarNames: names of the elements visible to the user (from the sidebar data).
 type sidebarNames struct {
 	customers  map[int64]string
-	projects   map[int64][2]string // Name, Kundenname
-	checklists map[int64][2]string // Titel, Projektname
+	projects   map[int64][2]string // name, customer name
+	checklists map[int64][2]string // title, project name
 }
 
-// navLists lädt Favoriten (Projekt-IDs) und die zuletzt besuchten Seiten,
-// aufgelöst zu Titeln. Nicht mehr vorhandene oder nicht sichtbare Ziele fallen weg.
+// navLists loads favorites (project IDs) and the recently visited pages,
+// resolved to titles. Targets that no longer exist or are not visible are dropped.
 func (s *Server) navLists(ctx context.Context, u authz.User, n sidebarNames) ([]int64, []recentItem, error) {
 	favs, err := s.q.ListFavorites(ctx, u.ID)
 	if err != nil {
@@ -64,7 +65,7 @@ func (s *Server) navLists(ctx context.Context, u authz.User, n sidebarNames) ([]
 				it.Title, it.Parent = c[0], c[1]
 			}
 		case "template":
-			if templates == nil { // nur bei Bedarf laden
+			if templates == nil { // load only when needed
 				ts, err := s.q.ListTemplates(ctx)
 				if err != nil {
 					return nil, nil, err
@@ -83,7 +84,7 @@ func (s *Server) navLists(ctx context.Context, u authz.User, n sidebarNames) ([]
 	return favs, recent, nil
 }
 
-// PUT /api/favorites/{id}: Projekt als Favorit merken (nur mit Zugriff).
+// PUT /api/favorites/{id}: mark project as favorite (only with access).
 func (s *Server) addFavorite(w http.ResponseWriter, r *http.Request, u authz.User) error {
 	id, err := pathID(r, "id")
 	if err != nil {
@@ -99,7 +100,7 @@ func (s *Server) addFavorite(w http.ResponseWriter, r *http.Request, u authz.Use
 	return nil
 }
 
-// DELETE /api/favorites/{id}: Favorit entfernen (eigene Liste, keine weitere Prüfung nötig).
+// DELETE /api/favorites/{id}: remove favorite (own list, no further check needed).
 func (s *Server) removeFavorite(w http.ResponseWriter, r *http.Request, u authz.User) error {
 	id, err := pathID(r, "id")
 	if err != nil {
@@ -112,7 +113,7 @@ func (s *Server) removeFavorite(w http.ResponseWriter, r *http.Request, u authz.
 	return nil
 }
 
-// POST /api/recent {"kind": "customer|project|checklist", "id": n}: Besuch merken.
+// POST /api/recent {"kind": "customer|project|checklist", "id": n}: record a visit.
 func (s *Server) touchRecent(w http.ResponseWriter, r *http.Request, u authz.User) error {
 	var req recentEntry
 	if err := decode(w, r, &req); err != nil {
@@ -143,24 +144,32 @@ func (s *Server) touchRecent(w http.ResponseWriter, r *http.Request, u authz.Use
 	if err != nil {
 		return err
 	}
-	if err := s.q.TouchRecent(ctx, sqlc.TouchRecentParams{UserID: u.ID, Kind: req.Kind, TargetID: req.ID}); err != nil {
-		return err
-	}
-	// auf die neuesten maxRecent kürzen
-	rows, err := s.q.ListRecent(ctx, u.ID)
-	if err != nil {
-		return err
-	}
-	if len(rows) == maxRecent {
-		if err := s.q.DeleteRecentBefore(ctx, sqlc.DeleteRecentBeforeParams{UserID: u.ID, VisitedAt: rows[maxRecent-1].VisitedAt}); err != nil {
+	err = db.WithTx(ctx, s.db, func(q *sqlc.Queries) error {
+		// Re-insert instead of updating: the new rowid orders visits within the same millisecond.
+		if err := q.DeleteRecentEntry(ctx, sqlc.DeleteRecentEntryParams{UserID: u.ID, Kind: req.Kind, TargetID: req.ID}); err != nil {
 			return err
 		}
+		if err := q.TouchRecent(ctx, sqlc.TouchRecentParams{UserID: u.ID, Kind: req.Kind, TargetID: req.ID}); err != nil {
+			return err
+		}
+		// trim to the newest maxRecent
+		rows, err := q.ListRecent(ctx, u.ID)
+		if err != nil {
+			return err
+		}
+		if len(rows) == maxRecent {
+			return q.DeleteRecentBefore(ctx, sqlc.DeleteRecentBeforeParams{UserID: u.ID, VisitedAt: rows[maxRecent-1].VisitedAt})
+		}
+		return nil
+	})
+	if err != nil {
+		return err
 	}
 	w.WriteHeader(http.StatusNoContent)
 	return nil
 }
 
-// DELETE /api/recent: „Zuletzt besucht“ des Benutzers leeren.
+// DELETE /api/recent: clear the user's "recently visited" list.
 func (s *Server) clearRecent(w http.ResponseWriter, r *http.Request, u authz.User) error {
 	if err := s.q.ClearRecent(r.Context(), u.ID); err != nil {
 		return err

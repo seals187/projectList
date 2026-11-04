@@ -1,7 +1,7 @@
-// Seitenleiste: Favoriten (Projekte) und zuletzt besuchte Seiten.
-// Gespeichert in der Datenbank pro Benutzer (API), geladen mit /api/sidebar
-// (sidebar.favorites / sidebar.recent). Änderungen werden sofort angezeigt
-// und im Hintergrund gespeichert.
+// Sidebar: favorites (projects) and recently visited pages.
+// Stored in the database per user (API), loaded with /api/sidebar
+// (sidebar.favorites / sidebar.recent). Changes are shown immediately
+// and saved in the background.
 import { api, errorText } from './api';
 import { refreshSidebar, session, sidebar, toast } from './state.svelte';
 import type { RecentEntry } from './types';
@@ -23,28 +23,28 @@ export async function toggleFavorite(projectId: number) {
   }
 }
 
-let lastPosted = ''; // Schutz: denselben Besuch nicht wiederholt senden (z. B. nach Neuladen)
+let lastPosted = ''; // guard: don't send the same visit repeatedly (e.g. after reload)
 
-/** Besuchte Seite vorne einreihen und auf dem Server merken. */
+/** Put the visited page at the front and remember it on the server. */
 export function rememberVisit(kind: RecentKind, id: number) {
   const idx = sidebar.recent.findIndex((r) => r.kind === kind && r.id === id);
-  if (idx === 0) return; // schon vorne
+  if (idx === 0) return; // already at the front
   const key = `${kind}:${id}`;
   if (key === lastPosted) return;
   lastPosted = key;
   const post = api.post('/recent', { kind, id });
   if (idx > 0) {
-    // bekannt: sofort nach vorne schieben
+    // known: move to the front immediately
     const item = sidebar.recent[idx];
     sidebar.recent = [item, ...sidebar.recent.filter((_, i) => i !== idx)];
     post.catch(() => {});
   } else {
-    // neu: Titel kennt der Server → danach Seitenleiste neu laden
+    // new: the server knows the title → reload the sidebar afterwards
     post.then(() => refreshSidebar(0), () => {});
   }
 }
 
-/** „Zuletzt besucht“ leeren. */
+/** Clear "Recently visited". */
 export async function clearRecent() {
   lastPosted = '';
   const prev = sidebar.recent;
@@ -58,8 +58,8 @@ export async function clearRecent() {
 }
 
 /**
- * Einmalige Übernahme: Favoriten, die eine frühere Version im Browser
- * (localStorage) gespeichert hat, auf den Server übertragen.
+ * One-time migration: transfer favorites that an earlier version stored
+ * in the browser (localStorage) to the server.
  */
 export async function migrateLocalFavorites() {
   const key = `favorites:${session.user?.id ?? 0}`;
@@ -78,7 +78,7 @@ export async function migrateLocalFavorites() {
         await api.put(`/favorites/${id}`, null);
         sidebar.favorites = [...sidebar.favorites, id];
       } catch {
-        /* Projekt gelöscht oder kein Zugriff mehr */
+        /* project deleted or no longer accessible */
       }
     }
   }

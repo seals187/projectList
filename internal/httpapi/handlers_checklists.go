@@ -10,7 +10,7 @@ import (
 	"github.com/seals187/projectList/internal/service"
 )
 
-// loadChecklist lädt eine Checkliste und prüft den Zugriff über den Kunden.
+// loadChecklist loads a checklist and checks access via the customer.
 func (s *Server) loadChecklist(ctx context.Context, u authz.User, id int64) (sqlc.GetChecklistWithCustomerRow, error) {
 	c, err := s.q.GetChecklistWithCustomer(ctx, id)
 	if err != nil {
@@ -201,7 +201,7 @@ func (s *Server) updateChecklist(w http.ResponseWriter, r *http.Request, u authz
 	if err != nil {
 		return err
 	}
-	// Teil-Update: nur gesetzte Felder ändern; assignee_id null hebt die Zuweisung auf.
+	// Partial update: change only fields that are set; assignee_id null removes the assignment.
 	var req struct {
 		Title      Opt[string] `json:"title"`
 		AssigneeID Opt[int64]  `json:"assignee_id"`

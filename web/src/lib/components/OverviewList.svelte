@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Übersicht „Liste“: Kennzahlen oben, darunter eine nach Kunden gruppierte Tabelle.
+  // "List" overview: key figures at the top, below a table grouped by customer.
   import { openCustomers, toggleCustomer } from '$lib/overviewOpen.svelte';
   import { fmtDate, t, withoutText } from '$lib/i18n.svelte';
   import { barCls, customerCode, customerTone, daysUntil, STATUS_BADGE } from '$lib/projectStatus';
@@ -14,7 +14,7 @@
     oncreate
   }: { groups: OvCustomer[]; today: string; canCreate: boolean; oncreate: (customerId: number) => void } = $props();
 
-  // Projekte je Kunde: standardmäßig eingeklappt (gemeinsam mit der Kartenansicht)
+  // Projects per customer: collapsed by default (shared with the cards view)
 
   const all = $derived(groups.flatMap((g) => g.projects));
   const running = $derived(all.filter((p) => p.status === 'active' || p.status === 'review' || p.status === 'blocked'));
@@ -27,7 +27,7 @@
   const blocked = $derived(all.filter((p) => p.status === 'blocked'));
   const shortDate = (iso: string) => fmtDate(iso).slice(0, 5); // TT.MM / DD/MM
 
-  // Spalten: Projekt | Status | Checklisten | Erledigt | Fällig | Team | Nächster Schritt
+  // Columns: Project | Status | Checklists | Done | Due | Team | Next step
   const cols = 'grid grid-cols-[minmax(10rem,1.3fr)_7rem_minmax(12rem,1.6fr)_6.5rem_7.5rem_5.5rem_minmax(10rem,1.4fr)] items-center gap-x-4';
 </script>
 

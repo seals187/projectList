@@ -55,7 +55,7 @@
       const my = ++seq;
       try {
         const r = await api.get<SearchResult>('/search?q=' + encodeURIComponent(q));
-        if (my !== seq) return; // veraltete Antwort
+        if (my !== seq) return; // stale response
         results = [
           ...r.customers.map((c) => ({ label: c.name, hint: t('search.customer'), href: `/customers/${c.id}`, group: t('search.customers') })),
           ...r.projects.map((p) => ({ label: p.name, hint: p.customer_name, href: `/projects/${p.id}`, group: t('search.projects') })),

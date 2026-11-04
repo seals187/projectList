@@ -1,5 +1,5 @@
 <script lang="ts">
-  // "Neue Checkliste aus Template" mit Vorschau der Einträge.
+  // "New checklist from template" with a preview of the items.
   import { api, errorText } from '$lib/api';
   import { toast } from '$lib/state.svelte';
   import { t } from '$lib/i18n.svelte';

@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Zweistufiges Löschen ohne Modal: 1. Klick fragt nach, 2. Klick führt aus.
+  // Two-step delete without a modal: 1st click asks for confirmation, 2nd click executes.
   import type { Snippet } from 'svelte';
   import { t } from '$lib/i18n.svelte';
 

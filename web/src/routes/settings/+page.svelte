@@ -16,7 +16,7 @@
   const themes: Theme[] = ['system', 'light', 'dark', 'dim'];
   const positions: CheckPos[] = ['right', 'left'];
   const shapes: CheckShape[] = ['square', 'round'];
-  // Farbfelder der Codeblock-Hintergründe (wie in app.css)
+  // Swatches of the code block backgrounds (as in app.css)
   const CODE_SWATCH = { light: 'bg-[#f1f2f4]', dark: 'bg-[#2b2d35]', black: 'bg-black' } as const;
 
   async function changePassword(e: SubmitEvent) {
@@ -88,7 +88,7 @@
           onclick={() => setPref('font', f.id)}>
           <span class="flex items-baseline justify-between gap-2">
             <span class="truncate text-[15px] font-semibold">{f.label}</span>
-            <span class="shrink-0 text-[10px] text-zinc-400" style:font-family="var(--font-sans)">{f.hint}</span>
+            <span class="shrink-0 text-[10px] text-zinc-400" style:font-family="var(--font-sans)">{f.hint ?? t(`font.hint.${f.id}`)}</span>
           </span>
           <span class="mt-1 block truncate text-sm text-zinc-600 dark:text-zinc-300">{t('settings.fontSample')}</span>
         </button>
@@ -104,7 +104,7 @@
       </div>
     </div>
 
-    <!-- Vorschau mit der gewählten Schrift -->
+    <!-- Preview with the selected font -->
     <div class="card mt-4 p-4">
       <p class="mb-2 text-[11px] font-semibold tracking-wider text-zinc-400 uppercase">{t('settings.fontPreview')}</p>
       <p class="font-serif text-xl font-bold tracking-tight">{t('settings.fontPreviewTitle')}</p>
@@ -165,7 +165,7 @@
       </div>
     </div>
 
-    <!-- Vorschau -->
+    <!-- Preview -->
     <div class="card mt-4 space-y-1.5 p-3" style:zoom={prefs.zoom === 1 ? undefined : prefs.zoom}>
       {#each [true, false] as done (done)}
         <div class="flex items-center gap-2 text-sm {prefs.checkPos === 'right' ? 'flex-row-reverse justify-end' : ''}">

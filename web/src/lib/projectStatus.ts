@@ -1,12 +1,12 @@
-// Projektstatus (Phasen auf dem Board) und Kunden-Kürzel/-Farben für die Übersicht.
-// Alle Klassen ausgeschrieben, damit Tailwind sie findet.
+// Project status (phases on the board) and customer codes/colors for the overview.
+// All classes written out so Tailwind finds them.
 import type { ProjectStatus } from './types';
 
-/** Reihenfolge der Spalten auf dem Board (ohne „archiviert“). */
+/** Order of the columns on the board (without "archived"). */
 export const BOARD_STATUSES = ['planning', 'active', 'review', 'blocked', 'done'] as const satisfies readonly ProjectStatus[];
 export const ALL_STATUSES: readonly ProjectStatus[] = [...BOARD_STATUSES, 'archived'];
 
-/** Punkt (Sidebar, Board-Spalten). */
+/** Dot (sidebar, board columns). */
 export const STATUS_DOT: Record<ProjectStatus, string> = {
   planning: 'bg-zinc-400 dark:bg-zinc-500',
   active: 'bg-accent-500',
@@ -16,7 +16,7 @@ export const STATUS_DOT: Record<ProjectStatus, string> = {
   archived: 'bg-zinc-300 dark:bg-zinc-600'
 };
 
-/** Badge mit Text. */
+/** Badge with text. */
 export const STATUS_BADGE: Record<ProjectStatus, string> = {
   planning: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300',
   active: 'bg-accent-50 text-accent-700 dark:bg-accent-950/60 dark:text-accent-400',
@@ -26,10 +26,10 @@ export const STATUS_BADGE: Record<ProjectStatus, string> = {
   archived: 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400'
 };
 
-/** Fortschrittsbalken: fertig = grün, sonst Akzent. */
+/** Progress bar: done = green, otherwise accent. */
 export const barCls = (done: number, total: number) => (total > 0 && done === total ? 'bg-emerald-500' : 'bg-accent-500');
 
-/** Kürzel eines Kunden: "(KA) Kunde-A" → "KA", sonst Initialen. */
+/** Customer code: "(KA) Kunde-A" → "KA", otherwise initials. */
 export function customerCode(name: string): string {
   const m = name.match(/^\s*\(([^)]{1,4})\)/);
   if (m) return m[1].toUpperCase();
@@ -45,23 +45,23 @@ const CUSTOMER_TONES = [
   'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400',
   'bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-400'
 ];
-/** Farbe des Kunden-Kürzels (stabil je Kunden-ID). */
+/** Color of the customer code (stable per customer ID). */
 export const customerTone = (id: number) => CUSTOMER_TONES[(id - 1 + CUSTOMER_TONES.length * 100) % CUSTOMER_TONES.length];
 
-/** Tage von heute bis zum Datum (YYYY-MM-DD); negativ = überfällig. */
+/** Days from today until the date (YYYY-MM-DD); negative = overdue. */
 export function daysUntil(iso: string, today: string): number {
   return Math.round((Date.parse(iso + 'T00:00:00') - Date.parse(today + 'T00:00:00')) / 86_400_000);
 }
 
-/** Anzeigename ohne Kürzel-Präfix: "(KA) Kunde-A" → "Kunde-A". */
+/** Display name without code prefix: "(KA) Kunde-A" → "Kunde-A". */
 export function customerLabel(name: string): string {
   return name.replace(/^\s*\([^)]{1,4}\)\s*/, '') || name;
 }
 
 /**
- * Gesamtfortschritt eines Kunden: erledigte / alle Einträge, nur über Projekte,
- * die in den Kundenfortschritt einfliessen (include_in_customer_progress).
- * Archivierte Projekte zählen nie. `excluded` = Anzahl bewusst ausgenommener Projekte.
+ * Overall progress of a customer: done / all items, only across projects
+ * that count toward the customer progress (include_in_customer_progress).
+ * Archived projects never count. `excluded` = number of deliberately excluded projects.
  */
 export function customerProgress(projects: { status: ProjectStatus; done: number; total: number; include_in_customer_progress: boolean }[]) {
   let done = 0,

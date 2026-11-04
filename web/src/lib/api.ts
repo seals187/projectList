@@ -8,7 +8,7 @@ export function setCsrf(token: string) {
   csrfToken = token;
 }
 
-/** Fehler der API: code ist ein sprachneutraler Fehlercode (z. B. "not_found"). */
+/** API error: code is a language-neutral error code (e.g. "not_found"). */
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -26,7 +26,7 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   if (method !== 'GET') headers['X-CSRF-Token'] = csrfToken;
 
-  // "saved"-Anzeige: alle schreibenden Requests zählen.
+  // "saved" indicator: count all writing requests.
   const tracked = method !== 'GET' && !silentWrites.has(url);
   if (tracked) saveState.pending++;
 
@@ -73,7 +73,7 @@ export const api = {
   del: (url: string) => request<void>('DELETE', url)
 };
 
-/** "min:8" → "mindestens 8 Zeichen" usw. */
+/** "min:8" → "at least 8 characters" etc. */
 function fieldMessage(code: string) {
   const [name, a, b] = code.split(':');
   if (name === 'min' || name === 'max') return t(`fields.${name}`, { n: a });
@@ -81,7 +81,7 @@ function fieldMessage(code: string) {
   return tMaybe(`fields.${name}`) ?? code;
 }
 
-/** Lokalisierte Fehlermeldung inkl. Feldfehlern. */
+/** Localized error message including field errors. */
 export function errorText(e: unknown): string {
   if (!(e instanceof ApiError)) return t('errors.generic');
   const base = tMaybe(`errors.${e.code}`) ?? t('errors.generic');

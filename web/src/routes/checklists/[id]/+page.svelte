@@ -47,7 +47,7 @@
     return max;
   });
 
-  // H1-Abschnitte für die Sidebar bereitstellen.
+  // Provide H1 sections for the sidebar.
   $effect(() => {
     current.checklistId = data?.checklist.id ?? null;
     current.sections = computeSections(data?.checklist.items ?? []);

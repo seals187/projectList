@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Kleine Symbole für Blocktypen (Slash-Menü, Toolbar).
+  // Small icons for block types (slash menu, toolbar).
   import type { Kind } from '$lib/types';
 
   let { kind, size = 16 }: { kind: Kind | 'ol' | 'ul'; size?: number } = $props();

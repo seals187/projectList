@@ -7,8 +7,8 @@ import (
 	"github.com/seals187/projectList/internal/db/sqlc"
 )
 
-// API-Antworttypen. sqlc-Modelle werden nie direkt ausgeliefert, damit z. B.
-// password_hash niemals in einer Antwort landet.
+// API response types. sqlc models are never returned directly so that e.g.
+// password_hash never ends up in a response.
 
 type userDTO struct {
 	ID          int64     `json:"id"`
@@ -30,10 +30,10 @@ const kindItem = "item"
 
 var noteColors = []string{"", "green", "orange", "red", "indigo"}
 
-// bgColors: Hintergrund einer Zeile bzw. (an einer Überschrift) des ganzen Abschnitts.
-// "" = wie Abschnitt, "none" = ausdrücklich ohne Hintergrund. Je Farbton drei
-// Stufen wie in Word/Excel: hell, "-mid", "-strong". Muss mit web/src/lib/palette.ts
-// übereinstimmen; die Datenbank prüft die Werte nicht (seit Migration 00006).
+// bgColors: background of a row or (on a heading) of the whole section.
+// "" = same as section, "none" = explicitly no background. Three shades per
+// hue as in Word/Excel: light, "-mid", "-strong". Must match web/src/lib/palette.ts;
+// the database does not check the values (since migration 00006).
 var bgColors = func() []string {
 	out := []string{"", "none"}
 	for _, shade := range []string{"", "-mid", "-strong"} {
@@ -71,8 +71,8 @@ func nullStr(s sql.NullString) *string {
 	return &s.String
 }
 
-// toItemDTO akzeptiert ListItemsByChecklistRow; der strukturgleiche Typ
-// GetItemFullRow wird per Konvertierung übergeben.
+// toItemDTO accepts ListItemsByChecklistRow; the structurally identical type
+// GetItemFullRow is passed via conversion.
 func toItemDTO(r sqlc.ListItemsByChecklistRow) itemDTO {
 	return itemDTO{
 		ID: r.ID, ChecklistID: r.ChecklistID, Kind: r.Kind, Title: r.Title, Description: r.Description,
@@ -81,7 +81,7 @@ func toItemDTO(r sqlc.ListItemsByChecklistRow) itemDTO {
 	}
 }
 
-// checklistDTO ist eine Checkliste inkl. Einträgen.
+// checklistDTO is a checklist incl. its entries.
 type checklistDTO struct {
 	ID           int64     `json:"id"`
 	ProjectID    int64     `json:"project_id"`

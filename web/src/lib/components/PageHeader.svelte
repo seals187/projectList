@@ -1,6 +1,6 @@
 <script lang="ts">
-  // Seitenkopf wie im Entwurf: Brotkrumen links, Aktionen rechts, darunter
-  // der Titel (Serif) und optional eine Meta-Zeile.
+  // Page header as in the design: breadcrumbs left, actions right, below them
+  // the title (serif) and an optional meta line.
   import type { Snippet } from 'svelte';
 
   let {

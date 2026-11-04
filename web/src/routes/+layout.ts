@@ -1,3 +1,3 @@
-// Reine Client-SPA: kein SSR, kein Prerendering. Go liefert index.html aus.
+// Pure client SPA: no SSR, no prerendering. Go serves index.html.
 export const ssr = false;
 export const prerender = false;

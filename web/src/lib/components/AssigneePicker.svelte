@@ -1,7 +1,7 @@
 <script lang="ts">
-  // Kompakte Auswahl der zuständigen Person (z. B. für eine ganze Checkliste).
-  // Ein unsichtbares <select> liegt über der Anzeige: native Bedienung auf
-  // Desktop und Handy, ohne eigenes Dropdown.
+  // Compact picker for the assigned person (e.g. for a whole checklist).
+  // An invisible <select> sits over the display: native controls on
+  // desktop and mobile, without a custom dropdown.
   import { t } from '$lib/i18n.svelte';
   import type { Assignee } from '$lib/types';
   import Avatar from './Avatar.svelte';

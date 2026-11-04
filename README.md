@@ -15,9 +15,9 @@ cp .env.example .env        # ADMIN_EMAIL / ADMIN_PASSWORD anpassen!
 docker compose up -d        # lädt das fertige Image ghcr.io/seals187/projectlist:latest
 ```
 
-Selbst aus dem Quellcode bauen statt herunterladen: `docker compose build && docker compose up -d`.
-Eine bestimmte Version: `PROJECTLIST_TAG=0.0.2 docker compose up -d`. Aktualisieren:
-`docker compose pull && docker compose up -d`.
+Version in der `.env` über `PROJECTLIST_VERSION`: `latest` = neuestes Release (Standard), `edge` =
+aktueller Entwicklungsstand (jeder Push auf `main`), oder eine feste Version wie `0.0.2`.
+Aktualisieren: `docker compose pull && docker compose up -d`.
 
 Danach unter <http://localhost:8080> mit den Admin-Zugangsdaten aus der `.env` anmelden.
 Der erste Admin wird nur beim allerersten Start angelegt (leere Datenbank).
@@ -45,9 +45,9 @@ docker run -d --name projectlist -p 8080:8080 --env-file .env \
   -v projectlist-data:/data --memory 128m ghcr.io/seals187/projectlist:latest
 ```
 
-Veröffentlicht wird automatisch per GitHub Actions (`.github/workflows/docker.yml`), sobald ein Tag
-`vX.Y.Z` gepusht wird – mit den Tags `:X.Y.Z`, `:X.Y` und `:latest`. Ein bestehendes Tag lässt sich unter
-*Actions → CI und Container-Image → Run workflow* nachträglich veröffentlichen.
+Veröffentlicht wird automatisch per GitHub Actions (`.github/workflows/docker.yml`): bei jedem Tag
+`vX.Y.Z` mit den Tags `:X.Y.Z`, `:X.Y` und `:latest`, bei jedem Push auf `main` (nach grünen Tests) als `:edge`. Ein bestehendes Tag lässt sich unter
+*Actions → CI and container image → Run workflow* nachträglich veröffentlichen.
 
 ## Umgebungsvariablen
 
@@ -58,6 +58,7 @@ Veröffentlicht wird automatisch per GitHub Actions (`.github/workflows/docker.y
 | `APP_SUBTITLE`   | –                      | Optionaler Untertitel unter „ProjectList“ in der Seitenleiste (z. B. Firmen-/Abteilungsname) |
 | `ADMIN_NAME`     | `Admin`                | Anzeigename des ersten Admins |
 | `PORT`           | `8080`                 | Host-Port (nur docker compose) |
+| `PROJECTLIST_VERSION` | `latest`        | Image-Version für docker compose: `latest`, `edge` oder z. B. `0.0.2` |
 | `LISTEN_ADDR`    | `:8080`                | Listen-Adresse im Container |
 | `DB_PATH`        | `/data/projectlist.db` | Pfad der SQLite-Datei |
 | `COOKIE_SECURE`  | `true`                 | Session-Cookie nur über HTTPS. Auf `http://localhost` funktioniert das in Chrome/Edge/Firefox; für Zugriff per HTTP über IP/Hostname `false` setzen |
@@ -217,9 +218,8 @@ wiederhergestellte Datei anwenden.
 ## Update
 
 ```bash
-git pull
 docker compose exec projectlist /projectlist backup   # vorher sichern
-docker compose up -d --build
+docker compose pull && docker compose up -d
 ```
 
 Datenbank-Migrationen laufen beim Start automatisch (goose, eingebettet). Daten liegen im Volume
@@ -234,6 +234,10 @@ Voraussetzungen: Go 1.27+, Node 26+ – oder nur Docker (alle Schritte laufen au
 go test ./...
 # … oder ohne lokale Go-Installation:
 docker build --target test .
+
+# Image lokal bauen und mit Compose starten (ohne GitHub):
+docker build -t ghcr.io/seals187/projectlist:dev --build-arg VERSION=dev .
+PROJECTLIST_VERSION=dev docker compose up -d
 
 # Frontend
 cd web && npm install && npm run dev     # Vite-Dev-Server, /api → localhost:8080

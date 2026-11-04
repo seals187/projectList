@@ -15,7 +15,7 @@ web/build/*
 !web/build/.gitkeep
 .vite/
 
-# Daten & Datenbanken
+# Data & databases
 /data/
 *.db
 *.db-shm

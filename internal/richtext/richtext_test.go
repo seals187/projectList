@@ -37,13 +37,13 @@ func TestText(t *testing.T) {
 
 func TestPaletteColors(t *testing.T) {
 	cases := map[string]string{
-		// neue Stufen bleiben erhalten
+		// new shades are kept
 		`<mark data-bg="yellow-strong">a</mark>`: `<mark data-bg="yellow-strong">a</mark>`,
 		`<mark data-bg="gray-mid">a</mark>`:      `<mark data-bg="gray-mid">a</mark>`,
 		`<span data-color="red-strong">a</span>`: `<span data-color="red-strong">a</span>`,
 		`<span data-color="yellow-mid">a</span>`: `<span data-color="yellow-mid">a</span>`,
-		`<span data-color="orange">a</span>`:     `<span data-color="orange">a</span>`, // ältere Einträge
-		// unbekannte Werte: Textmarker fällt auf Gelb zurück, Textfarbe entfällt
+		`<span data-color="orange">a</span>`:     `<span data-color="orange">a</span>`, // older entries
+		// unknown values: highlight falls back to yellow, text color is dropped
 		`<mark data-bg="pink-strong">a</mark>`:      `<mark data-bg="yellow">a</mark>`,
 		`<span data-color="orange-strong">a</span>`: `a`,
 	}

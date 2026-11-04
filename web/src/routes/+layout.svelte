@@ -44,7 +44,7 @@
     if (session.ready && !session.user && page.url.pathname !== '/login') goto('/login');
   });
 
-  // Desktop-Breite (md): nur dort wird die eingeklappte Sidebar für Tastatur/Screenreader gesperrt.
+  // Desktop width (md): only there is the collapsed sidebar made inert for keyboard/screen readers.
   let isDesktop = $state(true);
   onMount(() => {
     const mq = matchMedia('(min-width: 48rem)');
@@ -54,8 +54,8 @@
     return () => mq.removeEventListener('change', fn);
   });
 
-  // Seitenleiste breiter/schmaler ziehen (Desktop). Während des Ziehens ohne
-  // Animation; gespeichert wird erst beim Loslassen.
+  // Drag the sidebar wider/narrower (desktop). No animation while
+  // dragging; saved only on release.
   let resizing = $state(false);
   function startResize(e: PointerEvent) {
     if (e.button !== 0) return;
@@ -82,7 +82,7 @@
     handle.addEventListener('pointercancel', up);
   }
 
-  // Strg+\ klappt die Sidebar ein/aus (Desktop).
+  // Ctrl+\ collapses/expands the sidebar (desktop).
   function onKey(e: KeyboardEvent) {
     if ((e.ctrlKey || e.metaKey) && e.key === '\\') {
       e.preventDefault();
@@ -90,7 +90,7 @@
     }
   }
 
-  // Nach Navigation: mobile Sidebar schließen, Speicheranzeige zurücksetzen.
+  // After navigation: close the mobile sidebar, reset the save indicator.
   afterNavigate(() => {
     sidebar.open = false;
     saveState.saved = false;
@@ -120,12 +120,12 @@
         {sidebar.collapsed ? 'border-r md:w-0 md:border-r-0' : 'border-r md:w-(--sb-w)'}"
       style:--sb-w="{sidebarWidth.value}px"
       inert={sidebar.collapsed && !sidebar.open && isDesktop}>
-      <!-- feste Breite, damit der Inhalt beim Ein-/Ausklappen nicht umbricht -->
+      <!-- fixed width so the content doesn't reflow when collapsing/expanding -->
       <div class="h-full w-64 md:w-(--sb-w)">
         <Sidebar />
       </div>
       {#if !sidebar.collapsed}
-        <!-- Ziehgriff am rechten Rand: Breite ändern, Doppelklick = Standardbreite -->
+        <!-- drag handle on the right edge: change width, double-click = default width -->
         <!-- svelte-ignore a11y_no_noninteractive_element_interactions, a11y_no_noninteractive_tabindex -->
         <div
           class="absolute inset-y-0 right-0 z-10 hidden w-1.5 cursor-col-resize touch-none transition-colors hover:bg-accent-400/50 md:block {resizing ? 'bg-accent-500/60' : ''}"

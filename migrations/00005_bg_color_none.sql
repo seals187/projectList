@@ -1,8 +1,8 @@
 -- +goose Up
--- bg_color = 'none': Zeile ausdruecklich ohne Hintergrund, auch innerhalb eines
--- farbigen Abschnitts ('' bedeutet weiterhin "wie Abschnitt"). SQLite kann einen
--- CHECK nicht aendern, daher werden beide Tabellen neu aufgebaut (gleiche
--- Spaltenreihenfolge; keine andere Tabelle verweist auf sie).
+-- bg_color = 'none': row explicitly without background, even inside a
+-- colored section ('' still means "same as section"). SQLite cannot alter a
+-- CHECK, so both tables are rebuilt (same column order;
+-- no other table references them).
 
 CREATE TABLE checklist_items_new (
     id           INTEGER PRIMARY KEY,
@@ -54,6 +54,6 @@ ALTER TABLE template_items_new RENAME TO template_items;
 CREATE INDEX idx_template_items_template_id ON template_items (template_id, position);
 
 -- +goose Down
--- Der erweiterte CHECK bleibt bestehen; 'none' wird auf "wie Abschnitt" zurueckgesetzt.
+-- The extended CHECK stays in place; 'none' is reset to "same as section".
 UPDATE checklist_items SET bg_color = '' WHERE bg_color = 'none';
 UPDATE template_items SET bg_color = '' WHERE bg_color = 'none';

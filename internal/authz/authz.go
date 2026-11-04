@@ -1,4 +1,4 @@
-// Package authz enthält die Rechteprüfung (Rollen + Kundenzuordnung).
+// Package authz contains the permission checks (roles + customer assignment).
 package authz
 
 import (
@@ -17,7 +17,7 @@ func ValidRole(r string) bool {
 	return r == RoleAdmin || r == RoleMember || r == RoleViewer
 }
 
-// User ist der angemeldete Benutzer (ohne Passwort-Hash).
+// User is the logged-in user (without password hash).
 type User struct {
 	ID    int64  `json:"id"`
 	Email string `json:"email"`
@@ -27,11 +27,11 @@ type User struct {
 
 func (u User) IsAdmin() bool { return u.Role == RoleAdmin }
 
-// CanWrite: Admins und Member dürfen ändern, Viewer nur lesen.
+// CanWrite: admins and members may modify, viewers may only read.
 func (u User) CanWrite() bool { return u.Role == RoleAdmin || u.Role == RoleMember }
 
-// VisibilityFilter liefert den Parameter für die "user_id IS NULL OR …"-Abfragen:
-// nil für Admins (alles sichtbar), sonst die eigene ID.
+// VisibilityFilter returns the parameter for the "user_id IS NULL OR …" queries:
+// nil for admins (everything visible), otherwise the user's own ID.
 func (u User) VisibilityFilter() any {
 	if u.IsAdmin() {
 		return nil
@@ -39,7 +39,7 @@ func (u User) VisibilityFilter() any {
 	return u.ID
 }
 
-// CanAccessCustomer prüft, ob u den Kunden sehen darf.
+// CanAccessCustomer checks whether u may see the customer.
 func CanAccessCustomer(ctx context.Context, q *sqlc.Queries, u User, customerID int64) (bool, error) {
 	if u.IsAdmin() {
 		return true, nil

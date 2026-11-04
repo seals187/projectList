@@ -81,7 +81,7 @@
     {/snippet}
   </PageHeader>
 
-  <!-- Ort und Ansprechpartner -->
+  <!-- Location and contact -->
   <dl class="mb-5 grid max-w-2xl gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
     {#each [['location', 'customers.location'], ['contact_name', 'customers.contact'], ['contact_email', 'customers.email']] as const as [field, label] (field)}
       <div class="min-w-0">

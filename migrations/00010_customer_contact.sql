@@ -1,5 +1,5 @@
 -- +goose Up
--- Kundenübersicht: Ort sowie Ansprechpartner (Name, E-Mail).
+-- Customer overview: location and contact person (name, email).
 ALTER TABLE customers ADD COLUMN location TEXT NOT NULL DEFAULT '';
 ALTER TABLE customers ADD COLUMN contact_name TEXT NOT NULL DEFAULT '';
 ALTER TABLE customers ADD COLUMN contact_email TEXT NOT NULL DEFAULT '';

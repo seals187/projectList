@@ -121,7 +121,7 @@ WHERE (?1 IS NULL
 ORDER BY c.name COLLATE NOCASE, c.id
 `
 
-// Sichtbarkeit: user_id NULL = Admin (alle Kunden), sonst nur zugeordnete Kunden.
+// Visibility: user_id NULL = admin (all customers), otherwise only assigned customers.
 func (q *Queries) ListCustomers(ctx context.Context, userID interface{}) ([]Customer, error) {
 	rows, err := q.db.QueryContext(ctx, listCustomers, userID)
 	if err != nil {

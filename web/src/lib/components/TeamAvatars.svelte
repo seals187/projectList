@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Überlappende Avatare (Team eines Projekts), Namen im Tooltip.
+  // Overlapping avatars (a project's team), names in the tooltip.
   import Avatar from './Avatar.svelte';
 
   let { team, size = 22, max = 4 }: { team: { id: number; name: string }[]; size?: number; max?: number } = $props();

@@ -2,15 +2,15 @@ import type { ProjectStatus, RecentItem, SidebarCustomer, User } from './types';
 import { applyFonts, DEFAULT_FONT, FONT_IDS, type FontId, type HeadingFont } from './fonts';
 import { CUSTOMER_SORTS, type CustomerSort } from './customers';
 
-// Globale Zustände (Svelte 5 Runes).
+// Global state (Svelte 5 runes).
 
 export const session = $state<{ user: User | null; ready: boolean; subtitle: string }>({ user: null, ready: false, subtitle: '' });
 
 export const sidebar = $state<{
   customers: SidebarCustomer[];
   myTasks: number;
-  favorites: number[]; // Projekt-IDs (DB, pro Benutzer)
-  recent: RecentItem[]; // zuletzt besucht, neuester zuerst (DB, pro Benutzer)
+  favorites: number[]; // project IDs (DB, per user)
+  recent: RecentItem[]; // recently visited, newest first (DB, per user)
   open: boolean;
   collapsed: boolean;
 }>({
@@ -18,8 +18,8 @@ export const sidebar = $state<{
   myTasks: 0,
   favorites: [],
   recent: [],
-  open: false, // mobil: eingeblendet
-  collapsed: readCollapsed() // Desktop: eingeklappt (pro Browser gemerkt)
+  open: false, // mobile: shown
+  collapsed: readCollapsed() // desktop: collapsed (remembered per browser)
 });
 
 function readCollapsed(): boolean {
@@ -36,11 +36,11 @@ export function toggleSidebar(collapsed = !sidebar.collapsed) {
     if (collapsed) localStorage.setItem('sidebar-collapsed', '1');
     else localStorage.removeItem('sidebar-collapsed');
   } catch {
-    /* ignorieren */
+    /* ignore */
   }
 }
 
-// Breite der Seitenleiste (Desktop), per Ziehen am rechten Rand einstellbar.
+// Sidebar width (desktop), adjustable by dragging the right edge.
 export const SIDEBAR_MIN = 200;
 export const SIDEBAR_MAX = 480;
 export const SIDEBAR_DEFAULT = 240;
@@ -63,22 +63,22 @@ export function setSidebarWidth(px: number, save = true) {
     if (sidebarWidth.value === SIDEBAR_DEFAULT) localStorage.removeItem('sidebar-width');
     else localStorage.setItem('sidebar-width', String(sidebarWidth.value));
   } catch {
-    /* ignorieren */
+    /* ignore */
   }
 }
 
 export const palette = $state({ open: false });
 
-/** Dialog „Neues Projekt“ (Seitenleiste, Übersicht); null = geschlossen. */
+/** "New project" dialog (sidebar, overview); null = closed. */
 export const newProject = $state<{ value: { customerId: number | null; status: ProjectStatus } | null }>({ value: null });
 export function openNewProject(customerId: number | null = null, status: ProjectStatus = 'planning') {
   newProject.value = { customerId, status };
 }
 
-/** Speicherstatus für die "saved"-Anzeige. */
+/** Save status for the "saved" indicator. */
 export const saveState = $state({ pending: 0, saved: false, error: false });
 
-/** Abschnitte der gerade geöffneten Checkliste (für die Sidebar). */
+/** Sections of the currently open checklist (for the sidebar). */
 export interface Section {
   id: number;
   title: string;
@@ -102,7 +102,7 @@ export function isAdmin() {
 
 let refreshTimer: ReturnType<typeof setTimeout> | undefined;
 
-/** Lädt die Sidebar neu (entprellt, damit schnelle Klickfolgen nur eine Anfrage auslösen). */
+/** Reloads the sidebar (debounced so rapid click sequences trigger only one request). */
 export function refreshSidebar(delay = 400) {
   clearTimeout(refreshTimer);
   refreshTimer = setTimeout(async () => {
@@ -114,7 +114,7 @@ export function refreshSidebar(delay = 400) {
       sidebar.favorites = r.favorites ?? [];
       sidebar.recent = r.recent ?? [];
     } catch {
-      /* Fehler werden beim nächsten Laden sichtbar */
+      /* errors become visible on the next load */
     }
   }, delay);
 }
@@ -140,15 +140,15 @@ export function setTheme(value: Theme) {
     if (value === 'system') localStorage.removeItem('theme');
     else localStorage.setItem('theme', value);
   } catch {
-    /* ignorieren */
+    /* ignore */
   }
   const dark = value === 'dark' || value === 'dim' || (value === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
   document.documentElement.classList.toggle('dark', dark);
   document.documentElement.classList.toggle('dim', value === 'dim');
 }
 
-// ---- Darstellung der Checklisten ------------------------------------------------
-// Persönliche Ansichtseinstellungen (pro Browser, wie das Theme).
+// ---- Checklist display ----------------------------------------------------------
+// Personal view settings (per browser, like the theme).
 
 export type CheckPos = 'left' | 'right';
 export type CheckShape = 'square' | 'round';
@@ -156,21 +156,21 @@ export type CodeBg = 'light' | 'dark' | 'black';
 export const CODE_BGS: readonly CodeBg[] = ['light', 'dark', 'black'];
 export type OverviewView = 'cards' | 'list' | 'board';
 export const OVERVIEW_VIEWS: readonly OverviewView[] = ['cards', 'list', 'board'];
-// 80 % bis 160 % in 5 %-Schritten (gerundet, damit 1.05 usw. exakt vergleichbar sind)
+// 80 % to 160 % in 5 % steps (rounded so 1.05 etc. compare exactly)
 export const ZOOM_STEPS: readonly number[] = Array.from({ length: 17 }, (_, i) => Math.round(80 + i * 5) / 100);
 
 interface ViewPrefs {
   checkPos: CheckPos;
   checkShape: CheckShape;
-  gridLines: boolean; // Rahmenlinien um jede Zeile (wie in Excel)
+  gridLines: boolean; // border lines around each row (like in Excel)
   zoom: number;
-  codeBg: CodeBg; // Hintergrund der Codeblöcke
-  overview: OverviewView; // zuletzt genutzte Ansicht der Übersicht
-  overviewDefault: OverviewView | 'last'; // Ansicht beim Start (Einstellungen)
-  customersView: 'list' | 'cards'; // Kundenübersicht
+  codeBg: CodeBg; // background of code blocks
+  overview: OverviewView; // last used overview view
+  overviewDefault: OverviewView | 'last'; // view at startup (settings)
+  customersView: 'list' | 'cards'; // customer overview
   customersSort: CustomerSort;
-  font: FontId; // Schrift der App
-  headingFont: HeadingFont; // Überschriften: Serif oder wie der Text
+  font: FontId; // app font
+  headingFont: HeadingFont; // headings: serif or same as the text
 }
 
 const PREFS_KEY = 'view-prefs';
@@ -205,18 +205,18 @@ export function setPref<K extends keyof ViewPrefs>(key: K, value: ViewPrefs[K]) 
   try {
     localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
   } catch {
-    /* ignorieren */
+    /* ignore */
   }
 }
 
-/** Größe der Checkliste um eine Stufe ändern (dir = +1 / -1); 0 setzt auf 100 % zurück. */
+/** Change the checklist size by one step (dir = +1 / -1); 0 resets to 100 %. */
 export function stepZoom(dir: -1 | 0 | 1) {
   const i = ZOOM_STEPS.indexOf(prefs.zoom);
   const next = dir === 0 ? 1 : ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, Math.max(0, (i < 0 ? ZOOM_STEPS.indexOf(1) : i) + dir))];
   setPref('zoom', next);
 }
 
-/** Klassen für die Form der Checkbox. */
+/** Classes for the checkbox shape. */
 export const checkRadius = () => (prefs.checkShape === 'round' ? 'rounded-full' : 'rounded-[4px]');
 
 // ---- Toasts -------------------------------------------------------------------
@@ -238,17 +238,17 @@ export function toast(text: string, kind: Toast['kind'] = 'error') {
   }, 4500);
 }
 
-// ---- Ansicht der Übersicht ------------------------------------------------------
-// Während der Sitzung (Tab) bleibt die zuletzt gewählte Ansicht erhalten
-// (sessionStorage). Beim nächsten Start gilt die Standardansicht aus den
-// Einstellungen – oder bei „Zuletzt genutzte“ die zuletzt verwendete.
+// ---- Overview view --------------------------------------------------------------
+// During the session (tab) the last selected view is kept
+// (sessionStorage). On the next start the default view from the
+// settings applies – or, with "Last used", the most recently used one.
 
 function startView(): OverviewView {
   try {
     const s = sessionStorage.getItem('overview-view') as OverviewView | null;
     if (s && OVERVIEW_VIEWS.includes(s)) return s;
   } catch {
-    /* ignorieren */
+    /* ignore */
   }
   return prefs.overviewDefault === 'last' ? prefs.overview : prefs.overviewDefault;
 }
@@ -260,18 +260,18 @@ export function setOverviewView(v: OverviewView) {
   try {
     sessionStorage.setItem('overview-view', v);
   } catch {
-    /* ignorieren */
+    /* ignore */
   }
-  setPref('overview', v); // „zuletzt genutzt“ merken
+  setPref('overview', v); // remember "last used"
 }
 
-/** Standardansicht ändern (Einstellungen) – gilt sofort, nicht erst beim nächsten Start. */
+/** Change the default view (settings) – applies immediately, not only on the next start. */
 export function setOverviewDefault(v: OverviewView | 'last') {
   setPref('overviewDefault', v);
   try {
     sessionStorage.removeItem('overview-view');
   } catch {
-    /* ignorieren */
+    /* ignore */
   }
   overviewView.value = startView();
 }

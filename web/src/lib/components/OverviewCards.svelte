@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Übersicht „Karten“: je Kunde eine Karte mit seinen Projekten.
+  // "Cards" overview: one card per customer with its projects.
   import { fmtDate, t, withoutText } from '$lib/i18n.svelte';
   import { ALL_STATUSES, barCls, customerCode, customerTone, STATUS_BADGE, STATUS_DOT } from '$lib/projectStatus';
   import { dueUrgent, pct, segGrow, type OvCustomer } from '$lib/overview';
@@ -15,7 +15,7 @@
   }: { groups: OvCustomer[]; today: string; canCreate: boolean; oncreate: (customerId: number) => void } = $props();
 </script>
 
-<!-- so viele Spalten wie Platz (je mind. 16rem): 4–6 auf breiten Bildschirmen -->
+<!-- as many columns as fit (min. 16rem each): 4–6 on wide screens -->
 <div class="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] items-start gap-4">
   {#each groups as g (g.customer.id)}
     {@const open = openCustomers.has(g.customer.id)}
@@ -42,7 +42,7 @@
       </header>
 
       {#if !open}
-        <!-- eingeklappt: Gesamtfortschritt und Anzahl Projekte je Status -->
+        <!-- collapsed: overall progress and number of projects per status -->
         {#if g.projects.length}
           <button type="button" class="mt-3 block w-full text-left" onclick={() => toggleCustomer(g.customer.id)} aria-label="{t('overview.showProjects')}: {g.customer.name}">
             <span class="block h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
@@ -67,7 +67,7 @@
               <span class="badge mt-px shrink-0 {STATUS_BADGE[p.status]}">{t(`status.${p.status}`)}</span>
               <span class="ml-auto shrink-0"><TeamAvatars team={p.team} /></span>
             </div>
-            <!-- ein Segment je Checkliste, Breite nach Anzahl Einträge -->
+            <!-- one segment per checklist, width by number of items -->
             <div class="mt-3 flex gap-1">
               {#each p.checklists as cl (cl.id)}
                 <span class="h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800" style:flex-grow={segGrow(cl)} style:flex-basis="0" title="{cl.title}: {cl.done}/{cl.total}">
