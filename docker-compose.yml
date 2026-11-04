@@ -1,0 +1,31 @@
+name: projectlist
+
+services:
+  projectlist:
+    build:
+      context: .
+      args:
+        VERSION: ${VERSION:-0.0.1} # Versionsnummer im Binary (projectlist version, Log beim Start)
+    image: projectlist:latest
+    container_name: projectlist
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_PATH: /data/projectlist.db
+      LISTEN_ADDR: ":8080"
+      # Weiches Speicherlimit für die Go-Runtime (GC arbeitet aggressiver darunter).
+      GOMEMLIMIT: 64MiB
+    ports:
+      - "${PORT:-8080}:8080"
+    volumes:
+      - projectlist-data:/data
+    mem_limit: 128m
+    healthcheck:
+      test: ["CMD", "/projectlist", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  projectlist-data:

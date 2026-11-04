@@ -1,0 +1,190 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Schriften selbst gehostet (@fontsource, siehe $lib/fonts.ts); Auswahl in den Einstellungen */
+  --font-sans: 'Inter Variable', Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-serif: 'Source Serif 4 Variable', 'Source Serif 4', Georgia, Cambria, 'Times New Roman', serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  /* Eine Akzentfarbe: Indigo */
+  --color-accent-50: oklch(96.2% 0.018 272.314);
+  --color-accent-100: oklch(93% 0.034 272.788);
+  --color-accent-400: oklch(67.3% 0.182 276.935);
+  --color-accent-500: oklch(58.5% 0.233 277.117);
+  --color-accent-600: oklch(51.1% 0.262 276.966);
+  --color-accent-700: oklch(45.7% 0.24 277.023);
+  --color-accent-900: oklch(35.9% 0.144 278.697);
+  --color-accent-950: oklch(25.7% 0.09 281.288);
+}
+
+/* Gewählte Schrift (Einstellungen → Schrift); ohne Attribut gilt Inter.
+   Überschriften: Serif (Standard) oder wie der Text. */
+html[data-font='geist'] { --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif; }
+html[data-font='mona'] { --font-sans: 'Mona Sans Variable', ui-sans-serif, system-ui, sans-serif; }
+html[data-font='instrument'] { --font-sans: 'Instrument Sans Variable', ui-sans-serif, system-ui, sans-serif; }
+html[data-font='figtree'] { --font-sans: 'Figtree Variable', ui-sans-serif, system-ui, sans-serif; }
+html[data-font='onest'] { --font-sans: 'Onest Variable', ui-sans-serif, system-ui, sans-serif; }
+html[data-font='jakarta'] { --font-sans: 'Plus Jakarta Sans Variable', ui-sans-serif, system-ui, sans-serif; }
+html[data-font='manrope'] { --font-sans: 'Manrope Variable', ui-sans-serif, system-ui, sans-serif; }
+html[data-font='dmsans'] { --font-sans: 'DM Sans Variable', ui-sans-serif, system-ui, sans-serif; }
+html[data-font='schibsted'] { --font-sans: 'Schibsted Grotesk Variable', ui-sans-serif, system-ui, sans-serif; }
+html[data-font='plex'] { --font-sans: 'IBM Plex Sans Variable', ui-sans-serif, system-ui, sans-serif; }
+html[data-font='system'] { --font-sans: system-ui, -apple-system, 'Segoe UI Variable Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
+html[data-heading='sans'] { --font-serif: var(--font-sans); }
+
+/* Theme „Dunkelgrau“: wie Dunkel, aber die dunklen Grautöne (Hintergründe,
+   Seitenleiste, Rahmen) eine Stufe heller – statt fast Schwarz ein Anthrazit. */
+.dim {
+  --color-zinc-950: #2a2b30;
+  --color-zinc-900: #323339;
+  --color-zinc-800: #3d3e45;
+  --color-zinc-700: #4b4c54;
+}
+
+@layer base {
+  html { -webkit-tap-highlight-color: transparent; }
+  button { cursor: pointer; }
+  button:disabled { cursor: default; }
+  :focus-visible { outline: 2px solid var(--color-accent-500); outline-offset: 2px; }
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:opacity-50;
+}
+@utility btn-primary {
+  @apply btn bg-accent-600 text-white hover:bg-accent-700;
+}
+@utility btn-ghost {
+  @apply btn text-zinc-600 hover:bg-zinc-100 dark:text-zinc-300 dark:hover:bg-zinc-800;
+}
+@utility btn-danger {
+  @apply btn text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40;
+}
+@utility input {
+  @apply w-full rounded-md border border-zinc-300 bg-white px-2.5 py-1.5 text-sm outline-none placeholder:text-zinc-400 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 dark:border-zinc-700 dark:bg-zinc-900;
+}
+@utility label {
+  @apply mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400;
+}
+@utility card {
+  @apply rounded-lg border border-zinc-200 dark:border-zinc-800;
+}
+@utility muted {
+  @apply text-zinc-500 dark:text-zinc-400;
+}
+@utility badge {
+  @apply inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium;
+}
+@utility btn-outline {
+  @apply btn border border-zinc-200 bg-white text-zinc-700 shadow-xs hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800;
+}
+@utility section-label {
+  @apply text-[11px] font-semibold tracking-wider text-zinc-400 uppercase;
+}
+@utility row-link {
+  @apply -mx-2 flex items-center gap-4 rounded-md px-2 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-900/70;
+}
+
+/* ---- Block-Editor: Inline-Formatierung ------------------------------------ */
+@layer components {
+  .rich a {
+    @apply text-blue-600 underline decoration-blue-600/40 underline-offset-2 hover:decoration-current dark:text-blue-400 dark:decoration-blue-400/40;
+  }
+  .rich code {
+    @apply rounded bg-zinc-100 px-1 py-px font-mono text-[0.88em] text-rose-600 dark:bg-zinc-800 dark:text-rose-400;
+  }
+  .rich b {
+    /* zwischen halbfett und fett: Segoe UI hat nur 600/700, daher 600 + feine Kontur
+       in der Textfarbe (auch auf farbigem Grund gut sichtbar, Textfarbe bleibt erhalten) */
+    @apply font-semibold;
+    -webkit-text-stroke: 0.3px currentColor;
+  }
+  /* Textfarbe und Textmarker: gleiche Farbtöne und Stufen wie der Zeilen-Farbwähler
+     ($lib/palette): hell, "-mid", "-strong" (Word/Excel). Muss mit richtext.go übereinstimmen. */
+  [data-color='gray'] { @apply text-zinc-500 dark:text-zinc-400; }
+  [data-color='yellow'] { @apply text-amber-500 dark:text-amber-400; }
+  [data-color='green'] { @apply text-emerald-600 dark:text-emerald-400; }
+  [data-color='blue'] { @apply text-blue-600 dark:text-blue-400; }
+  [data-color='red'] { @apply text-red-600 dark:text-red-400; }
+  [data-color='purple'] { @apply text-violet-600 dark:text-violet-400; }
+  [data-color='orange'] { @apply text-orange-600 dark:text-orange-400; } /* ältere Einträge */
+  [data-color='gray-mid'] { @apply text-zinc-700 dark:text-zinc-300; }
+  [data-color='yellow-mid'] { @apply text-amber-700 dark:text-amber-300; }
+  [data-color='green-mid'] { @apply text-emerald-800 dark:text-emerald-300; }
+  [data-color='blue-mid'] { @apply text-blue-800 dark:text-blue-300; }
+  [data-color='red-mid'] { @apply text-red-800 dark:text-red-300; }
+  [data-color='purple-mid'] { @apply text-violet-800 dark:text-violet-300; }
+  [data-color='gray-strong'] { @apply text-[#7f7f7f] dark:text-[#a6a6a6]; }
+  [data-color='yellow-strong'] { @apply text-[#ffc000]; }
+  [data-color='green-strong'] { @apply text-[#00b050]; }
+  [data-color='blue-strong'] { @apply text-[#0070c0] dark:text-[#3b9cff]; }
+  [data-color='red-strong'] { @apply text-[#ff0000] dark:text-[#ff5050]; }
+  [data-color='purple-strong'] { @apply text-[#7030a0] dark:text-[#b07ce0]; }
+  mark[data-bg] { @apply rounded-sm px-0.5 text-inherit; }
+  mark[data-bg='gray'] { @apply bg-zinc-200 dark:bg-zinc-500/30; }
+  mark[data-bg='yellow'] { @apply bg-yellow-200 dark:bg-yellow-500/30; }
+  mark[data-bg='green'] { @apply bg-emerald-200 dark:bg-emerald-500/30; }
+  mark[data-bg='blue'] { @apply bg-sky-200 dark:bg-sky-500/30; }
+  mark[data-bg='red'] { @apply bg-rose-200 dark:bg-rose-500/30; }
+  mark[data-bg='purple'] { @apply bg-violet-200 dark:bg-violet-500/30; }
+  mark[data-bg='gray-mid'] { @apply bg-zinc-300 dark:bg-zinc-500/45; }
+  mark[data-bg='yellow-mid'] { @apply bg-yellow-300 dark:bg-yellow-500/45; }
+  mark[data-bg='green-mid'] { @apply bg-green-300 dark:bg-green-500/45; }
+  mark[data-bg='blue-mid'] { @apply bg-sky-300 dark:bg-sky-500/45; }
+  mark[data-bg='red-mid'] { @apply bg-red-300 dark:bg-red-500/45; }
+  mark[data-bg='purple-mid'] { @apply bg-violet-300 dark:bg-violet-500/45; }
+  mark[data-bg='gray-strong'] { @apply bg-[#bfbfbf] dark:bg-zinc-400/50; }
+  mark[data-bg='yellow-strong'] { @apply bg-[#ffff00] dark:bg-[#ffff00]/40; }
+  mark[data-bg='green-strong'] { @apply bg-[#00ff00] dark:bg-[#00ff00]/35; }
+  mark[data-bg='blue-strong'] { @apply bg-[#00ffff] dark:bg-[#00ffff]/35; }
+  mark[data-bg='red-strong'] { @apply bg-[#ff4040] dark:bg-[#ff4040]/45; }
+  mark[data-bg='purple-strong'] { @apply bg-[#ff00ff] dark:bg-[#ff00ff]/40; }
+
+  /* Platzhalter für leere Blöcke */
+  .rich:empty::before {
+    content: attr(data-placeholder);
+    @apply pointer-events-none text-zinc-400 dark:text-zinc-500;
+  }
+  .ph-focus:empty:not(:focus)::before { content: none; }
+  .ph-hover:empty::before { @apply opacity-0; }
+  .ph-hover:empty:focus::before,
+  :where(.group\/row:hover) .ph-hover:empty::before { @apply opacity-100; }
+
+  /* Syntax-Highlighting im Codeblock */
+  .tk-com { @apply text-zinc-500 italic; }
+  .tk-str { @apply text-amber-300; }
+  .tk-var { @apply text-rose-400; }
+  .tk-cmd { @apply text-sky-400; }
+  .tk-flag { @apply text-indigo-300; }
+  .tk-kw { @apply text-violet-300; }
+  .tk-num { @apply text-emerald-300; }
+
+  /* Codeblock-Hintergrund (Einstellung codeBg): Dunkelgrau (Standard), Schwarz, Hellgrau.
+     Feste Farben, damit der Codeblock in jedem Theme gleich aussieht. */
+  .code-block { background: #2b2d35; color: #e4e4e7; }
+  .code-block[data-bg='black'] { background: #000; }
+  .code-block .code-head { border-color: rgb(255 255 255 / 0.07); color: #a1a1aa; }
+  .code-block .code-hover:hover,
+  .code-block .code-hover:focus { color: #f4f4f5; }
+  .code-block .code-btn:hover { background: rgb(255 255 255 / 0.1); }
+  .code-block .code-ln { color: #6b6b74; }
+  .code-block textarea { caret-color: #f4f4f5; }
+  .code-block textarea::placeholder { color: #6b6b74; }
+
+  .code-block[data-bg='light'] { background: #f1f2f4; color: #27272a; box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08); }
+  .code-block[data-bg='light'] .code-head { border-color: rgb(0 0 0 / 0.08); color: #71717a; }
+  .code-block[data-bg='light'] .code-hover:hover,
+  .code-block[data-bg='light'] .code-hover:focus { color: #18181b; }
+  .code-block[data-bg='light'] .code-btn:hover { background: rgb(0 0 0 / 0.06); }
+  .code-block[data-bg='light'] .code-ln { color: #a1a1aa; }
+  .code-block[data-bg='light'] textarea { caret-color: #18181b; }
+  .code-block[data-bg='light'] textarea::placeholder { color: #a1a1aa; }
+  .code-block[data-bg='light'] .tk-com { color: #6b7280; }
+  .code-block[data-bg='light'] .tk-str { color: #a35200; }
+  .code-block[data-bg='light'] .tk-var { color: #c0263d; }
+  .code-block[data-bg='light'] .tk-cmd { color: #0369a1; }
+  .code-block[data-bg='light'] .tk-flag { color: #4338ca; }
+  .code-block[data-bg='light'] .tk-kw { color: #7e22ce; }
+  .code-block[data-bg='light'] .tk-num { color: #047857; }
+}
