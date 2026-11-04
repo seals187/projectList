@@ -8,6 +8,10 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unveröffentlicht]
 
+### Geändert
+
+- README auf Englisch
+
 ## [0.0.4] – 2026-11-04
 
 ### Hinzugefügt

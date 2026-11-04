@@ -1,212 +1,209 @@
 # ProjectList
 
-Schlankes, selbst gehostetes Projektmanagement-Tool: **Kunden → Projekte → Checklisten**.
-Checklisten lassen sich aus wiederverwendbaren Templates erzeugen (als unabhängige Kopie).
-Änderungen pro Version: siehe [CHANGELOG.md](CHANGELOG.md).
+Lean, self-hosted project management tool: **Customers → Projects → Checklists**.
+Checklists can be created from reusable templates (as independent copies).
+Changes per version: see [CHANGELOG.md](CHANGELOG.md).
 
-- Ein einziges Go-Binary mit eingebettetem SvelteKit-Frontend, SQLite (pure Go, kein CGO)
-- Ein Container, Ziel < 50 MB RAM
-- Multiuser mit Rollen (`admin`, `member`, `viewer`) und Kundenzuordnung
+- A single Go binary with an embedded SvelteKit frontend, SQLite (pure Go, no CGO)
+- One container, target < 50 MB RAM
+- Multi-user with roles (`admin`, `member`, `viewer`) and customer assignment
+- User interface in English, German and French
 
-## Schnellstart (Docker)
+## Quick start (Docker)
 
 ```bash
-cp .env.example .env        # ADMIN_EMAIL / ADMIN_PASSWORD anpassen!
-docker compose up -d        # lädt das fertige Image ghcr.io/seals187/projectlist:latest
+cp .env.example .env        # adjust ADMIN_EMAIL / ADMIN_PASSWORD!
+docker compose up -d        # pulls the published image ghcr.io/seals187/projectlist:latest
 ```
 
-Version in der `.env` über `PROJECTLIST_VERSION`: `latest` = neuestes Release (Standard), `edge` =
-aktueller Entwicklungsstand (jeder Push auf `main`), oder eine feste Version wie `0.0.2`.
-Aktualisieren: `docker compose pull && docker compose up -d`.
+Version via `PROJECTLIST_VERSION` in `.env`: `latest` = newest release (default), `edge` =
+current development state (every push to `main`), or a fixed version such as `0.0.4`.
+Update: `docker compose pull && docker compose up -d`.
 
-Danach unter <http://localhost:8080> mit den Admin-Zugangsdaten aus der `.env` anmelden.
-Der erste Admin wird nur beim allerersten Start angelegt (leere Datenbank).
+Then sign in at <http://localhost:8080> with the admin credentials from `.env`.
+The first admin is only created on the very first start (empty database).
 
-Status prüfen:
+Check the status:
 
 ```bash
-docker compose ps                     # Healthcheck-Status
+docker compose ps                     # healthcheck status
 curl http://localhost:8080/healthz    # {"status":"ok"}
-docker compose logs -f projectlist    # strukturierte JSON-Logs
+docker compose logs -f projectlist    # structured JSON logs
 ```
 
-### Fertiges Image von GitHub (ghcr.io)
+### Published image (ghcr.io)
 
-Zu jedem Release gibt es ein Image für **linux/amd64** und **linux/arm64** (z. B. Raspberry Pi):
+Every release has an image for **linux/amd64** and **linux/arm64** (e.g. Raspberry Pi):
 
 ```bash
-docker pull ghcr.io/seals187/projectlist:latest   # oder eine feste Version, z. B. :0.0.2
+docker pull ghcr.io/seals187/projectlist:latest   # or a fixed version, e.g. :0.0.4
 ```
 
-`docker-compose.yml` verwendet dieses Image bereits. Ohne Compose direkt:
+`docker-compose.yml` already uses this image. Without Compose:
 
 ```bash
 docker run -d --name projectlist -p 8080:8080 --env-file .env \
   -v projectlist-data:/data --memory 128m ghcr.io/seals187/projectlist:latest
 ```
 
-Veröffentlicht wird automatisch per GitHub Actions (`.github/workflows/docker.yml`): bei jedem Tag
-`vX.Y.Z` mit den Tags `:X.Y.Z`, `:X.Y` und `:latest`, bei jedem Push auf `main` (nach grünen Tests) als `:edge`. Ein bestehendes Tag lässt sich unter
-*Actions → CI and container image → Run workflow* nachträglich veröffentlichen.
+Images are published automatically by GitHub Actions (`.github/workflows/docker.yml`): for every tag
+`vX.Y.Z` as `:X.Y.Z`, `:X.Y` and `:latest`, and for every push to `main` (after green tests) as `:edge`.
+An existing tag can be published afterwards via *Actions → CI and container image → Run workflow*.
 
-Zu jedem Versions-Tag legt der Workflow `release.yml` automatisch die GitHub-Release-Seite an, mit den Notizen aus
-der `CHANGELOG.md` (für ein bestehendes Tag: *Actions → Release → Run workflow*).
+For every version tag, the workflow `release.yml` creates the GitHub release with the notes from
+`CHANGELOG.md` (for an existing tag: *Actions → Release → Run workflow*).
 
-## Umgebungsvariablen
+## Environment variables
 
-| Variable         | Standard               | Beschreibung |
-|------------------|------------------------|--------------|
-| `ADMIN_EMAIL`    | –                      | E-Mail des ersten Admins (nur bei leerer DB) |
-| `ADMIN_PASSWORD` | –                      | Passwort des ersten Admins (min. 8 Zeichen) |
-| `APP_SUBTITLE`   | –                      | Optionaler Untertitel unter „ProjectList“ in der Seitenleiste (z. B. Firmen-/Abteilungsname) |
-| `ADMIN_NAME`     | `Admin`                | Anzeigename des ersten Admins |
-| `PORT`           | `8080`                 | Host-Port (nur docker compose) |
-| `PROJECTLIST_VERSION` | `latest`        | Image-Version für docker compose: `latest`, `edge` oder z. B. `0.0.2` |
-| `LISTEN_ADDR`    | `:8080`                | Listen-Adresse im Container |
-| `DB_PATH`        | `/data/projectlist.db` | Pfad der SQLite-Datei |
-| `COOKIE_SECURE`  | `true`                 | Session-Cookie nur über HTTPS. Auf `http://localhost` funktioniert das in Chrome/Edge/Firefox; für Zugriff per HTTP über IP/Hostname `false` setzen |
-| `SESSION_TTL`    | `720h`                 | Gültigkeit einer Session (wird bei Nutzung verlängert) |
-| `LOG_LEVEL`      | `info`                 | `debug`, `info`, `warn`, `error` |
-| `LOG_FORMAT`     | `json`                 | `json` oder `text` |
+| Variable              | Default                | Description |
+|-----------------------|------------------------|-------------|
+| `ADMIN_EMAIL`         | –                      | Email of the first admin (only with an empty database) |
+| `ADMIN_PASSWORD`      | –                      | Password of the first admin (at least 8 characters) |
+| `ADMIN_NAME`          | `Admin`                | Display name of the first admin |
+| `APP_SUBTITLE`        | –                      | Optional subtitle below "ProjectList" in the sidebar (e.g. company or department name) |
+| `PORT`                | `8080`                 | Host port (docker compose only) |
+| `PROJECTLIST_VERSION` | `latest`               | Image version for docker compose: `latest`, `edge` or e.g. `0.0.4` |
+| `LISTEN_ADDR`         | `:8080`                | Listen address inside the container |
+| `DB_PATH`             | `/data/projectlist.db` | Path of the SQLite file |
+| `COOKIE_SECURE`       | `true`                 | Send the session cookie over HTTPS only. On `http://localhost` this works in Chrome/Edge/Firefox; set `false` for plain HTTP access via an IP or hostname |
+| `SESSION_TTL`         | `720h`                 | Session lifetime (extended while in use) |
+| `LOG_LEVEL`           | `info`                 | `debug`, `info`, `warn`, `error` |
+| `LOG_FORMAT`          | `json`                 | `json` or `text` |
 
-Für den Produktivbetrieb empfiehlt sich ein Reverse-Proxy mit TLS (Caddy, Traefik, nginx) vor dem Container.
-Der Proxy muss den `Host`-Header unverändert weitergeben (Origin-Prüfung).
+For production, put a reverse proxy with TLS (Caddy, Traefik, nginx) in front of the container.
+The proxy must pass the `Host` header through unchanged (origin check).
 
-## Rollen & Rechte
+## Roles & permissions
 
-| Rolle    | Sichtbarkeit             | Rechte |
-|----------|--------------------------|--------|
-| `admin`  | alle Kunden              | alles inkl. Benutzerverwaltung (*Settings → Users*), Kunden anlegen/löschen, Backup |
-| `member` | nur zugeordnete Kunden   | Kunden bearbeiten; Projekte, Checklisten, Items anlegen/ändern/löschen/abhaken; Templates verwalten |
-| `viewer` | nur zugeordnete Kunden   | nur lesen |
+| Role     | Visibility              | Permissions |
+|----------|-------------------------|-------------|
+| `admin`  | all customers           | everything, incl. user management (*Settings → Users*), creating/deleting customers, backup |
+| `member` | assigned customers only | edit customers; create/change/delete/check projects, checklists and items; manage templates |
+| `viewer` | assigned customers only | read only |
 
-Alle Rechte werden serverseitig in jedem Endpunkt geprüft. Objekte fremder Kunden liefern `404`.
-Fehler liefert die API als sprachneutrale Codes (z. B. `{"error":"validation","fields":{"name":"required"}}`);
-die Oberfläche übersetzt sie.
+All permissions are checked server-side in every endpoint. Objects of other customers return `404`.
+The API returns errors as language-neutral codes (e.g. `{"error":"validation","fields":{"name":"required"}}`);
+the user interface translates them.
 
-## Bedienung
+## Usage
 
-- **Sprache** (English, Deutsch, Français), **Darstellung** (System/Hell/Dunkel/Dunkelgrau) und **Schrift** unter *Settings*:
-  Inter (Standard, mit optischer Größe), Geist, Mona Sans, Instrument Sans, Figtree, Onest, Plus Jakarta Sans, Manrope, DM Sans,
-  Schibsted Grotesk, IBM Plex Sans oder System; Überschriften in
-  Serif (Source Serif 4) oder wie der Text; Code in JetBrains Mono. Alle Schriften sind eingebettet (keine externen Anfragen);
-  die Sprache wird beim ersten Besuch aus dem Browser übernommen
-- **Übersicht** in drei Ansichten; die **Standardansicht** ist unter *Settings* einstellbar (Karten, Liste, Board oder „Zuletzt
-  genutzte“), die gerade genutzte Ansicht bleibt bis zum Schließen der App erhalten; in *Karten* und *Liste* sind die Projekte je Kunde
-  einklappbar (Standard: eingeklappt, „Alle ausklappen“ oben rechts, Zustand wird pro Browser gemerkt):
-  - *Karten*: je Kunde seine Projekte mit Status, Team, Fortschritt je Checkliste, Fälligkeit und nächstem offenen Schritt
-  - *Liste*: Kennzahlen (aktive Projekte, offene Aufgaben, in 14 Tagen fällig, blockiert) und eine nach Kunden gruppierte Tabelle
-  - *Board*: Spalten Planung · Aktiv · Review · Blockiert · Erledigt, Projekte per Drag & Drop verschieben, Filter nach Kunden
-- **Meine Aufgaben**: Tab *Kunden* (Kunden → Projekte → Checklisten, an denen man beteiligt ist, mit Kundenfortschritt und
-  Fälligkeit „Gestern/Heute/Morgen“) und Tab *Persönlich* (zugewiesene Einträge zum Abhaken); Filter Offen / Heute / Erledigt
-  (erledigt = letzte 30 Tage)
-- **Kundenfortschritt**: Pro Projekt schaltet das Tortendiagramm-Symbol, ob es in den Gesamtfortschritt des Kunden einfliesst
-  (Admins und Members; Viewer sehen nur den Zustand). Ausgenommene Projekte werden grau dargestellt, beim Kunden steht
-  „ohne N Projekt(e)“; gilt gleich in Meine Aufgaben, Kundenliste und Übersicht
-- **Kunden**-Übersicht als Liste (aufklappbar mit Projekten, Checklisten-Fortschritt, Fälligkeit) oder Karten; Suche,
-  Filter (alle, mit aktiven Projekten, kritisch, ohne Projekt), Sortierung (letzte Aktivität, Name, Fortschritt, Fälligkeit, offene
-  Aufgaben); Status je Kunde: *Neu* (keine Projekte), *Kritisch* (Projekt blockiert oder in ≤ 3 Tagen fällig/überfällig),
-  *Abgeschlossen*, sonst *Im Plan*. Ort, Ansprechpartner und E-Mail auf der Kundenseite bearbeitbar
-- **Projektstatus** (Planung, Aktiv, Review, Blockiert, Erledigt, Archiviert) und **Fälligkeitsdatum** oben auf der Projektseite;
-  „Neues Projekt“ in der Übersicht legt optional gleich die erste Checkliste aus einer Vorlage an
-- **Seitenleiste**: Suche und **+** (neues Projekt), **Favoriten** (Stern am Projekt in der Seitenleiste oder auf der Projektseite),
-  **Zuletzt** besuchte Kunden/Projekte/Checklisten/Templates mit Art und Zugehörigkeit, „Leeren“ (beides pro Benutzer in der Datenbank,
-  also auf allen Geräten gleich); Abschnitte Favoriten/Zuletzt/Kunden einklappbar; Kunden mit Kürzel und Projektanzahl
-  (aufklappbar, Projekte mit Status-Punkt, „+ Neues Projekt“ je Kunde); unten Benutzer (→ Einstellungen), Theme-Umschalter, Abmelden
-- **Strg+K** / **⌘K** öffnet die Suche (Kunden, Projekte, Checklisten)
-- Titel von Kunden, Projekten und Checklisten anklicken zum Bearbeiten – **Enter** speichert, **Esc** bricht ab
+- **Language** (English, Deutsch, Français), **theme** (system/light/dark/dark gray) and **font** in *Settings*:
+  Inter (default, with optical size), Geist, Mona Sans, Instrument Sans, Figtree, Onest, Plus Jakarta Sans,
+  Manrope, DM Sans, Schibsted Grotesk, IBM Plex Sans or system; headings in serif (Source Serif 4) or like the
+  text; code in JetBrains Mono. All fonts are embedded (no external requests). The language is taken from the
+  browser on the first visit
+- **Overview** in three views; the **default view** can be set in *Settings* (cards, list, board or "last used"),
+  the view in use is kept until the app is closed. In *cards* and *list*, the projects of each customer can be
+  collapsed (default: collapsed, "Expand all" at the top right, state remembered per browser):
+  - *Cards*: per customer its projects with status, team, progress per checklist, due date and next open step
+  - *List*: key figures (active projects, open tasks, due within 14 days, blocked) and a table grouped by customer
+  - *Board*: columns Planning · Active · Review · Blocked · Done, move projects by drag & drop, filter by customer
+- **My tasks**: tab *Customers* (customers → projects → checklists you are involved in, with customer progress and
+  due dates "yesterday/today/tomorrow") and tab *Personal* (assigned items to check off); filters open / today /
+  done (done = last 30 days)
+- **Customer progress**: per project, the pie chart icon sets whether it counts towards the customer's overall
+  progress (admins and members; viewers only see the state). Excluded projects are shown in gray, and the customer
+  shows "excl. N project(s)"; the same calculation is used in My tasks, the customer list and the overview
+- **Customers** overview as a list (expandable with projects, checklist progress, due date) or cards; search,
+  filters (all, with active projects, critical, without project), sorting (last activity, name, progress, due date,
+  open tasks); status per customer: *New* (no projects), *Critical* (project blocked or due/overdue within 3 days),
+  *Completed*, otherwise *On track*. Location, contact person and email can be edited on the customer page
+- **Project status** (planning, active, review, blocked, done, archived) and **due date** at the top of the project
+  page; "New project" in the overview can create the first checklist from a template right away
+- **Sidebar**: search and **+** (new project), **favorites** (star on a project in the sidebar or on the project
+  page), **recently visited** customers/projects/checklists/templates with type and parent, "Clear" (both stored per
+  user in the database, so they are the same on every device); sections favorites/recent/customers collapsible;
+  customers with code and project count (expandable, projects with status dot, "+ New project" per customer); at
+  the bottom: user (→ settings), theme toggle, sign out
+- **Ctrl+K** / **⌘K** opens the search (customers, projects, checklists)
+- Click the title of a customer, project or checklist to edit it – **Enter** saves, **Esc** cancels
 
-### Block-Editor (Checklisten & Templates)
+### Block editor (checklists & templates)
 
-Checklisten bestehen aus **Blöcken**, die wie in einem Dokument bearbeitet werden. Gespeichert wird
-automatisch (Anzeige „saved“ oben rechts).
+Checklists consist of **blocks** that are edited like a document. Changes are saved automatically
+(indicator "saved" at the top right).
 
-| Blocktyp | Kürzel beim Tippen | Hinweis |
+| Block type | Shortcut while typing | Note |
 |---|---|---|
-| Checklisten-Eintrag | `[] ` | Checkbox, Zuständige, Fälligkeit – nur diese zählen zum Fortschritt |
-| Überschrift 1–4 | `# ` … `#### ` | H1 bildet Abschnitte mit Zähler (auch in der Sidebar) |
-| Normaler Text | – | |
-| Aufzählung / nummerierte Liste | `- ` / `1. ` | |
-| Zitat | `> ` | |
-| Codeblock | ` ``` ` | Syntax-Highlighting (Bash, PowerShell, SQL, JSON, YAML, JS, Python), Zeilennummern, *Copy*, Hintergrund Hellgrau/Dunkelgrau/Schwarz (unter *Settings → Checklisten*) |
-| Trennlinie | `---` | |
+| Checklist item | `[] ` | Checkbox, assignee, due date – only these count towards progress |
+| Heading 1–4 | `# ` … `#### ` | H1 forms sections with a counter (also in the sidebar) |
+| Normal text | – | |
+| Bulleted / numbered list | `- ` / `1. ` | |
+| Quote | `> ` | |
+| Code block | ` ``` ` | Syntax highlighting (Bash, PowerShell, SQL, JSON, YAML, JS, Python), line numbers, *Copy*, background light gray/dark gray/black (in *Settings → Checklists*) |
+| Divider | `---` | |
 
-- **`/`** am Zeilenanfang öffnet das Befehlsmenü (z. B. `/hea` → Überschriften); **+** am Zeilenrand
-  fügt darunter einen Block ein und öffnet das Menü
-- **Enter** teilt den Block bzw. legt einen neuen gleichen Typs an; Enter in einem leeren Listeneintrag
-  beendet die Liste. **Backspace** am Zeilenanfang wandelt in Text um bzw. verbindet mit dem Block davor.
-  **Tab / Shift+Tab** rückt ein/aus (z. B. Codeblock unter einem Eintrag). **↑/↓** wechseln den Block.
-- **Toolbar**: Rückgängig/Wiederholen (**Strg+Z / Strg+Y**), Blocktyp, H1–H4, **fett** (Strg+B),
-  *kursiv* (Strg+I), unterstrichen (Strg+U), durchgestrichen, `Inline-Code` (Strg+E), Textfarbe,
-  Hervorhebung, Listen, Zitat, Codeblock, Link, Trennlinie, Formatierung entfernen; rechts **+ Heading** / **+ Item**
-- Im Codeblock: **Tab** rückt ein, **Esc** oder **Strg+Enter** springt zum nächsten Block
-- Mehrzeiliges Einfügen erzeugt pro Zeile einen eigenen Block
-- **Einklappen**: Der Pfeil vor einer Überschrift klappt ihren Abschnitt ein (bis zur nächsten Überschrift
-  gleicher oder höherer Ebene; H2 klappt also seine H3/H4 mit ein). Eingeklappte Überschriften zeigen
-  Fortschritt und die Zahl der ausgeblendeten Blöcke; oben rechts gibt es *Alle einklappen / ausklappen*.
-  Der Zustand wird pro Browser gespeichert (nicht in der Datenbank), verschiebt man eine eingeklappte
-  Überschrift, wandert der Abschnitt mit
-- **Links**: blau dargestellt. Klick auf einen Link (oder der Link-Button) öffnet einen Dialog für
-  **Text** und **Adresse (URL)**, mit *Öffnen* und *Link entfernen*; ohne markierten Text wird ein neuer
-  Link an der Cursorposition eingefügt. Strg+Klick öffnet den Link direkt
-- **Zeilenfarbe**: über das Tropfen-Symbol rechts in jeder Zeile (beim Überfahren); hat Vorrang vor der
-  Abschnittsfarbe. In einem farbigen Abschnitt gibt es zusätzlich *Wie Abschnitt* (Farbe erben) und
-  *Ohne Farbe* (Zeile bleibt weiß, auch im farbigen Abschnitt)
-- **Farbstufen** wie in Word/Excel: jede Farbe (Grau, Gelb, Grün, Blau, Rot, Lila) gibt es hell, mittel
-  und kräftig (Textmarker-Farben wie `#FFFF00`) – für Zeilen, Abschnitte, Textfarbe und Hervorhebung,
-  überall im gleichen Raster (Farbtöne nebeneinander, Stufen untereinander)
-- **In Checklistenpunkt umwandeln**: Checkbox-Symbol rechts in Text-, Listen-, Zitat- und
-  Überschriftszeilen (beim Überfahren) macht daraus einen Punkt mit Checkbox (Strg+Z macht es rückgängig)
-- **Status je Eintrag**: rechts neben der Checkbox ein freies Textfeld (max. 60 Zeichen) mit Vorschlägen
-  wie *Erfüllt*, *Erreicht*, *Teilweise*; bereits verwendete Werte der Checkliste werden ebenfalls
-  vorgeschlagen. Der Status wird nicht in Templates übernommen
-- **Rahmenlinien** um jede Zeile wie in einer Tabelle, ein/aus über das Tabellen-Symbol in der Toolbar
-  oder unter Einstellungen → Checklisten (Standard: an). Die Notizspalte bleibt immer ohne Abschnittsfarbe
-- **Zuständig für eine ganze Checkliste**: im Kopf der Checkliste über *Zuweisen* (nur Benutzer mit
-  Zugriff auf den Kunden). Zugewiesene Checklisten erscheinen unter *Meine Aufgaben → Meine Checklisten*
-  und auf der Projektseite mit Avatar
-- **Seitenleiste einklappen**: Symbol neben dem Logo oder **Strg+\\** (wird pro Browser gemerkt)
-- **Seitenleiste breiter/schmaler**: am rechten Rand ziehen (200–480 px, Doppelklick = Standardbreite;
-  wird pro Browser gemerkt)
-- **Darstellung** (persönlich, pro Browser): Checkbox **rechts oder links** und **eckig oder rund**
-  (Standard: rechts, eckig) unter *Einstellungen → Checklisten*; die **Größe** der Checkliste
-  (80–160 % in 5 %-Schritten) über **− / +** in der Toolbar (Klick auf die Prozentzahl setzt auf 100 % zurück)
-- **Abschnittsfarbe**: Über das Tropfen-Symbol rechts an einer Überschrift bekommt der ganze Abschnitt
-  einen Hintergrund (Grau, Gelb, Grün, Blau, Rot, Lila). Die Farbe wird gespeichert, gilt für alle
-  Benutzer und wird in Templates übernommen; ein verschachtelter farbiger Abschnitt hat Vorrang
-- Rechts steht die **Notizspalte** (ebenfalls formatierbar); ein Klick auf den farbigen Balken wechselt
-  die Farbe (grau → grün → orange → rot → indigo)
-- Zuständige und Fälligkeit: beim Überfahren einer Zeile über die Symbole 👤/📅; „today“ bzw.
-  überfällige Daten werden rot markiert
-- Blöcke und Checklisten über den Griff (⋮⋮) per Drag & Drop sortieren (auch per Touch)
-- Formatierungen werden als kleines HTML-Subset gespeichert und serverseitig per Whitelist bereinigt
+- **`/`** at the start of a line opens the command menu (e.g. `/hea` → headings); **+** in the left margin
+  inserts a block below and opens the menu
+- **Enter** splits the block or creates a new one of the same type; Enter in an empty list item ends the list.
+  **Backspace** at the start of a line converts to text or merges with the block above.
+  **Tab / Shift+Tab** indents/outdents (e.g. a code block below an item). **↑/↓** move between blocks.
+- **Toolbar**: undo/redo (**Ctrl+Z / Ctrl+Y**), block type, H1–H4, **bold** (Ctrl+B), *italic* (Ctrl+I),
+  underline (Ctrl+U), strikethrough, `inline code` (Ctrl+E), text color, highlight, lists, quote, code block,
+  link, divider, clear formatting; on the right **+ Heading** / **+ Item**
+- In a code block: **Tab** indents, **Esc** or **Ctrl+Enter** jumps to the next block
+- Pasting multiple lines creates one block per line
+- **Collapse**: the arrow in front of a heading collapses its section (up to the next heading of the same or a
+  higher level, so H2 also collapses its H3/H4). Collapsed headings show progress and the number of hidden blocks;
+  at the top right there is *Collapse all / Expand all*. The state is stored per browser (not in the database);
+  moving a collapsed heading moves its section along
+- **Links**: shown in blue. Clicking a link (or the link button) opens a dialog for **text** and **address
+  (URL)**, with *Open* and *Remove link*; without selected text, a new link is inserted at the cursor.
+  Ctrl+click opens the link directly
+- **Row color**: via the droplet icon on the right of each row (on hover); takes precedence over the section
+  color. Inside a colored section there are also *Same as section* (inherit the color) and *No color* (row stays
+  white, even inside a colored section)
+- **Color shades** like in Word/Excel: every color (gray, yellow, green, blue, red, purple) comes in light,
+  medium and strong (highlighter colors such as `#FFFF00`) – for rows, sections, text color and highlight,
+  everywhere in the same grid (hues side by side, shades below each other)
+- **Convert to checklist item**: the checkbox icon on the right of text, list, quote and heading rows (on hover)
+  turns the row into an item with a checkbox (Ctrl+Z undoes it)
+- **Status per item**: a free text field next to the checkbox (max. 60 characters) with suggestions such as
+  *Fulfilled*, *Achieved*, *Partially*; values already used in the checklist are suggested too.
+  The status is not copied into templates
+- **Grid lines** around every row like in a table, on/off via the table icon in the toolbar or in
+  *Settings → Checklists* (default: on). The notes column never takes the section color
+- **Assignee for a whole checklist**: in the checklist header via *Assign* (only users with access to the
+  customer). Assigned checklists appear in *My tasks* and on the project page with an avatar
+- **Collapse the sidebar**: icon next to the logo or **Ctrl+\\** (remembered per browser)
+- **Sidebar width**: drag its right edge (200–480 px, double-click = default width; remembered per browser)
+- **Display** (personal, per browser): checkbox **right or left** and **square or round** (default: right,
+  square) in *Settings → Checklists*; the **size** of the checklist (80–160 % in 5 % steps) via **− / +** in the
+  toolbar (clicking the percentage resets to 100 %)
+- **Section color**: the droplet icon on the right of a heading gives the whole section a background (gray,
+  yellow, green, blue, red, purple). The color is stored, applies to all users and is copied into templates;
+  a nested colored section takes precedence
+- On the right is the **notes column** (also formattable); clicking the colored bar cycles the color
+  (gray → green → orange → red → indigo)
+- Assignee and due date: on hover via the 👤/📅 icons; "today" and overdue dates are marked in red
+- Reorder blocks and checklists via the handle (⋮⋮) by drag & drop (touch works too)
+- Formatting is stored as a small HTML subset and sanitized server-side with an allow list
   (`b i u s code a span[data-color] mark[data-bg] br`)
-- „Aus Template“ zeigt eine Vorschau; die Einträge werden **kopiert** – spätere Template-Änderungen
-  beeinflussen bestehende Checklisten nicht
-- „Save as template“ im Kopf einer Checkliste speichert sie als neues Template
-- *My tasks* listet alle offenen, dir zugewiesenen Einträge nach Fälligkeit
+- "From template" shows a preview; the items are **copied** – later template changes do not affect existing
+  checklists
+- "Save as template" in a checklist header saves it as a new template
 
-## Backup & Restore
+## Backup & restore
 
-**Backup per CLI** (konsistent auch im laufenden Betrieb, via `VACUUM INTO`):
+**Backup via CLI** (consistent even while running, via `VACUUM INTO`):
 
 ```bash
 docker compose exec projectlist /projectlist backup
-# → /data/backups/projectlist-YYYYMMDD-HHMMSS.db (im Volume)
+# → /data/backups/projectlist-YYYYMMDD-HHMMSS.db (inside the volume)
 
-# Backup auf den Host kopieren:
+# copy backups to the host:
 docker compose cp projectlist:/data/backups/. ./backups/
 ```
 
-Optional mit eigenem Ziel: `/projectlist backup /data/backups/vor-update.db`.
+With a custom target: `/projectlist backup /data/backups/before-update.db`.
 
-**Backup per Browser:** Als Admin unter *Settings → Backup herunterladen*
-(Endpunkt `GET /api/admin/backup`).
+**Backup via browser:** as an admin in *Settings → Download backup*
+(endpoint `GET /api/admin/backup`).
 
 **Restore:**
 
-Das Laufzeit-Image enthält keine Shell (distroless). Daher wird die Datei über einen kurzlebigen
-Hilfscontainer ins Volume kopiert (Backup-Datei liegt in `./backups/` auf dem Host):
+The runtime image contains no shell (distroless), so the file is copied into the volume with a short-lived
+helper container (backup file in `./backups/` on the host):
 
 ```bash
 docker compose stop projectlist
@@ -215,94 +212,93 @@ docker run --rm -v projectlist_projectlist-data:/data -v "$PWD/backups:/backup:r
 docker compose start projectlist
 ```
 
-Die alten `-wal`/`-shm`-Dateien müssen dabei entfernt werden, sonst würde SQLite sie auf die
-wiederhergestellte Datei anwenden.
+The old `-wal`/`-shm` files must be removed, otherwise SQLite would apply them to the restored file.
 
 ## Update
 
 ```bash
-docker compose exec projectlist /projectlist backup   # vorher sichern
+docker compose exec projectlist /projectlist backup   # back up first
 docker compose pull && docker compose up -d
 ```
 
-Datenbank-Migrationen laufen beim Start automatisch (goose, eingebettet). Daten liegen im Volume
-`projectlist-data` und bleiben bei Updates erhalten.
+Database migrations run automatically on startup (goose, embedded). Data lives in the volume
+`projectlist-data` and is kept across updates.
 
-## Entwicklung
+## Development
 
-Voraussetzungen: Go 1.27+, Node 26+ – oder nur Docker (alle Schritte laufen auch in Containern).
+Requirements: Go 1.27+, Node 26+ – or just Docker (every step also runs in containers).
 
 ```bash
-# Backend-Tests (In-Memory-SQLite)
+# backend tests (in-memory SQLite)
 go test ./...
-# … oder ohne lokale Go-Installation:
+# … or without a local Go installation:
 docker build --target test .
 
-# Image lokal bauen und mit Compose starten (ohne GitHub):
+# build the image locally and start it with Compose (without GitHub):
 docker build -t ghcr.io/seals187/projectlist:dev --build-arg VERSION=dev .
 PROJECTLIST_VERSION=dev docker compose up -d
 
-# Frontend
-cd web && npm install && npm run dev     # Vite-Dev-Server, /api → localhost:8080
+# frontend
+cd web && npm install && npm run dev     # Vite dev server, /api → localhost:8080
 npm run check                             # svelte-check
-npm run build                             # → web/build (wird ins Binary eingebettet)
+npm run build                             # → web/build (embedded into the binary)
 
-# Server lokal
-ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=passwort-123 COOKIE_SECURE=false \
+# run the server locally
+ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=password-123 COOKIE_SECURE=false \
   LOG_FORMAT=text go run ./cmd/projectlist
 
-# SQL-Queries geändert? sqlc-Code neu erzeugen:
+# changed SQL queries? regenerate the sqlc code:
 docker run --rm -v "$PWD:/src" -w /src sqlc/sqlc:1.31.1 generate
 ```
 
-Neue Migrationen als `migrations/0000N_name.sql` im goose-Format anlegen.
+Add new migrations as `migrations/0000N_name.sql` in goose format.
 
-### Projektstruktur
+### Project structure
 
 ```
-cmd/projectlist/      Einstieg: serve | backup | migrate | healthcheck | version
-internal/config/      ENV-Konfiguration
-internal/db/          SQLite öffnen (WAL, FK, busy_timeout), Migrationen, Transaktionen
-internal/db/queries/  SQL-Quellen für sqlc
-internal/db/sqlc/     generierter, typsicherer Query-Code
-internal/auth/        Argon2id, Sessions, Login-Limiter, Admin-Bootstrap
-internal/authz/       Rollen & Kundenzuordnung
-internal/service/     Template anwenden / Checkliste als Template (Transaktionen)
-internal/richtext/    Whitelist-Bereinigung der Inline-Formatierung
-internal/httpapi/     JSON-API, Middleware, Validierung
-internal/static/      Auslieferung des eingebetteten Frontends (br/gzip, Cache-Header)
-migrations/           goose-Migrationen (eingebettet)
+cmd/projectlist/      entry point: serve | backup | migrate | healthcheck | version
+internal/config/      environment configuration
+internal/db/          open SQLite (WAL, FK, busy_timeout), migrations, transactions
+internal/db/queries/  SQL sources for sqlc
+internal/db/sqlc/     generated, type-safe query code
+internal/auth/        Argon2id, sessions, login limiter, admin bootstrap
+internal/authz/       roles & customer assignment
+internal/service/     apply a template / save a checklist as template (transactions)
+internal/richtext/    allow-list sanitizing of inline formatting
+internal/httpapi/     JSON API, middleware, validation
+internal/static/      serving the embedded frontend (br/gzip, cache headers)
+migrations/           goose migrations (embedded)
 web/                  SvelteKit + Tailwind (adapter-static)
 ```
 
-## Technische Details
+## Technical details
 
-- **Sicherheit:** Argon2id (19 MiB, t=2, OWASP), serverseitige Sessions (nur SHA-256 des Tokens in der DB),
-  Cookie `HttpOnly; Secure; SameSite=Lax`, CSRF-Token-Header + Origin-Prüfung, Login-Rate-Limit,
-  CSP mit Script-Hashes, distroless-Image als `nonroot`
-- **Performance:** Projektansicht lädt alle Checklisten samt Items mit zwei Abfragen; Fortschritt in Sidebar
-  und Kundenansicht per SQL-Aggregation; Assets beim Build vorkomprimiert (Brotli/Gzip), gehashte Dateien
-  mit `Cache-Control: immutable`
-- **Betrieb:** Graceful Shutdown (SIGTERM), WAL-Checkpoint beim Beenden, strukturierte Logs (`log/slog`),
-  `/healthz`, Speicherlimit 128 MB + `GOMEMLIMIT` im Compose-File
+- **Security:** Argon2id (19 MiB, t=2, OWASP), server-side sessions (only the SHA-256 of the token is stored),
+  cookie `HttpOnly; Secure; SameSite=Lax`, CSRF token header + origin check, login rate limit,
+  CSP with script hashes, distroless image running as `nonroot`
+- **Performance:** the project view loads all checklists with their items in two queries; progress in the sidebar
+  and customer views via SQL aggregation; assets pre-compressed at build time (Brotli/gzip), hashed files with
+  `Cache-Control: immutable`
+- **Operations:** graceful shutdown (SIGTERM), WAL checkpoint on exit, structured logs (`log/slog`),
+  `/healthz`, memory limit 128 MB + `GOMEMLIMIT` in the Compose file
 
-## API (Kurzüberblick)
+## API (overview)
 
-Alle Endpunkte unter `/api`, JSON. Schreibende Requests benötigen den Header `X-CSRF-Token`
-(aus `POST /api/auth/login` bzw. `GET /api/auth/me`).
+All endpoints under `/api`, JSON. Writing requests need the header `X-CSRF-Token`
+(from `POST /api/auth/login` or `GET /api/auth/me`).
 
-| Bereich     | Endpunkte |
+| Area        | Endpoints |
 |-------------|-----------|
 | Auth        | `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`, `PUT /auth/password` |
-| Benutzer    | `GET/POST /users`, `PATCH/DELETE /users/{id}`, `PUT /users/{id}/customers` (Admin) |
-| Kunden      | `GET/POST /customers`, `GET/PATCH/DELETE /customers/{id}` |
-| Projekte    | `GET/POST /customers/{id}/projects`, `GET/PATCH/DELETE /projects/{id}` |
-| Checklisten | `GET/POST /projects/{id}/checklists`, `POST /projects/{id}/checklists/from-template`, `PUT /projects/{id}/checklists/order`, `GET/PATCH/DELETE /checklists/{id}`, `POST /checklists/{id}/save-as-template` |
+| Users       | `GET/POST /users`, `PATCH/DELETE /users/{id}`, `PUT /users/{id}/customers` (admin) |
+| Customers   | `GET/POST /customers`, `GET/PATCH/DELETE /customers/{id}` |
+| Projects    | `GET/POST /customers/{id}/projects`, `GET/PATCH/DELETE /projects/{id}` |
+| Checklists  | `GET/POST /projects/{id}/checklists`, `POST /projects/{id}/checklists/from-template`, `PUT /projects/{id}/checklists/order`, `GET/PATCH/DELETE /checklists/{id}`, `POST /checklists/{id}/save-as-template` |
 | Items       | `POST /checklists/{id}/items`, `PUT /checklists/{id}/items/order`, `PATCH/DELETE /items/{id}`, `POST /items/{id}/done` |
 | Templates   | `GET/POST /templates`, `GET/PATCH/DELETE /templates/{id}`, `POST /templates/{id}/items`, `PUT /templates/{id}/items/order`, `PATCH/DELETE /template-items/{id}` |
-| Seitenleiste | `PUT/DELETE /favorites/{projectId}`, `POST/DELETE /recent` (`kind` = `customer`, `project`, `checklist` oder `template`, dazu `id`); beide Listen kommen mit `GET /sidebar` |
-| Sonstiges   | `GET /sidebar`, `GET /overview`, `GET /my-tasks`, `GET /my-checklists`, `GET /search?q=`, `GET /admin/backup`, `GET /healthz` |
+| Sidebar     | `PUT/DELETE /favorites/{projectId}`, `POST/DELETE /recent` (`kind` = `customer`, `project`, `checklist` or `template`, plus `id`); both lists come with `GET /sidebar` |
+| Other       | `GET /sidebar`, `GET /overview`, `GET /my-tasks`, `GET /my-checklists`, `GET /search?q=`, `GET /admin/backup`, `GET /healthz` |
 
-## Lizenz
+## License
 
 [GNU Affero General Public License v3.0](LICENSE)
