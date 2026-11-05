@@ -46,16 +46,18 @@ type sidebarProject struct {
 	OwnerID    *int64             `json:"owner_id"`
 	OwnerName  string             `json:"owner_name"`
 	BoardPos   int64              `json:"board_position"`
+	Background string             `json:"background"`
 	Total      int64              `json:"total"`
 	Done       int64              `json:"done"`
 	Checklists []sidebarChecklist `json:"checklists"`
 }
 
 type sidebarCustomer struct {
-	ID       int64            `json:"id"`
-	Name     string           `json:"name"`
-	Location string           `json:"location"`
-	Projects []sidebarProject `json:"projects"`
+	ID         int64            `json:"id"`
+	Name       string           `json:"name"`
+	Location   string           `json:"location"`
+	Background string           `json:"background"` // "", "g<n>" or "img:<id>"
+	Projects   []sidebarProject `json:"projects"`
 }
 
 // sidebar returns the tree customers → projects → checklists incl. progress
@@ -119,7 +121,7 @@ func (s *Server) sidebar(w http.ResponseWriter, r *http.Request, u authz.User) e
 			tagIDs = []int64{}
 		}
 		byCustomer[p.CustomerID] = append(byCustomer[p.CustomerID], sidebarProject{
-			ID: p.ID, Name: p.Name, Status: p.Status, StartDate: p.StartDate, DueDate: p.DueDate, CreatedAt: p.CreatedAt.Format("2006-01-02"), InProgress: p.IncludeInCustomerProgress, TagIDs: tagIDs, OwnerID: p.OwnerID, OwnerName: p.OwnerName, BoardPos: p.BoardPosition, Total: p.Total, Done: p.Done, Checklists: cls,
+			ID: p.ID, Name: p.Name, Status: p.Status, StartDate: p.StartDate, DueDate: p.DueDate, CreatedAt: p.CreatedAt.Format("2006-01-02"), InProgress: p.IncludeInCustomerProgress, TagIDs: tagIDs, OwnerID: p.OwnerID, OwnerName: p.OwnerName, BoardPos: p.BoardPosition, Background: p.Background, Total: p.Total, Done: p.Done, Checklists: cls,
 		})
 	}
 	out := make([]sidebarCustomer, len(customers))
@@ -128,7 +130,7 @@ func (s *Server) sidebar(w http.ResponseWriter, r *http.Request, u authz.User) e
 		if ps == nil {
 			ps = []sidebarProject{}
 		}
-		out[i] = sidebarCustomer{ID: c.ID, Name: c.Name, Location: c.Location, Projects: ps}
+		out[i] = sidebarCustomer{ID: c.ID, Name: c.Name, Location: c.Location, Background: c.Background, Projects: ps}
 	}
 	favorites, err := s.q.ListFavorites(ctx, u.ID)
 	if err != nil {

@@ -1299,7 +1299,7 @@
             <div class="relative min-w-0 {isHeading(b.kind) ? '' : 'flex-1'}">
               <div
                 use:rich={{ html: b.title, key: b.id, field: 'title', editable }}
-                class="rich min-h-5 outline-none {titleCls[b.kind]} {done ? 'text-zinc-400 line-through dark:text-zinc-500' : ''}
+                class="rich min-h-5 outline-none {titleCls[b.kind]} {done ? 'text-zinc-600 line-through dark:text-zinc-400' : ''}
                   {isHeading(b.kind) ? 'ph-always' : 'ph-focus'}"
                 data-placeholder={placeholderFor(b)}
                 role="textbox"

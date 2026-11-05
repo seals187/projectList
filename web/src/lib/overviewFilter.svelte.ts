@@ -112,6 +112,14 @@ export function addSavedView(name: string, view: OverviewView) {
 
 export const removeSavedView = (id: string) => saveViews(savedViews.list.filter((v) => v.id !== id));
 
+/** Renames a saved view (empty names are ignored). */
+export function renameSavedView(id: string, name: string) {
+  const n = name.trim().slice(0, 60);
+  const v = savedViews.list.find((x) => x.id === id);
+  if (!n || !v || v.name === n) return;
+  return saveViews(savedViews.list.map((x) => (x.id === id ? { ...x, name: n } : x)));
+}
+
 /** Applies a saved view (view, filters) and opens the overview. */
 export function applySavedView(v: SavedView) {
   setBoardHidden(v.hidden);

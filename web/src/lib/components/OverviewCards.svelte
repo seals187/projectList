@@ -110,30 +110,34 @@
         <ul class="mt-3 divide-y divide-zinc-100 border-t border-zinc-100 dark:divide-zinc-800 dark:border-zinc-800">
           {#each g.projects.slice(0, MAX_ROWS) as p (p.id)}
             <li>
-              <a href="/projects/{p.id}" class="group -mx-2 flex items-center gap-2.5 rounded-lg px-2 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/50" oncontextmenu={(e) => projectMenu(e, p)}>
-                <span class="size-2 shrink-0 rounded-full {statusDotCls(p.status)}" style={statusDotStyle(p.status)}></span>
-                <span class="min-w-0 flex-1">
-                  <span class="block truncate text-sm font-semibold" title={p.name}>{p.name}</span>
-                  <span class="mt-0.5 flex items-center gap-1.5 text-xs text-zinc-500">
-                    <span class="size-2 shrink-0 rounded-[3px] {statusDotCls(p.status)}" style={statusDotStyle(p.status)}></span>
+              <a href="/projects/{p.id}" class="group -mx-2 block rounded-lg px-2 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-800/50" oncontextmenu={(e) => projectMenu(e, p)}>
+                <!-- name over the full width, "…" on the right -->
+                <span class="flex items-start gap-2">
+                  <span class="line-clamp-2 min-w-0 flex-1 text-sm leading-snug font-semibold break-words" title={p.name}>{p.name}</span>
+                  <!-- "…": on hover (devices with a mouse), always visible without a mouse -->
+                  <button
+                    type="button"
+                    class="-mr-1 shrink-0 rounded-md p-0.5 text-zinc-400 group-hover:opacity-100 hover:bg-zinc-200/70 hover:text-zinc-700 focus:opacity-100 dark:hover:bg-zinc-700 dark:hover:text-zinc-200 [@media(hover:hover)]:opacity-0"
+                    onclick={(e) => menuButton(e, p)}
+                    title={t('menu.actions')}
+                    aria-label="{t('menu.actions')}: {p.name}">
+                    <Icon name="dots" size={14} />
+                  </button>
+                </span>
+                <!-- below: status, progress bar, done/total, due date -->
+                <span class="mt-1 flex items-center gap-2.5 text-xs text-zinc-500">
+                  <span class="flex max-w-[45%] min-w-0 items-center gap-1.5">
+                    <span class="size-2 shrink-0 rounded-full {statusDotCls(p.status)}" style={statusDotStyle(p.status)}></span>
                     <span class="truncate">{statusLabel(p.status)}</span>
                   </span>
+                  <span class="block h-1 min-w-8 flex-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800" title="{pct(p.done, p.total)}%">
+                    <span class="block h-full rounded-full {barCls(p.done, p.total)}" style:width="{pct(p.done, p.total)}%"></span>
+                  </span>
+                  <span class="shrink-0 tabular-nums" title="{pct(p.done, p.total)}%">{p.done}/{p.total}</span>
+                  <span class="w-10 shrink-0 text-right tabular-nums {dueUrgent(p, today) ? 'font-semibold text-red-600 dark:text-red-400' : ''}">
+                    {p.due_date ? shortDate(p.due_date) : '–'}
+                  </span>
                 </span>
-                <span class="block h-1 w-14 shrink-0 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800" title="{pct(p.done, p.total)}% · {p.done}/{p.total}">
-                  <span class="block h-full rounded-full {barCls(p.done, p.total)}" style:width="{pct(p.done, p.total)}%"></span>
-                </span>
-                <span class="w-10 shrink-0 text-right text-xs tabular-nums {dueUrgent(p, today) ? 'font-semibold text-red-600 dark:text-red-400' : 'text-zinc-500'}">
-                  {p.due_date ? shortDate(p.due_date) : '–'}
-                </span>
-                <!-- "…": on hover (devices with a mouse), always visible without a mouse -->
-                <button
-                  type="button"
-                  class="-mr-1 shrink-0 rounded-md p-0.5 text-zinc-400 group-hover:opacity-100 hover:bg-zinc-200/70 hover:text-zinc-700 focus:opacity-100 dark:hover:bg-zinc-700 dark:hover:text-zinc-200 [@media(hover:hover)]:opacity-0"
-                  onclick={(e) => menuButton(e, p)}
-                  title={t('menu.actions')}
-                  aria-label="{t('menu.actions')}: {p.name}">
-                  <Icon name="dots" size={14} />
-                </button>
               </a>
             </li>
           {/each}

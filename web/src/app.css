@@ -44,6 +44,11 @@ html[data-heading='sans'] { --font-serif: var(--font-sans); }
 
 @layer base {
   html { -webkit-tap-highlight-color: transparent; }
+  /* Native controls (select lists, date pickers, scrollbars) follow the app theme,
+     not the operating system: otherwise e.g. a light app on a dark OS shows
+     select options as dark text on a dark popup. */
+  html { color-scheme: light; }
+  html.dark { color-scheme: dark; }
   button { cursor: pointer; }
   button:disabled { cursor: default; }
   :focus-visible { outline: 2px solid var(--color-accent-500); outline-offset: 2px; }
@@ -188,3 +193,67 @@ html[data-heading='sans'] { --font-serif: var(--font-sans); }
   .code-block[data-bg='light'] .tk-kw { color: #7e22ce; }
   .code-block[data-bg='light'] .tk-num { color: #047857; }
 }
+
+/* ---- Background image / gradient (main.has-bg) ----------------------------------------
+   Like Planka: the image lies behind the whole app; sidebar and the header band
+   (HeaderBand.svelte, class "band dark") are dark glass, content surfaces (board
+   columns, lists, tables, panels) light glass, tiles inside lighter glass. Text that
+   is still directly on the image is light with a shadow. Unlayered on purpose:
+   it must win over the utilities. No backdrop-filter inside main: it would make
+   fixed menus and dialogs position relative to the blurred element. */
+main.has-bg :is(.surface, .card) {
+  background-color: rgb(244 244 245 / 0.55);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.18);
+  border-color: transparent;
+}
+.dark main.has-bg :is(.surface, .card) { background-color: rgb(24 24 27 / 0.55); }
+/* tiles inside (project cards, customer cards, task groups, calendar entries,
+   timeline rows) translucent too; header rows and shaded cells only a light veil.
+   Sticky cells (timeline name column) stay nearly opaque, content scrolls below
+   them. Menus, dialogs, form fields and the header band keep their own colors. */
+main.has-bg .bg-white:not(input, select, textarea, dialog, dialog *, [role="dialog"], [role="dialog"] *, [role="menu"], [role="menu"] *, .fixed, .fixed *, .absolute, .absolute *, .band *) {
+  background-color: rgb(255 255 255 / 0.62);
+}
+main.has-bg :is(.bg-zinc-50, .bg-zinc-50\/40, .bg-zinc-50\/70, .bg-zinc-50\/80):not(.band *) {
+  background-color: rgb(255 255 255 / 0.25);
+}
+.dark main.has-bg :is([class*="dark:bg-zinc-900"], [class*="dark:bg-zinc-950"]):not(.no-glass, input, select, textarea, dialog, dialog *, [role="dialog"], [role="dialog"] *, [role="menu"], [role="menu"] *, .fixed, .fixed *, .absolute, .absolute *, .band *) {
+  background-color: rgb(24 24 27 / 0.6);
+}
+.dark main.has-bg :is(.bg-zinc-50, .bg-zinc-50\/40, .bg-zinc-50\/70, .bg-zinc-50\/80):not(.band *) {
+  background-color: rgb(0 0 0 / 0.2);
+}
+main.has-bg .sticky:is(.bg-white, .bg-zinc-50):not(.band *) { background-color: rgb(250 250 250 / 0.94); }
+.dark main.has-bg .sticky:is(.bg-white, .bg-zinc-50):not(.band *) { background-color: rgb(24 24 27 / 0.94); }
+
+main.has-bg
+  :not(
+    :is(.band, .surface, .card, [class^='bg-'], [class*=' bg-'], .btn-primary, .btn-outline, .badge, input, select, textarea, [role='dialog'], [role='menu']),
+    main.has-bg :is(.band, .surface, .card, [class^='bg-'], [class*=' bg-'], .btn-primary, .btn-outline, .badge, input, select, textarea, [role='dialog'], [role='menu']) *
+  ) {
+  color: rgb(255 255 255 / 0.92) !important;
+  text-shadow: 0 1px 3px rgb(0 0 0 / 0.6);
+  border-color: rgb(255 255 255 / 0.3);
+}
+
+/* Surfaces and controls reset the light text color they would inherit (base
+   layer: elements with their own text color utility keep it). The header band
+   uses the dark variants, so its default text is light. */
+@layer base {
+  main.has-bg :is(.surface, .card, [class^='bg-'], [class*=' bg-'], .btn-primary, .btn-outline, .badge, input, select, textarea, [role='dialog'], [role='menu']) {
+    color: var(--color-zinc-900);
+    text-shadow: none;
+  }
+  .dark main.has-bg :is(.surface, .card, [class^='bg-'], [class*=' bg-'], .btn-primary, .btn-outline, .badge, input, select, textarea, [role='dialog'], [role='menu']),
+  main.has-bg .band,
+  main.has-bg .band :is([class^='bg-'], [class*=' bg-'], .btn-outline, input, select, textarea) {
+    color: var(--color-zinc-100);
+  }
+}
+/* Muted text in the header band: lighter than in the normal dark theme, the band
+   lies over an image. */
+main.has-bg .band :is(.text-zinc-400, .text-zinc-500, .text-zinc-600) { color: var(--color-zinc-300); }
+main.has-bg .band select.text-accent-700 { color: var(--color-accent-200); }
+/* muted text on the glass surfaces: darker than usual, the surface is translucent */
+main.has-bg :is(.surface, .card, .bg-white) :is(.text-zinc-400, .text-zinc-500):not(.band *, [role="menu"] *, [role="dialog"] *, dialog *) { color: var(--color-zinc-600); }
+.dark main.has-bg :is(.surface, .card, .bg-white) :is(.text-zinc-400, .text-zinc-500):not(.band *, [role="menu"] *, [role="dialog"] *, dialog *) { color: var(--color-zinc-300); }

@@ -1,8 +1,8 @@
 <script lang="ts">
   // My tasks:
-  //  - "Customers": customers → projects → checklists in which something is assigned to me
-  //    (checklist or item), with customer progress and a toggle per project
-  //    for whether it counts toward the customer progress.
+  //  - "Customers": customers → projects I am responsible for or in which something
+  //    (checklist or item) is assigned to me → their checklists; with customer
+  //    progress and a toggle per project for whether it counts toward the customer progress.
   //  - "Personal": items assigned to me to check off.
   //  Filter: open / today (due or overdue) / done.
   import { SvelteSet } from 'svelte/reactivity';
@@ -51,7 +51,9 @@
   });
 
   // ---- Customer view -----------------------------------------------------------
-  const isMine = (p: SidebarProject) => !!extra[p.id]?.team.some((m) => m.id === session.user?.id);
+  // mine: I am responsible for the project, or something in it is assigned to me
+  const isOwner = (p: SidebarProject) => !!session.user && p.owner_id === session.user.id;
+  const isMine = (p: SidebarProject) => isOwner(p) || !!extra[p.id]?.team.some((m) => m.id === session.user?.id);
   const clOpen = (cl: SidebarChecklist) => cl.total === 0 || cl.done < cl.total;
   const clDueToday = (cl: SidebarChecklist) => !!cl.next_due && cl.next_due <= today;
   function matches(p: SidebarProject): boolean {
@@ -112,26 +114,27 @@
   <MainHeader title={t('nav.myTasks')}>
     {#snippet subtitle()}<span class="capitalize">{dateLine}</span>{/snippet}
     {#snippet actions()}<SaveStatus />{/snippet}
+    {#snippet toolbar()}
+      <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div class="inline-flex gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800/70" role="tablist">
+          <button type="button" role="tab" aria-selected={tab === 'customers'} class={tabCls(tab === 'customers')} onclick={() => (tab = 'customers')}>
+            <Icon name="users" size={15} />{t('tasks.tab.customers')} <span class="text-xs font-normal text-zinc-400 tabular-nums">{groups.length}</span>
+          </button>
+          <button type="button" role="tab" aria-selected={tab === 'personal'} class={tabCls(tab === 'personal')} onclick={() => (tab = 'personal')}>
+            <Icon name="user" size={15} />{t('tasks.tab.personal')} <span class="text-xs font-normal text-zinc-400 tabular-nums">{personalCount}</span>
+          </button>
+        </div>
+        <div class="flex gap-1.5" role="group">
+          {#each FILTERS as f (f)}
+            <button type="button" class={chipCls(filter === f)} aria-pressed={filter === f} onclick={() => (filter = f)}>{t(`tasks.filter.${f}`)}</button>
+          {/each}
+        </div>
+      </div>
+    {/snippet}
   </MainHeader>
 
-  <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
-    <div class="inline-flex gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800/70" role="tablist">
-      <button type="button" role="tab" aria-selected={tab === 'customers'} class={tabCls(tab === 'customers')} onclick={() => (tab = 'customers')}>
-        <Icon name="users" size={15} />{t('tasks.tab.customers')} <span class="text-xs font-normal text-zinc-400 tabular-nums">{groups.length}</span>
-      </button>
-      <button type="button" role="tab" aria-selected={tab === 'personal'} class={tabCls(tab === 'personal')} onclick={() => (tab = 'personal')}>
-        <Icon name="user" size={15} />{t('tasks.tab.personal')} <span class="text-xs font-normal text-zinc-400 tabular-nums">{personalCount}</span>
-      </button>
-    </div>
-    <div class="flex gap-1.5" role="group">
-      {#each FILTERS as f (f)}
-        <button type="button" class={chipCls(filter === f)} aria-pressed={filter === f} onclick={() => (filter = f)}>{t(`tasks.filter.${f}`)}</button>
-      {/each}
-    </div>
-  </div>
-
   {#if tab === 'customers'}
-    <div class="space-y-4 rounded-2xl bg-zinc-100/70 p-3 dark:bg-zinc-900/50">
+    <div class="no-glass space-y-4 rounded-2xl bg-zinc-100/70 p-3 in-[.has-bg]:bg-transparent in-[.has-bg]:p-0 dark:bg-zinc-900/50">
       {#each groups as g (g.customer.id)}
         {@const cust = customerProgress(g.customer.projects)}
         {@const open = !closedCustomers.has(g.customer.id)}
@@ -183,6 +186,11 @@
                       <Icon name="folder" size={15} class="text-zinc-400" />
                       <span class="truncate font-semibold {muted ? 'text-zinc-400 dark:text-zinc-500' : ''}">{p.name}</span>
                       <span class="badge shrink-0 {statusBadgeCls(p.status)}" style={statusBadgeStyle(p.status)}>{statusLabel(p.status)}</span>
+                      {#if isOwner(p)}
+                        <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent-50 px-2 py-px text-[11px] font-medium text-accent-700 dark:bg-accent-950/60 dark:text-accent-400" title={t('tasks.ownerHint')}>
+                          <Icon name="user" size={11} />{t('project.owner')}
+                        </span>
+                      {/if}
                       <span class="hidden shrink-0 text-xs text-zinc-400 md:inline">{t('overview.nChecklists', { n: p.checklists.length })}</span>
                     </span>
                     <span class="flex items-center gap-2.5 {muted ? 'opacity-50 grayscale' : ''}">

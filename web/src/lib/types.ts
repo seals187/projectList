@@ -167,6 +167,7 @@ export interface SidebarProject {
   owner_id: number | null;
   owner_name: string; // empty = nobody
   board_position: number; // order within the board column (shared)
+  background: string; // "", "g<n>" or "img:<id>" (inherits customer, then user)
   total: number;
   done: number;
   checklists: SidebarChecklist[];
@@ -176,6 +177,7 @@ export interface SidebarCustomer {
   id: number;
   name: string;
   location: string; // e.g. town, "" = none
+  background: string; // "", "g<n>" or "img:<id>"
   projects: SidebarProject[];
 }
 

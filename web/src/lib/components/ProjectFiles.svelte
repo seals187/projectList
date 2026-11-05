@@ -106,7 +106,7 @@
 {:else if !files.length}
   <p class="py-2 text-sm text-zinc-400">{t('files.none')}</p>
 {:else}
-  <ul class="divide-y divide-zinc-100 overflow-hidden rounded-xl border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+  <ul class="surface divide-y divide-zinc-100 overflow-hidden rounded-xl border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
     {#each files as f (f.id)}
       <li class="group flex items-center gap-3 px-3 py-2.5 text-sm">
         <Icon name={icon(f.mime)} size={16} class="shrink-0 text-zinc-400" />

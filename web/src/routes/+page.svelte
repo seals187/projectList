@@ -154,6 +154,58 @@
       <button type="button" class="btn-primary" onclick={() => create()}><Icon name="plus" size={15} /> {t('overview.newProject')}</button>
     {/if}
   {/snippet}
+  {#snippet toolbar()}
+    {#if sidebar.customers.length}
+      <!-- Filter bar: applies to all views -->
+      <div class="mb-5 flex flex-wrap items-center gap-2">
+        <Icon name="filter" size={15} class="text-zinc-400" />
+        <FilterDropdown label={t('filter.customer')} items={customerItems} value={customerValue} onchange={setCustomers} none />
+        <FilterDropdown label={t('filter.label')} items={tagItems} value={filter.tags.length ? filter.tags : null} onchange={(v) => setFilter({ tags: v ?? [] })} />
+        <FilterDropdown label={t('filter.owner')} items={ownerItems} value={filter.owners.length ? filter.owners : null} onchange={(v) => setFilter({ owners: v ?? [] })} />
+        {#if view === 'board'}
+          <label class="relative">
+            <select
+              class="appearance-none rounded-lg border-0 bg-accent-50 py-1 pr-7 pl-2.5 text-sm font-medium text-accent-700 outline-none focus:ring-2 focus:ring-accent-500/30 dark:bg-accent-950/50 dark:text-accent-300"
+              value={filter.group}
+              onchange={(e) => setFilter({ group: e.currentTarget.value as BoardGroup })}
+              aria-label={t('filter.groupBy')}>
+              {#each BOARD_GROUPS as g (g)}<option value={g}>{t('filter.groupBy')}: {t(`filter.group.${g}`)}</option>{/each}
+            </select>
+            <Icon name="chevronDown" size={13} class="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-accent-500" />
+          </label>
+        {/if}
+        {#if activeFilters()}
+          <button type="button" class="rounded-lg px-2 py-1 text-sm text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-200" onclick={resetFilters}>
+            {t('filter.reset')}
+          </button>
+        {/if}
+        <button
+          type="button"
+          class="inline-flex items-center gap-1 rounded-lg border border-dashed border-zinc-300 px-2.5 py-1 text-sm text-zinc-500 hover:border-zinc-400 hover:text-zinc-800 dark:border-zinc-700 dark:hover:text-zinc-200"
+          onclick={(e) => {
+            const r = e.currentTarget.getBoundingClientRect();
+            saveAt = saveAt ? null : { x: r.left, y: r.bottom + 4 };
+          }}>
+          <Icon name="plus" size={13} />{t('views.save')}
+        </button>
+
+        <span class="ml-auto flex items-center gap-3">
+          {#if view === 'board'}
+            <!-- board: collapsed = compact cards (name and progress only) -->
+            <button type="button" class="btn-ghost py-1!" onclick={() => setFilter({ compact: !filter.compact })}>
+              <Icon name="chevronDown" size={15} class={filter.compact ? '' : 'rotate-180'} />
+              {t(filter.compact ? 'editor.expandAll' : 'editor.collapseAll')}
+            </button>
+          {:else if view === 'cards' || view === 'list'}
+            <button type="button" class="btn-ghost py-1!" onclick={toggleAll}>
+              <Icon name="chevronDown" size={15} class={allOpen ? 'rotate-180' : ''} />
+              {t(allOpen ? 'editor.collapseAll' : 'editor.expandAll')}
+            </button>
+          {/if}
+        </span>
+      </div>
+    {/if}
+  {/snippet}
 </MainHeader>
 
 {#if sidebar.customers.length === 0}
@@ -161,54 +213,6 @@
     {#if isAdmin()}<a href="/customers" class="text-accent-600 hover:underline">{t('overview.noCustomersAdmin')}</a>{:else}{t('overview.noCustomers')}{/if}
   </p>
 {:else}
-  <!-- Filter bar: applies to all views -->
-  <div class="mb-5 flex flex-wrap items-center gap-2">
-    <Icon name="filter" size={15} class="text-zinc-400" />
-    <FilterDropdown label={t('filter.customer')} items={customerItems} value={customerValue} onchange={setCustomers} none />
-    <FilterDropdown label={t('filter.label')} items={tagItems} value={filter.tags.length ? filter.tags : null} onchange={(v) => setFilter({ tags: v ?? [] })} />
-    <FilterDropdown label={t('filter.owner')} items={ownerItems} value={filter.owners.length ? filter.owners : null} onchange={(v) => setFilter({ owners: v ?? [] })} />
-    {#if view === 'board'}
-      <label class="relative">
-        <select
-          class="appearance-none rounded-lg border-0 bg-accent-50 py-1 pr-7 pl-2.5 text-sm font-medium text-accent-700 outline-none focus:ring-2 focus:ring-accent-500/30 dark:bg-accent-950/50 dark:text-accent-300"
-          value={filter.group}
-          onchange={(e) => setFilter({ group: e.currentTarget.value as BoardGroup })}
-          aria-label={t('filter.groupBy')}>
-          {#each BOARD_GROUPS as g (g)}<option value={g}>{t('filter.groupBy')}: {t(`filter.group.${g}`)}</option>{/each}
-        </select>
-        <Icon name="chevronDown" size={13} class="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-accent-500" />
-      </label>
-    {/if}
-    {#if activeFilters()}
-      <button type="button" class="rounded-lg px-2 py-1 text-sm text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-200" onclick={resetFilters}>
-        {t('filter.reset')}
-      </button>
-    {/if}
-    <button
-      type="button"
-      class="inline-flex items-center gap-1 rounded-lg border border-dashed border-zinc-300 px-2.5 py-1 text-sm text-zinc-500 hover:border-zinc-400 hover:text-zinc-800 dark:border-zinc-700 dark:hover:text-zinc-200"
-      onclick={(e) => {
-        const r = e.currentTarget.getBoundingClientRect();
-        saveAt = saveAt ? null : { x: r.left, y: r.bottom + 4 };
-      }}>
-      <Icon name="plus" size={13} />{t('views.save')}
-    </button>
-
-    <span class="ml-auto flex items-center gap-3">
-      {#if view === 'board'}
-        <label class="inline-flex cursor-pointer items-center gap-2 text-sm text-zinc-500">
-          {t('filter.compact')}
-          <input type="checkbox" class="peer sr-only" checked={filter.compact} onchange={(e) => setFilter({ compact: e.currentTarget.checked })} />
-          <span class="relative h-5 w-9 rounded-full bg-zinc-200 transition-colors peer-checked:bg-accent-600 peer-focus-visible:ring-2 peer-focus-visible:ring-accent-500/40 after:absolute after:top-0.5 after:left-0.5 after:size-4 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-4 dark:bg-zinc-700"></span>
-        </label>
-      {:else if view === 'cards' || view === 'list'}
-        <button type="button" class="btn-ghost py-1!" onclick={toggleAll}>
-          <Icon name="chevronDown" size={15} class={allOpen ? 'rotate-180' : ''} />
-          {t(allOpen ? 'editor.collapseAll' : 'editor.expandAll')}
-        </button>
-      {/if}
-    </span>
-  </div>
 
   {#if !shown.length}
     <p class="rounded-xl border border-dashed border-zinc-300 px-4 py-6 text-center text-sm text-zinc-500 dark:border-zinc-700">

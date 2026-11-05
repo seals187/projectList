@@ -13,6 +13,15 @@ type AppSetting struct {
 	Value string `json:"value"`
 }
 
+type Background struct {
+	ID         int64     `json:"id"`
+	Mime       string    `json:"mime"`
+	Size       int64     `json:"size"`
+	UploadedBy *int64    `json:"uploaded_by"`
+	CreatedAt  time.Time `json:"created_at"`
+	Data       []byte    `json:"data"`
+}
+
 type Checklist struct {
 	ID         int64  `json:"id"`
 	ProjectID  int64  `json:"project_id"`
@@ -54,6 +63,7 @@ type Customer struct {
 	Location     string    `json:"location"`
 	ContactName  string    `json:"contact_name"`
 	ContactEmail string    `json:"contact_email"`
+	Background   string    `json:"background"`
 }
 
 type Membership struct {
@@ -74,6 +84,7 @@ type Project struct {
 	BoardPosition             int64     `json:"board_position"`
 	StartDate                 *string   `json:"start_date"`
 	RedmineTicket             string    `json:"redmine_ticket"`
+	Background                string    `json:"background"`
 }
 
 type ProjectActivity struct {

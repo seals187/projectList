@@ -96,6 +96,12 @@ func New(o Options) http.Handler {
 	mux.Handle("DELETE /api/files/{id}", s.writer(s.deleteProjectFile))
 	mux.Handle("GET /api/settings/app", s.authed(s.getAppSettings))
 	mux.Handle("PUT /api/settings/app", s.admin(s.setAppSettings))
+	mux.Handle("GET /api/backgrounds", s.authed(s.listBackgrounds))
+	mux.Handle("POST /api/backgrounds", s.authed(s.uploadBackground))
+	mux.Handle("GET /api/backgrounds/{id}", s.authed(s.getBackground))
+	mux.Handle("DELETE /api/backgrounds/{id}", s.authed(s.deleteBackground))
+	mux.Handle("PUT /api/customers/{id}/background", s.writer(s.setCustomerBackground))
+	mux.Handle("PUT /api/projects/{id}/background", s.writer(s.setProjectBackground))
 
 	// Tags and status names (catalog: members create, admins rename/delete)
 	mux.Handle("POST /api/tags", s.writer(s.createTag))

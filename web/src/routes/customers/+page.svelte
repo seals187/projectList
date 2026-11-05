@@ -83,30 +83,31 @@
       <button type="button" class="btn-primary" onclick={() => (adding = true)}><Icon name="plus" size={15} /> {t('customers.add')}</button>
     {/if}
   {/snippet}
+  {#snippet toolbar()}
+    <!-- Search, filter, sorting -->
+    <div class="mb-5 flex flex-wrap items-center gap-2">
+      <label class="relative w-full sm:w-72">
+        <Icon name="search" size={14} class="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-zinc-400" />
+        <input class="input pl-8!" type="search" placeholder={t('customers.search')} bind:value={query} aria-label={t('customers.search')} />
+      </label>
+      {#each CUSTOMER_FILTERS as f (f)}
+        <button type="button" class={chipCls(filter === f)} aria-pressed={filter === f} onclick={() => (filter = f)}>
+          {t(`customers.filter.${f}`)} <span class="ml-0.5 tabular-nums opacity-70">{counts[f]}</span>
+        </button>
+      {/each}
+      <label class="relative ml-auto">
+        <select
+          class="appearance-none rounded-md border border-zinc-200 bg-white py-1 pr-7 pl-2.5 text-xs text-zinc-600 outline-none hover:border-zinc-300 focus:border-accent-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
+          value={prefs.customersSort}
+          onchange={(e) => setPref('customersSort', e.currentTarget.value as (typeof CUSTOMER_SORTS)[number])}
+          aria-label={t('customers.sortBy', { label: '' })}>
+          {#each CUSTOMER_SORTS as s (s)}<option value={s}>{t('customers.sortBy', { label: t(`customers.sort.${s}`) })}</option>{/each}
+        </select>
+        <Icon name="chevronDown" size={13} class="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-zinc-400" />
+      </label>
+    </div>
+  {/snippet}
 </MainHeader>
-
-<!-- Search, filter, sorting -->
-<div class="mb-5 flex flex-wrap items-center gap-2">
-  <label class="relative w-full sm:w-72">
-    <Icon name="search" size={14} class="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-zinc-400" />
-    <input class="input pl-8!" type="search" placeholder={t('customers.search')} bind:value={query} aria-label={t('customers.search')} />
-  </label>
-  {#each CUSTOMER_FILTERS as f (f)}
-    <button type="button" class={chipCls(filter === f)} aria-pressed={filter === f} onclick={() => (filter = f)}>
-      {t(`customers.filter.${f}`)} <span class="ml-0.5 tabular-nums opacity-70">{counts[f]}</span>
-    </button>
-  {/each}
-  <label class="relative ml-auto">
-    <select
-      class="appearance-none rounded-md border border-zinc-200 bg-white py-1 pr-7 pl-2.5 text-xs text-zinc-600 outline-none hover:border-zinc-300 focus:border-accent-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
-      value={prefs.customersSort}
-      onchange={(e) => setPref('customersSort', e.currentTarget.value as (typeof CUSTOMER_SORTS)[number])}
-      aria-label={t('customers.sortBy', { label: '' })}>
-      {#each CUSTOMER_SORTS as s (s)}<option value={s}>{t('customers.sortBy', { label: t(`customers.sort.${s}`) })}</option>{/each}
-    </select>
-    <Icon name="chevronDown" size={13} class="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-zinc-400" />
-  </label>
-</div>
 
 {#snippet statusBadge(r: CustomerRow)}
   <span class="badge inline-flex items-center gap-1.5 {CUSTOMER_STATUS_BADGE[r.status].badge}">
@@ -200,7 +201,7 @@
   </div>
 {:else}
   <!-- List -->
-  <div class="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
+  <div class="surface overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
     <div class="min-w-[60rem]">
       <div class="{cols} border-b border-zinc-200 px-4 py-2.5 text-[11px] font-semibold tracking-wider text-zinc-400 uppercase dark:border-zinc-800">
         <span class="pl-7">{t('customers.col.customer')}</span>

@@ -1,16 +1,33 @@
 <script lang="ts">
   // Shared header of the main pages (overview, my tasks, customers, templates):
-  // serif title with a subtitle line below, actions on the right. Keeps the
-  // layout identical when switching between these pages.
+  // serif title with a subtitle line below, actions on the right, optional
+  // toolbar row (filters, tabs). Keeps the layout identical when switching
+  // between these pages. With a background image it sits on the slim header band:
+  // smaller title with the subtitle next to it, tighter spacing.
   import type { Snippet } from 'svelte';
+  import { pageBg } from '$lib/pageBg.svelte';
+  import HeaderBand from './HeaderBand.svelte';
 
-  let { title, subtitle, actions }: { title: string; subtitle?: Snippet; actions?: Snippet } = $props();
+  let { title, subtitle, actions, toolbar }: { title: string; subtitle?: Snippet; actions?: Snippet; toolbar?: Snippet } = $props();
 </script>
 
-<header class="mb-6 flex min-h-[3.75rem] flex-wrap items-start justify-between gap-4">
-  <div class="min-w-0">
-    <h1 class="truncate font-serif text-[28px] leading-tight font-bold tracking-tight">{title}</h1>
-    {#if subtitle}<p class="mt-1 text-sm text-zinc-500">{@render subtitle()}</p>{/if}
-  </div>
-  {#if actions}<div class="flex flex-wrap items-center gap-3">{@render actions()}</div>{/if}
-</header>
+<HeaderBand>
+  {#if pageBg.active}
+    <header class="mb-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      <div class="flex min-w-0 items-baseline gap-3">
+        <h1 class="truncate font-serif text-xl leading-tight font-bold tracking-tight">{title}</h1>
+        {#if subtitle}<p class="hidden truncate text-sm text-zinc-400 sm:block">{@render subtitle()}</p>{/if}
+      </div>
+      {#if actions}<div class="flex flex-wrap items-center gap-3">{@render actions()}</div>{/if}
+    </header>
+  {:else}
+    <header class="mb-6 flex min-h-[3.75rem] flex-wrap items-start justify-between gap-4">
+      <div class="min-w-0">
+        <h1 class="truncate font-serif text-[28px] leading-tight font-bold tracking-tight">{title}</h1>
+        {#if subtitle}<p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{@render subtitle()}</p>{/if}
+      </div>
+      {#if actions}<div class="flex flex-wrap items-center gap-3">{@render actions()}</div>{/if}
+    </header>
+  {/if}
+  {#if toolbar}{@render toolbar()}{/if}
+</HeaderBand>

@@ -70,7 +70,7 @@
 </div>
 
 <div class="overflow-x-auto">
-  <div class="grid min-w-[48rem] grid-cols-7 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
+  <div class="surface grid min-w-[48rem] grid-cols-7 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
     {#each weekdayNames(locale()) as w, i (i)}
       <div class="border-b border-zinc-200 bg-zinc-50 px-2 py-1.5 text-xs font-semibold text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">{w}</div>
     {/each}

@@ -17,7 +17,7 @@ docker compose up -d        # pulls the published image ghcr.io/seals187/project
 ```
 
 Version via `PROJECTLIST_VERSION` in `.env`: `latest` = newest release (default), `edge` =
-current development state (every push to `main`), or a fixed version such as `0.0.5`.
+current development state (every push to `main`), or a fixed version such as `0.0.6`.
 Update: `docker compose pull && docker compose up -d`.
 
 Then sign in at <http://localhost:8080> with the admin credentials from `.env`.
@@ -36,7 +36,7 @@ docker compose logs -f projectlist    # structured JSON logs
 Every release has an image for **linux/amd64** and **linux/arm64** (e.g. Raspberry Pi):
 
 ```bash
-docker pull ghcr.io/seals187/projectlist:latest   # or a fixed version, e.g. :0.0.5
+docker pull ghcr.io/seals187/projectlist:latest   # or a fixed version, e.g. :0.0.6
 ```
 
 `docker-compose.yml` already uses this image. Without Compose:
@@ -62,7 +62,7 @@ For every version tag, the workflow `release.yml` creates the GitHub release wit
 | `ADMIN_NAME`          | `Admin`                | Display name of the first admin |
 | `APP_SUBTITLE`        | –                      | Optional subtitle below "ProjectList" in the sidebar (e.g. company or department name) |
 | `PORT`                | `8080`                 | Host port (docker compose only) |
-| `PROJECTLIST_VERSION` | `latest`               | Image version for docker compose: `latest`, `edge` or e.g. `0.0.5` |
+| `PROJECTLIST_VERSION` | `latest`               | Image version for docker compose: `latest`, `edge` or e.g. `0.0.6` |
 | `LISTEN_ADDR`         | `:8080`                | Listen address inside the container |
 | `DB_PATH`             | `/data/projectlist.db` | Path of the SQLite file |
 | `COOKIE_SECURE`       | `true`                 | Send the session cookie over HTTPS only. On `http://localhost` this works in Chrome/Edge/Firefox; set `false` for plain HTTP access via an IP or hostname |
@@ -100,7 +100,7 @@ the user interface translates them.
     collapsible (collapsed: header and footer as summary)
   - *Board*: columns per status (or grouped by customer / person responsible), move projects by drag & drop
     between and within columns; calm cards (labels as colored dots, progress bar, due date, checklist count,
-    avatars), quick actions on hover, "Add project" per column, *Compact* switch, WIP limit per status column
+    avatars), quick actions on hover, "Add project" per column, "Collapse all" (compact cards), WIP limit per status column
   - *List*: key figures (active projects, open/overdue items, due within 14 days, behind schedule, blocked) and a
     table grouped by customer: per project its checklists as sub-rows (state, progress, due date, person
     responsible), **time vs. progress** (progress bar with a marker for the time elapsed: on track / x% behind /
@@ -111,7 +111,7 @@ the user interface translates them.
 - **Filters** for all overview views: customer (*All*/*None*), label and person responsible as dropdowns; saved per
   user in the database (the same on all devices). **Saved views** store the view with its filters under a name and
   appear in the sidebar
-- **My tasks**: tab *Customers* (customers → projects → checklists you are involved in, with customer progress and
+- **My tasks**: tab *Customers* (customers → projects you are responsible for or involved in → checklists, with customer progress and
   due dates "yesterday/today/tomorrow") and tab *Personal* (assigned items to check off); filters open / today /
   done (done = last 30 days)
 - **Customer progress**: per project, the pie chart icon sets whether it counts towards the customer's overall
@@ -132,6 +132,8 @@ the user interface translates them.
   part of every backup. Downloads are always served as attachments
 - **Duplicate a project** with description, person responsible, labels and all checklists (items unchecked)
 - **Easy Redmine**: ticket number per project; an admin sets the Redmine address once (*Settings → Projects*)
+- **Backgrounds**: 25 gradients or uploaded images (max. 5 MB; larger images are scaled down in the browser before
+  upload) per user (whole app, *Settings*), per customer and per project; the most specific one applies
 - **Custom status names, colors and WIP limits**: admins change them for everyone directly on the overview board
   (click a column title); empty = default name and color, no limit
 - **Tags**: label projects with colored tags (54 preset colors or any color), shown in all overview views;
@@ -323,6 +325,7 @@ All endpoints under `/api`, JSON. Writing requests need the header `X-CSRF-Token
 | Customers   | `GET/POST /customers`, `GET/PATCH/DELETE /customers/{id}` |
 | Projects    | `GET/POST /customers/{id}/projects`, `GET/PATCH/DELETE /projects/{id}` (incl. `start_date`, `redmine_ticket`), `PUT /projects/{id}/tags` (`tag_ids`), `PUT /projects/{id}/watchers` (`user_ids`), `POST /projects/{id}/duplicate`, `GET /projects/{id}/activity`, `GET/POST /projects/{id}/files` (multipart `file`), `GET/DELETE /files/{id}`, `GET /customers/{id}/assignees` |
 | Settings    | `GET /settings/app`, `PUT /settings/app` (`redmine_url`; admin) |
+| Backgrounds | `GET/POST /backgrounds` (multipart `file`, max. 5 MB), `GET/DELETE /backgrounds/{id}`, `PUT /customers/{id}/background`, `PUT /projects/{id}/background` (`background`: `""`, `g1`–`g25` or `img:<id>`), own background via `PUT /prefs/background` |
 | Tags        | `POST /tags` (members), `PATCH/DELETE /tags/{id}`, `PUT /status-labels/{status}` (`label`, `color`, `wip_limit`; admin); catalog, status names, colors and WIP limits come with `GET /sidebar` |
 | Checklists  | `GET/POST /projects/{id}/checklists`, `POST /projects/{id}/checklists/from-template`, `PUT /projects/{id}/checklists/order`, `GET/PATCH/DELETE /checklists/{id}`, `POST /checklists/{id}/save-as-template` |
 | Items       | `POST /checklists/{id}/items`, `PUT /checklists/{id}/items/order`, `PATCH/DELETE /items/{id}`, `POST /items/{id}/done` |

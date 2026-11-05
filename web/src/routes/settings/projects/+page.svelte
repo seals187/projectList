@@ -109,7 +109,7 @@
     <p class="mb-1 text-sm text-zinc-500">{t('tags.hint')}</p>
     <p class="mb-4 text-sm text-zinc-500">{t('settings.statusOnBoard')}</p>
 
-    <ul class="divide-y divide-zinc-100 rounded-xl border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+    <ul class="surface divide-y divide-zinc-100 rounded-xl border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
       {#each sidebar.tags as tag (tag.id)}
         <li class="flex items-center gap-3 px-3 py-2">
           <button

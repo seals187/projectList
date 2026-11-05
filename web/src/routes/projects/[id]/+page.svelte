@@ -5,7 +5,7 @@
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { api, errorText } from '$lib/api';
-  import { canWrite, refreshSidebar, toast } from '$lib/state.svelte';
+  import { canWrite, refreshSidebar, sidebar, toast } from '$lib/state.svelte';
   import { fmtDate, t, todayISO } from '$lib/i18n.svelte';
   import { reorder, sortable } from '$lib/sortable';
   import type { ActivityEntry, Checklist, ChecklistSummary, Project, ProjectDetail, ProjectStatus } from '$lib/types';
@@ -24,6 +24,9 @@
   import ActivityFeed from '$lib/components/ActivityFeed.svelte';
   import ProjectFiles from '$lib/components/ProjectFiles.svelte';
   import ContextMenu from '$lib/components/ContextMenu.svelte';
+  import HeaderBand from '$lib/components/HeaderBand.svelte';
+  import { pageBg } from '$lib/pageBg.svelte';
+  import BackgroundPicker from '$lib/components/BackgroundPicker.svelte';
   import Icon from '$lib/components/Icon.svelte';
 
   type Tab = 'checklists' | 'activity' | 'files' | 'notes';
@@ -139,6 +142,35 @@
     }
   }
 
+  // assign / delete a checklist directly in the list (shown immediately, reverted on error)
+  async function assignChecklist(clId: number, assigneeId: number | null) {
+    const cl = data?.checklists.find((c) => c.id === clId);
+    if (!cl || !data) return;
+    const prev = { id: cl.assignee_id, name: cl.assignee_name };
+    cl.assignee_id = assigneeId;
+    cl.assignee_name = data.assignees.find((a) => a.id === assigneeId)?.name ?? '';
+    try {
+      await api.patch(`/checklists/${clId}`, { assignee_id: assigneeId });
+      refreshSidebar(0);
+    } catch (e) {
+      cl.assignee_id = prev.id;
+      cl.assignee_name = prev.name;
+      toast(errorText(e));
+    }
+  }
+
+  async function deleteChecklist(clId: number) {
+    if (!data) return;
+    try {
+      await api.del(`/checklists/${clId}`);
+      data.checklists = data.checklists.filter((c) => c.id !== clId);
+      refreshSidebar(0);
+      loadActivity();
+    } catch (e) {
+      toast(errorText(e));
+    }
+  }
+
   // ---- Actions -----------------------------------------------------------------------
   async function duplicate() {
     if (!data) return;
@@ -163,6 +195,25 @@
       refreshSidebar(0);
       goto(`/customers/${customerId}`);
     } catch (e) {
+      toast(errorText(e));
+    }
+  }
+
+  // background of the project (also behind its checklists)
+  let bgOpen = $state(false);
+  const projectBg = $derived(storeProjectBg(id));
+  function storeProjectBg(pid: number) {
+    for (const c of sidebar.customers) for (const p of c.projects) if (p.id === pid) return p.background;
+    return '';
+  }
+  async function pickBg(value: string) {
+    const sp = sidebar.customers.flatMap((c) => c.projects).find((p) => p.id === id);
+    const prev = sp?.background ?? '';
+    if (sp) sp.background = value;
+    try {
+      await api.put(`/projects/${id}/background`, { background: value });
+    } catch (e) {
+      if (sp) sp.background = prev;
       toast(errorText(e));
     }
   }
@@ -195,7 +246,7 @@
   }
 
   const tabCls = (on: boolean) =>
-    `-mb-px border-b-2 px-1 pb-2.5 text-sm transition-colors ${on ? 'border-accent-600 font-semibold text-accent-700 dark:border-accent-400 dark:text-accent-400' : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'}`;
+    `-mb-px border-b-2 px-1 pb-2.5 text-sm in-[.band]:pb-1.5 transition-colors ${on ? 'border-accent-600 font-semibold text-accent-700 dark:border-accent-400 dark:text-accent-400' : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'}`;
   const iconBtn =
     'flex size-9 items-center justify-center rounded-lg border border-zinc-200 bg-white text-zinc-500 shadow-xs hover:bg-zinc-50 hover:text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-200';
   const propLabel = 'flex items-center gap-2 text-zinc-500';
@@ -208,79 +259,86 @@
 {:else if data}
   {@const d = data}
   {@const fav = isFavorite(id)}
-  <!-- Header: breadcrumb, title with status and favorite, actions -->
-  <nav class="mb-2 flex items-center gap-1.5 text-[13px] text-zinc-400" aria-label="Breadcrumb">
-    <span class="flex size-5 items-center justify-center rounded text-[8px] font-bold {customerTone(d.customer.id)}">{customerCode(d.customer.name)}</span>
-    <a href="/customers/{d.customer.id}" class="truncate hover:text-zinc-700 dark:hover:text-zinc-200">{d.customer.name}</a>
-    <span aria-hidden="true">›</span>
-    <span class="truncate text-zinc-600 dark:text-zinc-300">{d.project.name}</span>
-  </nav>
-  <header class="flex flex-wrap items-start justify-between gap-4">
-    <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-      <h1 class="min-w-0 font-serif text-[28px] leading-tight font-bold tracking-tight">
-        <Editable value={d.project.name} required disabled={!editable} onsave={(name) => save({ name })} inputClass="font-serif text-2xl! font-bold" />
-      </h1>
-      <span class="badge {statusBadgeCls(d.project.status)}" style={statusBadgeStyle(d.project.status)}>{statusLabel(d.project.status)}</span>
-      <button
-        type="button"
-        class="rounded-md p-1 {fav ? 'text-amber-500' : 'text-zinc-400 hover:text-amber-500'}"
-        onclick={() => toggleFavorite(id)}
-        title={t(fav ? 'nav.removeFavorite' : 'nav.addFavorite')}
-        aria-label={t(fav ? 'nav.removeFavorite' : 'nav.addFavorite')}
-        aria-pressed={fav}>
-        <Icon name="star" size={18} class={fav ? 'fill-amber-400' : ''} />
-      </button>
-      <SaveStatus />
-    </div>
-    {#if editable}
-      <div class="flex items-center gap-2">
-        <button type="button" class={iconBtn} onclick={duplicate} title={t('project.duplicate')} aria-label={t('project.duplicate')}><Icon name="copy" size={16} /></button>
-        <button type="button" class={iconBtn} onclick={toggleArchive} title={t(archived ? 'project.unarchive' : 'project.archive')} aria-label={t(archived ? 'project.unarchive' : 'project.archive')}>
-          <Icon name={archived ? 'undo' : 'archive'} size={16} />
+  {#snippet tabBar()}
+    <div class="mb-4 flex gap-6 border-b border-zinc-200 in-[.band]:mt-1.5 in-[.band]:border-b-0 dark:border-zinc-800" role="tablist">
+      {#each TABS as tb (tb)}
+        <button type="button" role="tab" aria-selected={tab === tb} class={tabCls(tab === tb)} onclick={() => setTab(tb)}>
+          {t(`project.tab.${tb}`)}
+          {#if tb === 'checklists'}<span class="ml-0.5 text-zinc-400 tabular-nums">{d.checklists.length}</span>{/if}
+          {#if tb === 'files' && d.files_count}<span class="ml-0.5 text-zinc-400 tabular-nums">{d.files_count}</span>{/if}
         </button>
+      {/each}
+    </div>
+  {/snippet}
+  <!-- Header: breadcrumb, title with status and favorite, actions -->
+  <HeaderBand>
+    <nav class="mb-2 flex in-[.band]:mb-0.5 items-center gap-1.5 text-[13px] text-zinc-400" aria-label="Breadcrumb">
+      <span class="flex size-5 items-center justify-center rounded text-[8px] font-bold {customerTone(d.customer.id)}">{customerCode(d.customer.name)}</span>
+      <a href="/customers/{d.customer.id}" class="truncate hover:text-zinc-700 dark:hover:text-zinc-200">{d.customer.name}</a>
+      <span aria-hidden="true">›</span>
+      <span class="truncate text-zinc-600 dark:text-zinc-300">{d.project.name}</span>
+    </nav>
+    <header class="flex flex-wrap items-start justify-between gap-4">
+      <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+        <h1 class="min-w-0 font-serif text-[28px] in-[.band]:text-xl leading-tight font-bold tracking-tight">
+          <Editable value={d.project.name} required disabled={!editable} onsave={(name) => save({ name })} inputClass="font-serif text-2xl! font-bold" />
+        </h1>
+        <span class="badge {statusBadgeCls(d.project.status)}" style={statusBadgeStyle(d.project.status)}>{statusLabel(d.project.status)}</span>
         <button
           type="button"
-          class={iconBtn}
-          onclick={(e) => {
-            const r = e.currentTarget.getBoundingClientRect();
-            more = more ? null : { x: r.right - 288, y: r.bottom + 4 };
-          }}
-          title={t('menu.actions')}
-          aria-label={t('menu.actions')}>
-          <Icon name="dots" size={16} />
+          class="rounded-md p-1 {fav ? 'text-amber-500' : 'text-zinc-400 hover:text-amber-500'}"
+          onclick={() => toggleFavorite(id)}
+          title={t(fav ? 'nav.removeFavorite' : 'nav.addFavorite')}
+          aria-label={t(fav ? 'nav.removeFavorite' : 'nav.addFavorite')}
+          aria-pressed={fav}>
+          <Icon name="star" size={18} class={fav ? 'fill-amber-400' : ''} />
         </button>
-        <button type="button" class="btn-primary" onclick={newChecklist}><Icon name="plus" size={15} /> {t('project.checklistShort')}</button>
+        <SaveStatus />
       </div>
-    {/if}
-  </header>
+      {#if editable}
+        <div class="flex items-center gap-2">
+          <button type="button" class={iconBtn} onclick={duplicate} title={t('project.duplicate')} aria-label={t('project.duplicate')}><Icon name="copy" size={16} /></button>
+          <button type="button" class={iconBtn} onclick={toggleArchive} title={t(archived ? 'project.unarchive' : 'project.archive')} aria-label={t(archived ? 'project.unarchive' : 'project.archive')}>
+            <Icon name={archived ? 'undo' : 'archive'} size={16} />
+          </button>
+          <button
+            type="button"
+            class={iconBtn}
+            onclick={(e) => {
+              const r = e.currentTarget.getBoundingClientRect();
+              more = more ? null : { x: r.right - 288, y: r.bottom + 4 };
+            }}
+            title={t('menu.actions')}
+            aria-label={t('menu.actions')}>
+            <Icon name="dots" size={16} />
+          </button>
+          <button type="button" class="btn-primary" onclick={newChecklist}><Icon name="plus" size={15} /> {t('project.checklistShort')}</button>
+        </div>
+      {/if}
+    </header>
 
-  <!-- Progress with context -->
-  <div class="mt-3 mb-6 flex flex-wrap items-center gap-x-4 gap-y-1">
-    <span class="block h-1.5 w-56 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
-      <span class="block h-full rounded-full {barCls(done, total)}" style:width="{pct(done, total)}%"></span>
-    </span>
-    <span class="text-sm text-zinc-500">
-      <span class="font-medium text-zinc-700 tabular-nums dark:text-zinc-200">{pct(done, total)}%</span>
-      · {t('project.itemsOf', { done, total })}
-      {#if dueText}· <span class={daysLeft !== null && daysLeft < 0 ? 'font-semibold text-red-600 dark:text-red-400' : ''}>{dueText}</span>{/if}
-    </span>
-  </div>
+    <!-- Progress with context -->
+    <div class="mt-3 mb-6 flex in-[.band]:mt-1 in-[.band]:mb-0 flex-wrap items-center gap-x-4 gap-y-1">
+      <span class="block h-1.5 w-56 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
+        <span class="block h-full rounded-full {barCls(done, total)}" style:width="{pct(done, total)}%"></span>
+      </span>
+      <span class="text-sm text-zinc-500">
+        <span class="font-medium text-zinc-700 tabular-nums dark:text-zinc-200">{pct(done, total)}%</span>
+        · {t('project.itemsOf', { done, total })}
+        {#if dueText}· <span class={daysLeft !== null && daysLeft < 0 ? 'font-semibold text-red-600 dark:text-red-400' : ''}>{dueText}</span>{/if}
+      </span>
+    </div>
+    <!-- with a background the tabs sit on the header band (like Planka) -->
+    {#if pageBg.active}{@render tabBar()}{/if}
+  </HeaderBand>
 
   <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
     <!-- Tabs -->
     <div class="min-w-0">
-      <div class="mb-4 flex gap-6 border-b border-zinc-200 dark:border-zinc-800" role="tablist">
-        {#each TABS as tb (tb)}
-          <button type="button" role="tab" aria-selected={tab === tb} class={tabCls(tab === tb)} onclick={() => setTab(tb)}>
-            {t(`project.tab.${tb}`)}
-            {#if tb === 'checklists'}<span class="ml-0.5 text-zinc-400 tabular-nums">{d.checklists.length}</span>{/if}
-            {#if tb === 'files' && d.files_count}<span class="ml-0.5 text-zinc-400 tabular-nums">{d.files_count}</span>{/if}
-          </button>
-        {/each}
-      </div>
+      {#if !pageBg.active}{@render tabBar()}{/if}
 
       {#if tab === 'checklists'}
-        <div class="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
+        <div class="surface overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
           <ul use:sortable={{ onsort: sortChecklists, disabled: !editable }} class="divide-y divide-zinc-100 dark:divide-zinc-800">
             {#each d.checklists as cl (cl.id)}
               {@const complete = cl.total > 0 && cl.done === cl.total}
@@ -300,13 +358,32 @@
                     <span class="block h-full rounded-full {barCls(cl.done, cl.total)}" style:width="{pct(cl.done, cl.total)}%"></span>
                   </span>
                   <span class="w-12 text-right text-xs text-zinc-500 tabular-nums">{cl.done}/{cl.total}</span>
-                  <span class="flex w-6 justify-center">
-                    {#if cl.assignee_id && cl.assignee_name}
-                      <span title={t('checklist.assignedTo', { name: cl.assignee_name })}><Avatar name={cl.assignee_name} id={cl.assignee_id} size={20} /></span>
-                    {/if}
-                  </span>
                   <span class="w-10 text-right text-xs text-zinc-400">{complete ? t('project.checklistDone') : ''}</span>
                 </a>
+                <!-- outside the link: assign and delete without opening the checklist -->
+                <span class="flex w-40 shrink-0 items-center justify-start pl-2">
+                  {#if editable}
+                    <span class="max-w-full min-w-0 [&_label]:max-w-full">
+                      <AssigneePicker
+                        assignees={d.assignees}
+                        value={cl.assignee_id}
+                        name={cl.assignee_name || null}
+                        compact
+                        onchange={(a) => assignChecklist(cl.id, a)} />
+                    </span>
+                  {:else if cl.assignee_id && cl.assignee_name}
+                    <span class="flex min-w-0 items-center gap-1.5 text-[13px] text-zinc-600 dark:text-zinc-300" title={t('checklist.assignedTo', { name: cl.assignee_name })}>
+                      <Avatar name={cl.assignee_name} id={cl.assignee_id} size={18} /><span class="truncate">{cl.assignee_name}</span>
+                    </span>
+                  {/if}
+                </span>
+                {#if editable}
+                  <span class="min-w-9 shrink-0 pr-2 text-right whitespace-nowrap [@media(hover:hover)]:opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+                    <ConfirmButton class="btn-ghost px-1.5! text-zinc-400 hover:text-red-600" onconfirm={() => deleteChecklist(cl.id)} confirmLabel={t('checklist.deleteConfirm')} label={t('checklist.delete')}>
+                      <Icon name="trash" size={14} />
+                    </ConfirmButton>
+                  </span>
+                {/if}
               </li>
             {/each}
           </ul>
@@ -348,7 +425,7 @@
             }
           }} />
       {:else}
-        <div class="max-w-2xl rounded-xl border border-zinc-200 p-4 text-sm text-zinc-700 dark:border-zinc-800 dark:text-zinc-300">
+        <div class="surface max-w-2xl rounded-xl border border-zinc-200 p-4 text-sm text-zinc-700 dark:border-zinc-800 dark:text-zinc-300">
           <Editable value={d.project.description} multiline placeholder={t('project.descPlaceholder')} disabled={!editable} onsave={(description) => save({ description })} />
         </div>
       {/if}
@@ -356,7 +433,7 @@
 
     <!-- Properties and latest activity -->
     <aside class="space-y-4">
-      <section class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
+      <section class="surface rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
         <h2 class="mb-3 text-sm font-semibold">{t('project.properties')}</h2>
         <dl class="grid grid-cols-[7.5rem_minmax(0,1fr)] items-center gap-x-2 gap-y-2.5 text-sm">
           <dt class={propLabel}><Icon name="flag" size={14} />{t('common.status')}</dt>
@@ -450,7 +527,7 @@
                     }}
                     title={t('redmine.edit')}
                     aria-label={t('redmine.edit')}>
-                    <Icon name="fileText" size={13} />
+                    <Icon name="pencil" size={13} />
                   </button>
                 {/if}
               </span>
@@ -459,7 +536,7 @@
         </dl>
       </section>
 
-      <section class="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
+      <section class="surface rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
         <div class="mb-3 flex items-center justify-between">
           <h2 class="text-sm font-semibold">{t('activity.latest')}</h2>
           {#if activity?.length}
@@ -495,10 +572,17 @@
       <button type="button" class="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800" onclick={() => ((more = null), setTab('files'))}>
         <Icon name="download" size={15} class="rotate-180 text-zinc-400" />{t('files.upload')}
       </button>
+      <button type="button" class="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800" onclick={() => ((more = null), (bgOpen = true))}>
+        <Icon name="image" size={15} class="text-zinc-400" />{t('bg.title')}
+      </button>
       <div class="my-1 border-t border-zinc-100 dark:border-zinc-800"></div>
       <div class="px-1 py-0.5">
         <ConfirmButton onconfirm={remove} label={t('project.delete')} confirmLabel={t('project.deleteConfirm')} />
       </div>
     </ContextMenu>
   {/if}
+{/if}
+
+{#if bgOpen && data}
+  <BackgroundPicker title="{t('bg.title')}: {data.project.name}" value={projectBg} noneLabel={t('bg.inheritCustomer')} onpick={pickBg} onclose={() => (bgOpen = false)} />
 {/if}

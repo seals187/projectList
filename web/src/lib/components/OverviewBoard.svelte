@@ -175,7 +175,7 @@
     {@const limit = wip(col)}
     {@const full = limit > 0 && col.items.length >= limit}
     <section
-      class="flex w-72 shrink-0 flex-col rounded-2xl bg-zinc-100/70 p-2.5 transition-colors dark:bg-zinc-900/60
+      class="surface flex w-72 shrink-0 flex-col rounded-2xl bg-zinc-100/70 p-2.5 transition-colors dark:bg-zinc-900/60
         {byStatusGroup ? 'xl:w-auto xl:min-w-0' : ''}
         {col.status && over?.status === col.status ? 'ring-2 ring-accent-400/60' : ''}"
       aria-label={col.title}

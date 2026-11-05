@@ -19,6 +19,8 @@
   } from '$lib/state.svelte';
   import { t } from '$lib/i18n.svelte';
   import { syncFromServer } from '$lib/overviewFilter.svelte';
+  import { backgroundCss, userBackground } from '$lib/backgrounds';
+  import { pageBg } from '$lib/pageBg.svelte';
   import type { User } from '$lib/types';
   import Sidebar from '$lib/components/Sidebar.svelte';
   import CommandPalette from '$lib/components/CommandPalette.svelte';
@@ -27,6 +29,27 @@
   import Icon from '$lib/components/Icon.svelte';
 
   let { children } = $props();
+
+  // Active background: project (also on its checklists), else its customer, else the user's own
+  const bgCss = $derived.by(() => {
+    const m = page.url.pathname.match(/^\/(customers|projects|checklists)\/(\d+)/);
+    if (m) {
+      const id = Number(m[2]);
+      for (const c of sidebar.customers) {
+        if (m[1] === 'customers' && c.id === id) return backgroundCss(c.background || userBackground());
+        for (const p of c.projects)
+          if ((m[1] === 'projects' && p.id === id) || (m[1] === 'checklists' && p.checklists.some((cl) => cl.id === id)))
+            return backgroundCss(p.background || c.background || userBackground());
+      }
+    }
+    return backgroundCss(userBackground());
+  });
+  // pages with free-flowing content (checklist/template editor, settings) on one panel
+  const panelPage = $derived(/^\/(checklists|templates\/\d|settings)/.test(page.url.pathname));
+  $effect(() => {
+    pageBg.active = !!bgCss && !panelPage;
+    pageBg.panel = !!bgCss && panelPage;
+  });
 
   onMount(async () => {
     try {
@@ -111,7 +134,11 @@
 {:else if page.url.pathname === '/login'}
   {@render children()}
 {:else if session.user}
-  <div class="flex h-dvh overflow-hidden">
+  <div
+    class="flex h-dvh overflow-hidden"
+    style:background-image={bgCss || undefined}
+    style:background-size={bgCss ? 'cover' : undefined}
+    style:background-position={bgCss ? 'center' : undefined}>
     {#if sidebar.open}
       <button
         type="button"
@@ -120,7 +147,8 @@
         onclick={() => (sidebar.open = false)}></button>
     {/if}
     <aside
-      class="fixed inset-y-0 left-0 z-30 w-64 overflow-hidden border-zinc-200 bg-zinc-50 md:relative md:translate-x-0 dark:border-zinc-800 dark:bg-zinc-900
+      class="fixed inset-y-0 left-0 z-30 w-64 overflow-hidden md:relative md:translate-x-0
+        {bgCss ? 'dark border-white/10 bg-zinc-950/45 text-zinc-100 backdrop-blur-lg' : 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900'}
         {resizing ? '' : 'transition-[translate,width] duration-200'}
         {sidebar.open ? 'translate-x-0' : '-translate-x-full'}
         {sidebar.collapsed ? 'border-r md:w-0 md:border-r-0' : 'border-r md:w-(--sb-w)'}"
@@ -166,15 +194,22 @@
     {/if}
 
     <div class="flex min-w-0 flex-1 flex-col">
-      <header class="flex items-center gap-2 border-b border-zinc-200 px-3 py-2 md:hidden dark:border-zinc-800">
+      <header class="flex items-center gap-2 border-b px-3 py-2 md:hidden {bgCss ? 'dark border-white/10 bg-zinc-950/45 text-zinc-100 backdrop-blur-lg' : 'border-zinc-200 dark:border-zinc-800'}">
         <button type="button" class="btn-ghost px-2!" onclick={() => (sidebar.open = true)} aria-label={t('nav.openMenu')}>
           <Icon name="menu" size={18} />
         </button>
         <img src="/favicon.svg" alt="" width="20" height="20" />
         <span class="font-semibold">ProjectList</span>
       </header>
-      <main class="flex-1 overflow-y-auto">
-        <div class="px-4 py-5 sm:px-10 sm:py-7">
+      <!-- Background (project → customer → own) lies behind the whole app; sidebar and
+           header bands are dark glass, content surfaces light glass (app.css, main.has-bg).
+           Editor and settings pages keep their content on one opaque panel instead.
+           No backdrop-filter inside main: it would make fixed menus/dialogs position wrongly. -->
+      <main class="flex-1 overflow-y-auto {bgCss && !panelPage ? 'has-bg' : ''}">
+        <div
+          class={bgCss && panelPage
+            ? 'm-2 min-h-[calc(100%-1rem)] rounded-2xl bg-white px-4 py-5 shadow-lg sm:m-4 sm:min-h-[calc(100%-2rem)] sm:px-8 sm:py-6 dark:bg-zinc-950'
+            : 'px-4 py-5 sm:px-10 sm:py-7'}>
           {@render children()}
         </div>
       </main>

@@ -34,7 +34,7 @@ export function buildOverview(customers: SidebarCustomer[], extra: Record<string
 }
 
 /** Highlight due date: not done and due in ≤ 3 days or overdue. */
-export function dueUrgent(p: SidebarProject, today: string): boolean {
+export function dueUrgent(p: Pick<SidebarProject, 'due_date' | 'status'>, today: string): boolean {
   return !!p.due_date && p.status !== 'done' && daysUntil(p.due_date, today) <= 3;
 }
 

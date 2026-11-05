@@ -45,6 +45,10 @@ sql:
             go_type:
               type: "int64"
               pointer: true
+          - column: "backgrounds.uploaded_by"
+            go_type:
+              type: "int64"
+              pointer: true
           - column: "project_files.uploaded_by"
             go_type:
               type: "int64"

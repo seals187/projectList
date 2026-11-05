@@ -139,7 +139,7 @@
   </div>
 </div>
 
-<div class="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800 [--weekend:rgb(0_0_0/0.035)] dark:[--weekend:rgb(255_255_255/0.035)]">
+<div class="surface overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800 [--weekend:rgb(0_0_0/0.035)] dark:[--weekend:rgb(255_255_255/0.035)]">
   <div class="relative text-sm" style:width="{width}px" style={weekendBg}>
     <!-- header -->
     <div class="sticky top-0 z-20 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">

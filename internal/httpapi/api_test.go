@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"image"
+	pngenc "image/png"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -1386,5 +1388,67 @@ func TestProjectDetail(t *testing.T) {
 	member.do("GET", "/api/overview?today=2026-01-10", nil, &ov)
 	if ov[fmt.Sprint(p.ID)].Checklists[fmt.Sprint(cl.ID)].Overdue != 0 {
 		t.Fatalf("am fälligkeitstag nicht überfällig: %+v", ov[fmt.Sprint(p.ID)])
+	}
+}
+
+func TestBackgrounds(t *testing.T) {
+	e := newEnv(t)
+	admin := e.user("admin@example.com", "admin")
+	var a, p idResp
+	admin.do("POST", "/api/customers", map[string]string{"name": "A"}, &a)
+	member := e.user("member@example.com", "member", a.ID)
+	other := e.user("other@example.com", "member", a.ID)
+	viewer := e.user("viewer@example.com", "viewer", a.ID)
+	member.do("POST", fmt.Sprintf("/api/customers/%d/projects", a.ID), map[string]string{"name": "P"}, &p)
+
+	// a small PNG
+	img := image.NewRGBA(image.Rect(0, 0, 4, 4))
+	var png bytes.Buffer
+	if err := pngenc.Encode(&png, img); err != nil {
+		t.Fatal(err)
+	}
+	st, _ := member.upload("/api/backgrounds", "x.svg", []byte("<svg xmlns='http://www.w3.org/2000/svg'/>"))
+	expect(t, "kein bild", st, 400)
+	st, _ = member.upload("/api/backgrounds", "big.png", append(png.Bytes(), make([]byte, 5<<20)...))
+	expect(t, "zu gross", st, 400)
+	st, _ = member.upload("/api/backgrounds", "bg.png", png.Bytes())
+	expect(t, "hochladen", st, 201)
+	var list []struct {
+		ID   int64  `json:"id"`
+		Mime string `json:"mime"`
+	}
+	viewer.do("GET", "/api/backgrounds", nil, &list)
+	if len(list) != 1 || list[0].Mime != "image/png" {
+		t.Fatalf("liste falsch: %+v", list)
+	}
+	ref := fmt.Sprintf("img:%d", list[0].ID)
+
+	// customer / project background: writers only, valid values only
+	expect(t, "viewer darf nicht", viewer.do("PUT", fmt.Sprintf("/api/customers/%d/background", a.ID), map[string]string{"background": "g3"}, nil), 403)
+	expect(t, "ungültig", member.do("PUT", fmt.Sprintf("/api/customers/%d/background", a.ID), map[string]string{"background": "url(x)"}, nil), 400)
+	expect(t, "unbekanntes bild", member.do("PUT", fmt.Sprintf("/api/customers/%d/background", a.ID), map[string]string{"background": "img:999"}, nil), 400)
+	expect(t, "kunde verlauf", member.do("PUT", fmt.Sprintf("/api/customers/%d/background", a.ID), map[string]string{"background": "g3"}, nil), 200)
+	expect(t, "projekt bild", member.do("PUT", fmt.Sprintf("/api/projects/%d/background", p.ID), map[string]string{"background": ref}, nil), 200)
+	expect(t, "eigener hintergrund", viewer.do("PUT", "/api/prefs/background", "g7", nil), 204)
+	var s struct {
+		Customers []struct {
+			Background string `json:"background"`
+			Projects   []struct {
+				Background string `json:"background"`
+			} `json:"projects"`
+		} `json:"customers"`
+		Prefs map[string]json.RawMessage `json:"prefs"`
+	}
+	viewer.do("GET", "/api/sidebar", nil, &s)
+	if s.Customers[0].Background != "g3" || s.Customers[0].Projects[0].Background != ref || string(s.Prefs["background"]) != `"g7"` {
+		t.Fatalf("hintergründe falsch: %+v", s)
+	}
+
+	// delete: only uploader or admin; references are cleared
+	expect(t, "fremd löschen", other.do("DELETE", fmt.Sprintf("/api/backgrounds/%d", list[0].ID), nil, nil), 403)
+	expect(t, "löschen", member.do("DELETE", fmt.Sprintf("/api/backgrounds/%d", list[0].ID), nil, nil), 204)
+	viewer.do("GET", "/api/sidebar", nil, &s)
+	if s.Customers[0].Projects[0].Background != "" {
+		t.Fatalf("referenz nicht entfernt: %+v", s.Customers[0].Projects[0])
 	}
 }

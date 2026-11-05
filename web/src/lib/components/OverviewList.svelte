@@ -9,7 +9,6 @@
   import { relativeTime } from '$lib/activity';
   import { tagsByIds } from '$lib/tags';
   import type { SidebarChecklist } from '$lib/types';
-  import TeamAvatars from './TeamAvatars.svelte';
   import Avatar from './Avatar.svelte';
   import Icon from './Icon.svelte';
 
@@ -51,7 +50,7 @@
     return { text: t('list.sched.onTrack'), cls: 'text-emerald-600 dark:text-emerald-400' };
   }
 
-  // Columns: project/checklist | status | progress | time vs. progress | due | team/responsible | updated
+  // Columns: project/checklist | status | progress | time vs. progress | due | responsible | updated
   const cols =
     'grid grid-cols-[minmax(15rem,2fr)_7.5rem_minmax(8.5rem,1fr)_minmax(10rem,1.15fr)_6.5rem_8.5rem_6.5rem] items-center gap-x-4';
   const kpi = 'card px-4 py-3';
@@ -93,12 +92,12 @@
 </div>
 
 <!-- Legend for "time vs. progress" -->
-<p class="mb-3 flex items-center gap-4 text-xs text-zinc-500">
+<p class="surface mb-3 flex w-fit items-center gap-4 rounded-md text-xs text-zinc-500 in-[.has-bg]:px-2.5 in-[.has-bg]:py-1">
   <span class="flex items-center gap-1.5"><span class="h-2 w-4 rounded-full bg-accent-500"></span>{t('list.legendProgress')}</span>
   <span class="flex items-center gap-1.5"><span class="h-3 w-0.5 rounded bg-zinc-800 dark:bg-zinc-200"></span>{t('list.legendTime')}</span>
 </p>
 
-<div class="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
+<div class="surface overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
   <div class="min-w-[72rem]">
     <div class="{cols} border-b border-zinc-200 px-4 py-2.5 text-[11px] font-semibold tracking-wider text-zinc-400 uppercase dark:border-zinc-800">
       <span class="pl-9">{t('list.col.project')}</span>
@@ -170,7 +169,9 @@
               <span class="flex items-center gap-1 tabular-nums {dueUrgent(p, today) ? 'font-semibold text-red-600 dark:text-red-400' : 'text-zinc-600 dark:text-zinc-300'}">
                 {#if p.due_date}<Icon name="calendar" size={13} />{fmtDate(p.due_date)}{:else}<span class="text-zinc-400">–</span>{/if}
               </span>
-              <span><TeamAvatars team={p.team} /></span>
+              <span class="flex min-w-0 items-center gap-1.5 text-xs text-zinc-600 dark:text-zinc-300">
+                {#if p.owner_id && p.owner_name}<Avatar name={p.owner_name} id={p.owner_id} size={20} /><span class="truncate" title="{t('project.owner')}: {p.owner_name}">{shortName(p.owner_name)}</span>{:else}<span class="text-zinc-400">–</span>{/if}
+              </span>
               <span class="flex items-center gap-1 text-xs text-zinc-400" title={p.updated}><Icon name="clock" size={12} />{relativeTime(p.updated)}</span>
             </div>
 

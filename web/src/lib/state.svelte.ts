@@ -14,7 +14,7 @@ export const sidebar = $state<{
   statusLabels: Partial<Record<ProjectStatus, string>>; // custom status names (global, set by admins)
   statusColors: Partial<Record<ProjectStatus, string>>; // custom status colors #rrggbb (global, set by admins)
   statusWip: Partial<Record<ProjectStatus, number>>; // WIP limit per board column (global, set by admins)
-  prefs: { overview?: unknown; saved_views?: unknown }; // synced personal settings (DB, per user)
+  prefs: { overview?: unknown; saved_views?: unknown; background?: unknown }; // synced personal settings (DB, per user)
   loaded: boolean; // first /sidebar response arrived
   boardHidden: number[]; // customers hidden on the board (DB, per user, synced across devices)
   open: boolean;
@@ -128,7 +128,7 @@ export function refreshSidebar(delay = 400) {
         status_labels: Partial<Record<ProjectStatus, string>>;
         status_colors?: Partial<Record<ProjectStatus, string>>;
         status_wip?: Partial<Record<ProjectStatus, number>>;
-        prefs?: { overview?: unknown; saved_views?: unknown };
+        prefs?: { overview?: unknown; saved_views?: unknown; background?: unknown };
         board_hidden: number[];
       }>('/sidebar');
       sidebar.customers = r.customers;

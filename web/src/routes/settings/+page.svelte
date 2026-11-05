@@ -8,6 +8,8 @@
   import { FONTS } from '$lib/fonts';
   import Avatar from '$lib/components/Avatar.svelte';
   import Icon from '$lib/components/Icon.svelte';
+  import BackgroundPicker from '$lib/components/BackgroundPicker.svelte';
+  import { backgroundCss, setUserBackground, userBackground } from '$lib/backgrounds';
 
   let current = $state('');
   let next = $state('');
@@ -44,6 +46,16 @@
 
   const segCls = (on: boolean) =>
     `rounded-md px-3 py-1.5 text-sm ${on ? 'bg-white font-medium shadow-xs dark:bg-zinc-700' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'}`;
+
+  // own background (whole app; synced across devices)
+  let bgOpen = $state(false);
+  async function pickBg(value: string) {
+    try {
+      await setUserBackground(value);
+    } catch (e) {
+      toast(errorText(e));
+    }
+  }
 </script>
 
 <svelte:head><title>{t('nav.settings')} · ProjectList</title></svelte:head>
@@ -69,6 +81,18 @@
       {#each themes as th (th)}
         <button type="button" class={segCls(theme.value === th)} onclick={() => setTheme(th)}>{t(`theme.${th}`)}</button>
       {/each}
+    </div>
+  </section>
+
+  <section>
+    <h2 class="section-label mb-1">{t('bg.title')}</h2>
+    <p class="mb-3 text-sm text-zinc-500">{t('bg.userHint')}</p>
+    <div class="flex items-center gap-3">
+      <span class="h-14 w-24 shrink-0 rounded-lg border border-zinc-200 bg-zinc-50 bg-cover bg-center dark:border-zinc-700 dark:bg-zinc-900" style:background-image={backgroundCss(userBackground()) || undefined}></span>
+      <button type="button" class="btn-outline" onclick={() => (bgOpen = true)}>{t('bg.choose')}</button>
+      {#if userBackground()}
+        <button type="button" class="btn-ghost" onclick={() => pickBg('')}>{t('bg.remove')}</button>
+      {/if}
     </div>
   </section>
 
@@ -172,7 +196,7 @@
           <span class="flex size-4 shrink-0 items-center justify-center border {checkRadius()} {done ? 'border-accent-600 bg-accent-600 text-white' : 'border-zinc-500 dark:border-zinc-400'}">
             {#if done}<Icon name="check" size={10} class="stroke-[3]" />{/if}
           </span>
-          <span class="{prefs.checkPos === 'right' ? 'flex-1' : ''} {done ? 'text-zinc-400 line-through' : ''}">{t('settings.preview')}</span>
+          <span class="{prefs.checkPos === 'right' ? 'flex-1' : ''} {done ? 'text-zinc-600 line-through dark:text-zinc-400' : ''}">{t('settings.preview')}</span>
         </div>
       {/each}
     </div>
@@ -211,3 +235,7 @@
     </section>
   {/if}
 </div>
+
+{#if bgOpen}
+  <BackgroundPicker title={t('bg.title')} value={userBackground()} noneLabel={t('bg.none')} onpick={pickBg} onclose={() => (bgOpen = false)} />
+{/if}

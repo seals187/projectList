@@ -9,7 +9,7 @@
   import { t } from '$lib/i18n.svelte';
   import { customerCode } from '$lib/projectStatus';
   import { migrateLocalFavorites, toggleFavorite } from '$lib/navMemory.svelte';
-  import { applySavedView, isActiveView, removeSavedView, savedViews } from '$lib/overviewFilter.svelte';
+  import { applySavedView, isActiveView, removeSavedView, renameSavedView, savedViews } from '$lib/overviewFilter.svelte';
   import type { SidebarCustomer, SidebarProject } from '$lib/types';
   import Icon from './Icon.svelte';
   import Avatar from './Avatar.svelte';
@@ -50,6 +50,18 @@
 
   // Saved views (filters of the overview): open = apply on the overview
   const onOverview = $derived(page.url.pathname === '/');
+  // rename a saved view (pencil or double click)
+  let renaming = $state<string | null>(null);
+  let renameText = $state('');
+  function startRename(id: string, name: string) {
+    renaming = id;
+    renameText = name;
+  }
+  function finishRename(id: string) {
+    if (renaming !== id) return;
+    renaming = null;
+    renameSavedView(id, renameText);
+  }
 
   // Sections (favorites, saved views) collapsible, remembered per browser
   type SectionKey = 'favorites' | 'views';
@@ -180,11 +192,11 @@
             <a href="/projects/{f.p.id}" class="{navCls(active.projectId === f.p.id && !active.checklistId)} pr-8 font-normal!">
               <Icon name="star" size={15} class="fill-amber-400 text-amber-500" />
               <span class="min-w-0 flex-1 truncate">{f.p.name}</span>
-              <span class="text-[11px] text-zinc-400 group-hover:invisible">{customerCode(f.c.name)}</span>
+              <span class="text-[11px] text-zinc-400 group-hover:invisible [@media(hover:none)]:invisible">{customerCode(f.c.name)}</span>
             </a>
             <button
               type="button"
-              class="absolute top-1/2 right-1.5 hidden -translate-y-1/2 rounded p-1 text-zinc-400 group-hover:block hover:text-zinc-700 dark:hover:text-zinc-200"
+              class="absolute top-1/2 right-1.5 hidden -translate-y-1/2 rounded p-1 text-zinc-400 group-hover:block hover:text-zinc-700 dark:hover:text-zinc-200 [@media(hover:none)]:block"
               onclick={() => toggleFavorite(f.p.id)}
               title={t('nav.removeFavorite')}
               aria-label="{t('nav.removeFavorite')}: {f.p.name}">
@@ -202,18 +214,44 @@
           {#each savedViews.list as v (v.id)}
             {@const on = onOverview && isActiveView(v, overviewView.value)}
             <li class="group relative">
-              <button type="button" class="{navCls(on)} w-full pr-8 text-left font-normal!" onclick={() => applySavedView(v)} title={v.name}>
-                <Icon name="filter" size={15} class={on ? '' : 'text-zinc-500'} />
-                <span class="min-w-0 flex-1 truncate">{v.name}</span>
-              </button>
-              <button
-                type="button"
-                class="absolute top-1/2 right-1.5 hidden -translate-y-1/2 rounded p-1 text-zinc-400 group-hover:block hover:text-zinc-700 dark:hover:text-zinc-200"
-                onclick={() => removeSavedView(v.id)}
-                title={t('views.remove')}
-                aria-label="{t('views.remove')}: {v.name}">
-                <Icon name="x" size={13} />
-              </button>
+              {#if renaming === v.id}
+                <!-- rename: Enter or leaving the field saves, Esc cancels -->
+                <!-- svelte-ignore a11y_autofocus -->
+                <input
+                  class="input py-1! text-sm!"
+                  maxlength="60"
+                  bind:value={renameText}
+                  autofocus
+                  aria-label={t('views.rename')}
+                  onkeydown={(e) => {
+                    if (e.key === 'Enter') finishRename(v.id);
+                    if (e.key === 'Escape') renaming = null;
+                  }}
+                  onblur={() => finishRename(v.id)} />
+              {:else}
+                <button type="button" class="{navCls(on)} w-full pr-14 text-left font-normal!" onclick={() => applySavedView(v)} ondblclick={() => startRename(v.id, v.name)} title={v.name}>
+                  <Icon name="filter" size={15} class={on ? '' : 'text-zinc-500'} />
+                  <span class="min-w-0 flex-1 truncate">{v.name}</span>
+                </button>
+                <span class="absolute top-1/2 right-1.5 hidden -translate-y-1/2 items-center group-hover:flex [@media(hover:none)]:flex">
+                  <button
+                    type="button"
+                    class="rounded p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                    onclick={() => startRename(v.id, v.name)}
+                    title={t('views.rename')}
+                    aria-label="{t('views.rename')}: {v.name}">
+                    <Icon name="pencil" size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    class="rounded p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                    onclick={() => removeSavedView(v.id)}
+                    title={t('views.remove')}
+                    aria-label="{t('views.remove')}: {v.name}">
+                    <Icon name="x" size={13} />
+                  </button>
+                </span>
+              {/if}
             </li>
           {/each}
         </ul>
@@ -232,7 +270,7 @@
     </a>
     <button
       type="button"
-      class="rounded-md p-1.5 text-zinc-500 hover:bg-zinc-200/60 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+      class="rounded-md p-1.5 text-zinc-600 hover:bg-zinc-200/60 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
       onclick={nextTheme}
       title="{t('settings.theme')}: {t(`theme.${theme.value}`)}"
       aria-label="{t('settings.theme')}: {t(`theme.${theme.value}`)}">
@@ -240,7 +278,7 @@
     </button>
     <button
       type="button"
-      class="rounded-md p-1.5 text-zinc-500 hover:bg-zinc-200/60 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
+      class="rounded-md p-1.5 text-zinc-600 hover:bg-zinc-200/60 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
       onclick={logout}
       title={t('nav.logout')}
       aria-label={t('nav.logout')}>

@@ -8,6 +8,46 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unveröffentlicht]
 
+## [0.0.6] – 2026-11-05
+
+### Hinzugefügt
+
+- Hintergründe: 25 Farbverläufe oder eigene Bilder (JPG, PNG, WebP, GIF; max. 5 MB, grössere Bilder werden vor
+  dem Speichern automatisch verkleinert). Wählbar pro Benutzer für die ganze App (Einstellungen, auf allen
+  Geräten gleich), pro Kunde (Knopf auf der Kundenseite) und pro Projekt („…“-Menü der Projektseite); es gilt
+  der spezifischste: Projekt vor Kunde vor Benutzer. Hochgeladene Bilder stehen allen zur Auswahl; löschen
+  können sie der Hochladende und Admins. Darstellung wie bei Planka: Das Bild liegt hinter der ganzen App,
+  Seitenleiste und schmales Kopfband (Titel, Ansichten, Filter, Reiter) sind durchscheinendes dunkles Glas,
+  Board-Spalten, Listen, Tabellen, Kalender, Zeitachse und die Kacheln darin durchscheinendes helles Glas;
+  dazwischen ist das Bild frei sichtbar. Checklisten-, Template-Editor und Einstellungen stehen auf einer
+  deckenden Fläche. Migration 00019
+
+### Geändert
+
+- Meine Aufgaben: Projekte, für die man verantwortlich ist, erscheinen jetzt ebenfalls (mit Markierung
+  „Verantwortlich“), auch wenn einem darin keine Checkliste und kein Eintrag zugewiesen ist
+- Projektseite: Checklisten lassen sich direkt in der Liste zuweisen und löschen (mit Rückfrage), ohne sie
+  zu öffnen
+- Kundenseite neu gestaltet: Kopf mit Kürzel, Name, „Bearbeiten“ und „+ Projekt“, Ort/Ansprechpartner/E-Mail
+  (E-Mail als Link; Bearbeiten über den Knopf), Notizen, Projekte als Tabelle mit Status (eigener Name und Farbe
+  wie im Board), Labels, Fortschritt, Fälligkeit und verantwortlicher Person
+- Übersicht, Liste: Spalte „Zuständig“ statt „Team / Zuständig“; in der Projektzeile steht die verantwortliche
+  Person statt des Teams, in den Checklisten-Zeilen wie bisher die zugewiesene Person
+- Übersicht, Board: „Alle einklappen“ / „Alle ausklappen“ statt des Schalters „Kompakt“ (eingeklappt zeigen die
+  Karten nur Kunde, Projektname und Fortschritt)
+- Übersicht, Karten: Projektname über die ganze Breite (bis zwei Zeilen), darunter Status, Fortschrittsbalken,
+  Anzahl erledigter von allen Einträgen (z. B. „5/10“) und Fälligkeit; die Statusfarbe erscheint nur noch einmal
+- Gespeicherte Ansichten lassen sich umbenennen (Stift oder Doppelklick in der Seitenleiste)
+- Checklisten: erledigte (durchgestrichene) Einträge sind dunkler und damit besser lesbar
+
+### Behoben
+
+- Seitenleiste: Entfernen/Umbenennen bei Favoriten und gespeicherten Ansichten war auf Geräten ohne Maus
+  (Tablet, Handy) nicht erreichbar; die Knöpfe sind dort jetzt immer sichtbar
+- Auswahllisten (z. B. Rolle beim Anlegen eines Benutzers) und Datumsfelder zeigten teilweise unsichtbare
+  Einträge, wenn das Theme der App und das des Betriebssystems verschieden waren (z. B. App hell, Windows
+  dunkel). Die Browser-Bedienelemente folgen jetzt dem Theme der App
+
 ## [0.0.5] – 2026-11-04
 
 ### Hinzugefügt
@@ -195,7 +235,8 @@ Erste Version.
   Code in JetBrains Mono; keine externen Anfragen
 - Checkbox links oder rechts, eckig oder rund; Codeblock-Hintergrund Hellgrau, Dunkelgrau oder Schwarz
 
-[Unveröffentlicht]: https://github.com/seals187/projectList/compare/v0.0.5...HEAD
+[Unveröffentlicht]: https://github.com/seals187/projectList/compare/v0.0.6...HEAD
+[0.0.6]: https://github.com/seals187/projectList/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/seals187/projectList/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/seals187/projectList/compare/v0.0.3...v0.0.4
 [0.0.3]: https://github.com/seals187/projectList/compare/v0.0.2...v0.0.3

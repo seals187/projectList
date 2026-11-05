@@ -41,7 +41,7 @@
         {#if done}<Icon name="check" size={10} class="stroke-[3]" />{/if}
       </button>
       <div class="min-w-0 flex-1">
-        <div class="rich text-sm leading-6 {done ? 'text-zinc-400 line-through' : ''}">{@html sanitizeHtml(task.title)}</div>
+        <div class="rich text-sm leading-6 {done ? 'text-zinc-600 line-through dark:text-zinc-400' : ''}">{@html sanitizeHtml(task.title)}</div>
         <a href="/checklists/{task.checklist_id}" class="block truncate text-xs text-zinc-400 hover:text-accent-600">
           {task.customer_name} › {task.project_name} › {task.checklist_title}
         </a>

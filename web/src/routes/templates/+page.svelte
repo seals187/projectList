@@ -35,7 +35,7 @@
   {#snippet subtitle()}{t('templates.subtitle')}{/snippet}
 </MainHeader>
 
-<ul>
+<ul class="surface rounded-xl in-[.has-bg]:px-3 in-[.has-bg]:py-1">
   {#if templates === null}
     <li class="py-2 text-sm text-zinc-400">{t('common.loading')}</li>
   {:else}

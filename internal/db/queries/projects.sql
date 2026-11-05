@@ -1,6 +1,6 @@
 -- name: ListProjectsWithProgress :many
 -- Sidebar: all visible projects incl. progress in one query.
-SELECT p.id, p.customer_id, p.name, p.status, p.start_date, p.due_date, p.created_at, p.include_in_customer_progress, p.owner_id, p.board_position,
+SELECT p.id, p.customer_id, p.name, p.status, p.start_date, p.due_date, p.created_at, p.include_in_customer_progress, p.owner_id, p.board_position, p.background,
        CAST(COALESCE(o.name, '') AS TEXT) AS owner_name,
        CAST(COUNT(i.id) AS INTEGER) AS total,
        CAST(COUNT(i.done_at) AS INTEGER) AS done
