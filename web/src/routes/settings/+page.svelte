@@ -45,7 +45,7 @@
   }
 
   const segCls = (on: boolean) =>
-    `rounded-md px-3 py-1.5 text-sm ${on ? 'bg-white font-medium shadow-xs dark:bg-zinc-700' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'}`;
+    `rounded-md px-3 py-1.5 text-sm ${on ? 'seg-on' : 'sel-off font-medium'}`;
 
   // own background (whole app; synced across devices)
   let bgOpen = $state(false);

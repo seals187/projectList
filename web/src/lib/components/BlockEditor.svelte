@@ -9,7 +9,7 @@
   // server ID is filled in later in realIds.
   import { tick } from 'svelte';
   import { errorText } from '$lib/api';
-  import { checkRadius, prefs, session, toast } from '$lib/state.svelte';
+  import { checkRadius, NOTE_MAX, NOTE_MIN, prefs, session, setPref, toast } from '$lib/state.svelte';
   import { fmtDate, fmtDateTime, shortName, t, tMaybe, todayISO } from '$lib/i18n.svelte';
   import { sortable } from '$lib/sortable';
   import { History } from '$lib/history.svelte';
@@ -214,6 +214,41 @@
   let editField = $state<{ key: number; field: 'assignee' | 'due' } | null>(null);
   let marks = $state({ bold: false, italic: false, underline: false, strike: false, code: false });
   let root = $state<HTMLElement>();
+
+  // Note column width: dragged at its left edge, saved as a view preference.
+  // noteW is the rendered width (px, unzoomed), 0 while the column is hidden (mobile).
+  let editorEl = $state<HTMLElement>();
+  let noteW = $state(0);
+  let noteResizing = $state(false);
+  // the main column keeps at least 240 px
+  const clampNote = (w: number) =>
+    Math.round(Math.max(NOTE_MIN, Math.min(NOTE_MAX, editorEl ? editorEl.offsetWidth - 240 : NOTE_MAX, w)));
+  function startNoteResize(e: PointerEvent) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    const handle = e.currentTarget as HTMLElement;
+    handle.setPointerCapture(e.pointerId);
+    const startX = e.clientX;
+    const startW = noteW;
+    const zoom = prefs.zoom || 1;
+    noteResizing = true;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    // during the drag only the live value changes; saved on release
+    const move = (ev: PointerEvent) => (prefs.noteWidth = clampNote(startW - (ev.clientX - startX) / zoom));
+    const up = () => {
+      noteResizing = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      setPref('noteWidth', prefs.noteWidth);
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', up);
+      handle.removeEventListener('pointercancel', up);
+    };
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', up);
+    handle.addEventListener('pointercancel', up);
+  }
 
   const titleEls = new Map<number, HTMLElement>();
   const noteEls = new Map<number, HTMLElement>();
@@ -1173,9 +1208,38 @@
   </datalist>
 
   <!-- Size via CSS zoom: scales text, checkboxes and note column together -->
-  <div style:zoom={prefs.zoom === 1 ? undefined : prefs.zoom}>
+  <div
+    bind:this={editorEl}
+    class="relative"
+    style:zoom={prefs.zoom === 1 ? undefined : prefs.zoom}
+    style:--note-w={prefs.noteWidth ? `${prefs.noteWidth}px` : undefined}>
 
-  <div class="grid md:grid-cols-[minmax(0,1fr)_18rem] 2xl:grid-cols-[minmax(0,1fr)_24rem]">
+  {#if noteW}
+    <!-- drag handle on the left edge of the note column (desktop): change its width,
+         double-click = default width -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions, a11y_no_noninteractive_tabindex -->
+    <div
+      class="absolute inset-y-0 z-10 hidden w-2 -translate-x-1/2 cursor-col-resize touch-none transition-colors hover:bg-accent-400/40 md:block {noteResizing ? 'bg-accent-500/50' : ''}"
+      style:left="calc(100% - {noteW}px)"
+      role="separator"
+      aria-orientation="vertical"
+      aria-valuenow={noteW}
+      aria-valuemin={NOTE_MIN}
+      aria-valuemax={NOTE_MAX}
+      aria-label={t('checklist.resizeNotes')}
+      title={t('checklist.resizeNotes')}
+      tabindex="0"
+      onpointerdown={startNoteResize}
+      ondblclick={() => setPref('noteWidth', 0)}
+      onkeydown={(e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+          e.preventDefault();
+          setPref('noteWidth', clampNote(noteW + (e.key === 'ArrowLeft' ? 16 : -16)));
+        }
+      }}></div>
+  {/if}
+
+  <div class="grid md:grid-cols-[minmax(0,1fr)_var(--note-w,18rem)] 2xl:grid-cols-[minmax(0,1fr)_var(--note-w,24rem)]">
     <div class="flex justify-end pr-2 pb-1.5">
       {#if headingIds.length}
         <button
@@ -1187,7 +1251,7 @@
         </button>
       {/if}
     </div>
-    <div class="hidden pb-1.5 pl-4 text-[11px] font-semibold tracking-wider text-zinc-400 uppercase md:block">{t('checklist.notes')}</div>
+    <div class="hidden pb-1.5 pl-4 text-[11px] font-semibold tracking-wider text-zinc-400 uppercase md:block" bind:offsetWidth={noteW}>{t('checklist.notes')}</div>
   </div>
 
   <div use:sortable={{ onsort: (ids) => reorderVisible(ids), disabled: !editable }}>
@@ -1199,7 +1263,7 @@
       <div
         data-id={b.id}
         id={b.kind === 'h1' ? `h-${b.id}` : undefined}
-        class="group/row relative scroll-mt-20 {sectionRowCls(b.id)} {hidden.has(b.id) ? 'hidden' : 'grid'} md:grid-cols-[minmax(0,1fr)_18rem] 2xl:grid-cols-[minmax(0,1fr)_24rem]
+        class="group/row relative scroll-mt-20 {sectionRowCls(b.id)} {hidden.has(b.id) ? 'hidden' : 'grid'} md:grid-cols-[minmax(0,1fr)_var(--note-w,18rem)] 2xl:grid-cols-[minmax(0,1fr)_var(--note-w,24rem)]
           {isFocused && editable ? 'ring-1 ring-accent-400/80 dark:ring-accent-500/60' : ''}
           [&.dragging]:bg-white [&.dragging]:shadow-lg dark:[&.dragging]:bg-zinc-900">
         <!-- Main column -->

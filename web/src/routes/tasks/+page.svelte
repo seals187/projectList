@@ -99,9 +99,9 @@
     return { text: shortDate(iso), cls: 'text-zinc-500' };
   }
   const tabCls = (on: boolean) =>
-    `inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm ${on ? 'bg-white font-semibold shadow-xs dark:bg-zinc-700' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'}`;
+    `inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm ${on ? 'seg-on' : 'sel-off font-medium'}`;
   const chipCls = (on: boolean) =>
-    `rounded-full px-3 py-1 text-xs font-medium ${on ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700'}`;
+    `chip ${on ? 'chip-on' : 'chip-off'}`;
   const toggleSet = (s: SvelteSet<number>, id: number) => (s.has(id) ? s.delete(id) : s.add(id));
 
   // Columns of a project/checklist row: arrow | name | progress | due | toggle | link

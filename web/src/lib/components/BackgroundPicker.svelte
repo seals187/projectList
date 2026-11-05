@@ -61,7 +61,7 @@
   const canDelete = (img: BackgroundImage) => isAdmin() || img.uploaded_by === session.user?.id;
 
   const tabCls = (on: boolean) =>
-    `flex-1 rounded-md py-1.5 text-sm ${on ? 'bg-white font-medium shadow-xs dark:bg-zinc-700' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'}`;
+    `flex-1 rounded-md py-1.5 text-sm ${on ? 'seg-on' : 'sel-off font-medium'}`;
   const tileCls = (on: boolean) =>
     `relative aspect-[16/10] w-full overflow-hidden rounded-lg bg-cover bg-center transition-transform hover:scale-[1.03] ${on ? 'ring-3 ring-accent-500 ring-offset-2 dark:ring-offset-zinc-900' : ''}`;
 </script>

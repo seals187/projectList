@@ -129,7 +129,7 @@
     timeline: 'timeline'
   };
   const segCls = (on: boolean) =>
-    `inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm ${on ? 'bg-white font-medium shadow-xs dark:bg-zinc-700' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'}`;
+    `inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm ${on ? 'seg-on' : 'sel-off font-medium'}`;
   const view = $derived(overviewView.value);
 </script>
 

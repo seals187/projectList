@@ -104,12 +104,8 @@
     { href: '/templates', icon: 'template' as const, label: t('nav.templates'), on: path.startsWith('/templates') }
   ]);
 
-  const navCls = (on: boolean) =>
-    `flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 ${
-      on
-        ? 'bg-accent-50 font-semibold text-accent-700 dark:bg-accent-950/60 dark:text-accent-400'
-        : 'text-zinc-700 hover:bg-zinc-200/50 dark:text-zinc-300 dark:hover:bg-zinc-800'
-    }`;
+  // same selection colors as view switchers and chips (app.css: sel-on / sel-off)
+  const navCls = (on: boolean) => `flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 ${on ? 'sel-on' : 'sel-off font-medium'}`;
   const canCreate = $derived(canWrite() && sidebar.customers.length > 0);
 </script>
 
@@ -138,10 +134,10 @@
     <button
       type="button"
       onclick={() => (palette.open = true)}
-      class="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-zinc-400 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700">
+      class="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-zinc-200 bg-white px-2.5 py-1.5 text-zinc-500 transition-colors hover:border-zinc-300 hover:text-zinc-700 dark:border-white/10 dark:bg-white/10 dark:text-zinc-300 dark:hover:border-white/20 dark:hover:bg-white/15 dark:hover:text-white">
       <Icon name="search" size={14} />
       <span class="flex-1 truncate text-left">{t('nav.search')}</span>
-      <kbd class="rounded border border-zinc-200 px-1 font-sans text-[10px] dark:border-zinc-700">Ctrl K</kbd>
+      <kbd class="rounded border border-zinc-200 px-1 font-sans text-[10px] dark:border-white/20">Ctrl K</kbd>
     </button>
     {#if canCreate}
       <button
@@ -160,7 +156,7 @@
       {#each nav as n (n.href)}
         <li>
           <a href={n.href} class={navCls(n.on)}>
-            <Icon name={n.icon} class={n.on ? '' : 'text-zinc-500'} />
+            <Icon name={n.icon} class={n.on ? '' : 'opacity-70'} />
             <span class="flex-1">{n.label}</span>
             {#if n.badge}<span class="rounded-md bg-zinc-200/70 px-1.5 text-[11px] text-zinc-600 tabular-nums dark:bg-zinc-800 dark:text-zinc-400">{n.badge}</span>{/if}
           </a>
@@ -230,7 +226,7 @@
                   onblur={() => finishRename(v.id)} />
               {:else}
                 <button type="button" class="{navCls(on)} w-full pr-14 text-left font-normal!" onclick={() => applySavedView(v)} ondblclick={() => startRename(v.id, v.name)} title={v.name}>
-                  <Icon name="filter" size={15} class={on ? '' : 'text-zinc-500'} />
+                  <Icon name="filter" size={15} class={on ? '' : 'opacity-70'} />
                   <span class="min-w-0 flex-1 truncate">{v.name}</span>
                 </button>
                 <span class="absolute top-1/2 right-1.5 hidden -translate-y-1/2 items-center group-hover:flex [@media(hover:none)]:flex">
@@ -263,7 +259,7 @@
   <div class="flex items-center gap-1 border-t border-zinc-200 px-3 py-2.5 dark:border-zinc-800">
     <a
       href="/settings"
-      class="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-1.5 py-1 hover:bg-zinc-200/50 dark:hover:bg-zinc-800 {path.startsWith('/settings') ? 'bg-zinc-200/60 dark:bg-zinc-800' : ''}"
+      class="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-1.5 py-1 {path.startsWith('/settings') ? 'sel-on' : 'sel-off'}"
       title={t('nav.settings')}>
       <Avatar name={session.user?.name ?? ''} id={session.user?.id ?? 0} size={30} />
       <span class="truncate font-semibold">{session.user?.name}</span>

@@ -217,10 +217,15 @@ interface ViewPrefs {
   customersSort: CustomerSort;
   font: FontId; // app font
   headingFont: HeadingFont; // headings: serif or same as the text
+  noteWidth: number; // checklist note column in px, 0 = default (dragged at its left edge)
 }
 
+// width range of the checklist note column (px, before zoom)
+export const NOTE_MIN = 160;
+export const NOTE_MAX = 900;
+
 const PREFS_KEY = 'view-prefs';
-const defaultPrefs: ViewPrefs = { checkPos: 'right', checkShape: 'square', gridLines: true, zoom: 1, codeBg: 'dark', overview: 'cards', overviewDefault: 'last', customersView: 'list', customersSort: 'activity', font: DEFAULT_FONT, headingFont: 'serif' };
+const defaultPrefs: ViewPrefs = { checkPos: 'right', checkShape: 'square', gridLines: true, zoom: 1, codeBg: 'dark', overview: 'cards', overviewDefault: 'last', customersView: 'list', customersSort: 'activity', font: DEFAULT_FONT, headingFont: 'serif', noteWidth: 0 };
 
 function readPrefs(): ViewPrefs {
   try {
@@ -236,7 +241,8 @@ function readPrefs(): ViewPrefs {
       customersView: p.customersView === 'cards' ? 'cards' : 'list',
       customersSort: CUSTOMER_SORTS.includes(p.customersSort) ? p.customersSort : 'activity',
       font: FONT_IDS.includes(p.font) ? p.font : DEFAULT_FONT,
-      headingFont: p.headingFont === 'sans' ? 'sans' : 'serif'
+      headingFont: p.headingFont === 'sans' ? 'sans' : 'serif',
+      noteWidth: Number.isFinite(p.noteWidth) && p.noteWidth >= NOTE_MIN && p.noteWidth <= NOTE_MAX ? Math.round(p.noteWidth) : 0
     };
   } catch {
     return { ...defaultPrefs };

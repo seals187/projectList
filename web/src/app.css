@@ -10,10 +10,13 @@
   /* One accent color: indigo */
   --color-accent-50: oklch(96.2% 0.018 272.314);
   --color-accent-100: oklch(93% 0.034 272.788);
+  --color-accent-200: oklch(87% 0.065 274.039);
+  --color-accent-300: oklch(78.5% 0.115 274.713);
   --color-accent-400: oklch(67.3% 0.182 276.935);
   --color-accent-500: oklch(58.5% 0.233 277.117);
   --color-accent-600: oklch(51.1% 0.262 276.966);
   --color-accent-700: oklch(45.7% 0.24 277.023);
+  --color-accent-800: oklch(39.8% 0.195 277.366);
   --color-accent-900: oklch(35.9% 0.144 278.697);
   --color-accent-950: oklch(25.7% 0.09 281.288);
 }
@@ -86,6 +89,28 @@ html[data-heading='sans'] { --font-serif: var(--font-sans); }
 }
 @utility section-label {
   @apply text-[11px] font-semibold tracking-wider text-zinc-400 uppercase;
+}
+/* Selection states, the same everywhere (sidebar, view switchers, tabs, filter chips):
+   hover = neutral tint, selected = accent tint with accent text. */
+@utility sel-off {
+  @apply text-zinc-600 transition-colors hover:bg-zinc-900/5 hover:text-zinc-900 dark:text-zinc-300 dark:hover:bg-white/10 dark:hover:text-white;
+}
+@utility sel-on {
+  @apply bg-accent-500/12 font-semibold text-accent-700 dark:bg-accent-400/20 dark:text-accent-200;
+}
+/* selected button in a segmented control (gray track): white pill, accent text */
+@utility seg-on {
+  @apply bg-white font-semibold text-accent-700 shadow-xs dark:bg-accent-400/25 dark:text-accent-100 dark:shadow-none;
+}
+/* filter chips */
+@utility chip {
+  @apply rounded-full px-3 py-1 text-xs font-medium transition-colors;
+}
+@utility chip-off {
+  @apply bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-white;
+}
+@utility chip-on {
+  @apply bg-accent-500/12 text-accent-700 ring-1 ring-accent-500/30 ring-inset dark:bg-accent-400/20 dark:text-accent-200 dark:ring-accent-400/30;
 }
 @utility row-link {
   @apply -mx-2 flex items-center gap-4 rounded-md px-2 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-900/70;
@@ -202,23 +227,23 @@ html[data-heading='sans'] { --font-serif: var(--font-sans); }
    it must win over the utilities. No backdrop-filter inside main: it would make
    fixed menus and dialogs position relative to the blurred element. */
 main.has-bg :is(.surface, .card) {
-  background-color: rgb(244 244 245 / 0.55);
+  background-color: rgb(244 244 245 / 0.78);
   box-shadow: 0 4px 16px rgb(0 0 0 / 0.18);
   border-color: transparent;
 }
-.dark main.has-bg :is(.surface, .card) { background-color: rgb(24 24 27 / 0.55); }
+.dark main.has-bg :is(.surface, .card) { background-color: rgb(24 24 27 / 0.78); }
 /* tiles inside (project cards, customer cards, task groups, calendar entries,
    timeline rows) translucent too; header rows and shaded cells only a light veil.
    Sticky cells (timeline name column) stay nearly opaque, content scrolls below
    them. Menus, dialogs, form fields and the header band keep their own colors. */
 main.has-bg .bg-white:not(input, select, textarea, dialog, dialog *, [role="dialog"], [role="dialog"] *, [role="menu"], [role="menu"] *, .fixed, .fixed *, .absolute, .absolute *, .band *) {
-  background-color: rgb(255 255 255 / 0.62);
+  background-color: rgb(255 255 255 / 0.85);
 }
 main.has-bg :is(.bg-zinc-50, .bg-zinc-50\/40, .bg-zinc-50\/70, .bg-zinc-50\/80):not(.band *) {
-  background-color: rgb(255 255 255 / 0.25);
+  background-color: rgb(255 255 255 / 0.4);
 }
 .dark main.has-bg :is([class*="dark:bg-zinc-900"], [class*="dark:bg-zinc-950"]):not(.no-glass, input, select, textarea, dialog, dialog *, [role="dialog"], [role="dialog"] *, [role="menu"], [role="menu"] *, .fixed, .fixed *, .absolute, .absolute *, .band *) {
-  background-color: rgb(24 24 27 / 0.6);
+  background-color: rgb(24 24 27 / 0.8);
 }
 .dark main.has-bg :is(.bg-zinc-50, .bg-zinc-50\/40, .bg-zinc-50\/70, .bg-zinc-50\/80):not(.band *) {
   background-color: rgb(0 0 0 / 0.2);
@@ -257,3 +282,33 @@ main.has-bg .band select.text-accent-700 { color: var(--color-accent-200); }
 /* muted text on the glass surfaces: darker than usual, the surface is translucent */
 main.has-bg :is(.surface, .card, .bg-white) :is(.text-zinc-400, .text-zinc-500):not(.band *, [role="menu"] *, [role="dialog"] *, dialog *) { color: var(--color-zinc-600); }
 .dark main.has-bg :is(.surface, .card, .bg-white) :is(.text-zinc-400, .text-zinc-500):not(.band *, [role="menu"] *, [role="dialog"] *, dialog *) { color: var(--color-zinc-300); }
+
+/* Controls on the header band (filters, search, chips, outline buttons): light glass
+   like the sidebar search instead of dark boxes. Menus/dialogs keep their colors. */
+main.has-bg
+  .band
+  :is([class*='dark:bg-zinc-8'], [class*='dark:bg-zinc-9'], .chip-off, .input, .btn-outline):not(
+    [role='menu'],
+    [role='menu'] *,
+    [role='dialog'],
+    [role='dialog'] *,
+    .fixed *
+  ) {
+  background-color: rgb(255 255 255 / 0.12);
+  border-color: rgb(255 255 255 / 0.16);
+  color: var(--color-zinc-100);
+}
+main.has-bg
+  .band
+  :is(button, a, input, select):is([class*='dark:bg-zinc-8'], [class*='dark:bg-zinc-9'], .chip-off, .input, .btn-outline):not(
+    [role='menu'] *,
+    [role='dialog'] *,
+    .fixed *
+  ):hover {
+  background-color: rgb(255 255 255 / 0.2);
+  border-color: rgb(255 255 255 / 0.26);
+  color: #fff;
+}
+main.has-bg .band .input::placeholder { color: var(--color-zinc-300); }
+main.has-bg .band select[class*='dark:bg-accent'] { background-color: rgb(165 180 252 / 0.22); }
+main.has-bg .band select[class*='dark:bg-accent']:hover { background-color: rgb(165 180 252 / 0.32); }

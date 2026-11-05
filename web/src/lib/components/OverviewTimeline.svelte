@@ -130,7 +130,7 @@
     {#each ['weeks', 'months'] as const as z (z)}
       <button
         type="button"
-        class="rounded-md px-2.5 py-0.5 {zoom === z ? 'bg-white font-medium shadow-xs dark:bg-zinc-700' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'}"
+        class="rounded-md px-2.5 py-0.5 {zoom === z ? 'seg-on' : 'sel-off font-medium'}"
         aria-pressed={zoom === z}
         onclick={() => setZoom(z)}>
         {t(`timeline.${z}`)}

@@ -8,6 +8,29 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unveröffentlicht]
 
+## [0.0.7] – 2026-11-05
+
+### Hinzugefügt
+
+- Checklisten und Templates: Die Breite der Notizspalte lässt sich an ihrem linken Rand mit der Maus nach links
+  oder rechts ziehen (Doppelklick: Standardbreite, auch per Pfeiltasten); die Breite wird gespeichert
+
+### Geändert
+
+- Einheitliche Farben für ausgewählt und Maus darüber: Seitenleiste, Ansichts-Umschalter (Karten/Board/Liste/…,
+  Kunden Karten/Liste), Reiter in „Meine Aufgaben“, Zoom der Zeitachse, Einstellungen und Filter-Chips.
+  Ausgewählt ist immer violett hinterlegt mit violetter Schrift, Maus darüber immer eine neutrale graue Fläche;
+  Filter-Chips überall gleich (rund). Suchfeld der Seitenleiste im dunklen Design und auf Hintergründen heller
+- Hintergründe: Filter, Suchfeld, Chips und Knöpfe im Kopfband sind helles Glas statt dunkler Kästen; das
+  Kopfband ist auf Übersicht, Meine Aufgaben, Kunden und Templates immer gleich hoch; „Neues Template“ steht
+  auf einer Glasfläche
+- Hintergründe: Board-Spalten, Listen, Tabellen und Kacheln wieder weniger durchsichtig, damit sie auch auf
+  unruhigen Bildern gut lesbar sind
+
+### Behoben
+
+- Einige helle Akzentfarben im dunklen Design fehlten (z. B. „Gruppieren“ im Board war kaum lesbar)
+
 ## [0.0.6] – 2026-11-05
 
 ### Hinzugefügt
@@ -235,7 +258,8 @@ Erste Version.
   Code in JetBrains Mono; keine externen Anfragen
 - Checkbox links oder rechts, eckig oder rund; Codeblock-Hintergrund Hellgrau, Dunkelgrau oder Schwarz
 
-[Unveröffentlicht]: https://github.com/seals187/projectList/compare/v0.0.6...HEAD
+[Unveröffentlicht]: https://github.com/seals187/projectList/compare/v0.0.7...HEAD
+[0.0.7]: https://github.com/seals187/projectList/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/seals187/projectList/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/seals187/projectList/compare/v0.0.4...v0.0.5
 [0.0.4]: https://github.com/seals187/projectList/compare/v0.0.3...v0.0.4

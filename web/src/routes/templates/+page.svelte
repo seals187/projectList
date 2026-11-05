@@ -56,7 +56,7 @@
   {/if}
 </ul>
 {#if canWrite()}
-  <form onsubmit={create} class="mt-1 flex items-center gap-2 py-1">
+  <form onsubmit={create} class="surface mt-1 flex items-center gap-2 rounded-xl py-1 in-[.has-bg]:mt-3 in-[.has-bg]:px-3 in-[.has-bg]:py-2">
     <Icon name="plus" class="text-zinc-400" />
     <input class="flex-1 bg-transparent py-1 text-sm outline-none placeholder:text-zinc-400" placeholder={t('templates.new')} bind:value={newName} />
     {#if newName.trim()}<button class="btn-primary py-1!" type="submit">{t('common.create')}</button>{/if}

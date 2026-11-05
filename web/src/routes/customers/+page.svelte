@@ -55,9 +55,9 @@
 
   const toggle = (id: number) => (expanded.has(id) ? expanded.delete(id) : expanded.add(id));
   const segCls = (on: boolean) =>
-    `inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm ${on ? 'bg-white font-medium shadow-xs dark:bg-zinc-700' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'}`;
+    `inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm ${on ? 'seg-on' : 'sel-off font-medium'}`;
   const chipCls = (on: boolean) =>
-    `rounded-md border px-2.5 py-1 text-xs font-medium ${on ? 'border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900' : 'border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300'}`;
+    `chip ${on ? 'chip-on' : 'chip-off'}`;
 
   // Columns: customer | contact | projects | open | progress | next due date | status | menu
   const cols = 'grid grid-cols-[minmax(14rem,1.6fr)_minmax(11rem,1.3fr)_5.5rem_4.5rem_9.5rem_8.5rem_7.5rem_2rem] items-center gap-x-4';
