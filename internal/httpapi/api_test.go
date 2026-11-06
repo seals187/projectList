@@ -1195,6 +1195,13 @@ func TestBoardOrderAndHiddenCustomers(t *testing.T) {
 	if _, ok := pr.Prefs["saved_views"]; ok {
 		t.Fatalf("prefs duerfen nicht fuer andere gelten: %+v", pr.Prefs)
 	}
+	// display options of the page headers (per page/view)
+	expect(t, "anzeige speichern", viewer.do("PUT", "/api/prefs/display", map[string]any{"overview.list": map[string]bool{"steps": false}}, nil), 204)
+	pr.Prefs = nil
+	viewer.do("GET", "/api/sidebar", nil, &pr)
+	if string(pr.Prefs["display"]) != `{"overview.list":{"steps":false}}` {
+		t.Fatalf("anzeige falsch: %s", pr.Prefs["display"])
+	}
 
 	// start date: optional, not after the due date
 	expect(t, "startdatum", member.do("PATCH", fmt.Sprintf("/api/projects/%d", p1.ID), map[string]any{"start_date": "2026-01-10", "due_date": "2026-02-01"}, nil), 200)

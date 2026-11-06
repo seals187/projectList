@@ -1141,7 +1141,7 @@
           }}
           title={inherited ? t('editor.noColor') : t('editor.none')}
           aria-label={inherited ? t('editor.noColor') : t('editor.none')}
-          class="flex size-6 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-400 hover:border-zinc-500 dark:border-zinc-600 dark:bg-zinc-950 {(b.bg_color ?? '') === noneValue ? sel : ''}">
+          class="flex size-6 items-center justify-center rounded-md border border-zinc-300 bg-white text-zinc-400 hover:border-zinc-500 dark:border-zinc-600 dark:bg-zinc-900 {(b.bg_color ?? '') === noneValue ? sel : ''}">
           <Icon name="x" size={12} />
         </button>
         </div>
@@ -1489,7 +1489,7 @@
 
         <!-- Note -->
         <div
-          class="min-w-0 items-start gap-2.5 pb-1 pl-8 bg-white md:border-l md:border-zinc-300 md:py-[3px] md:pl-4 dark:bg-zinc-950 dark:md:border-zinc-700 {i > 0 ? (noteSpacing[b.kind] ?? "") : ""}
+          class="min-w-0 items-start gap-2.5 pb-1 pl-8 bg-white md:border-l md:border-zinc-300 md:py-[3px] md:pl-4 dark:bg-zinc-900 dark:md:border-zinc-700 {i > 0 ? (noteSpacing[b.kind] ?? "") : ""}
             {b.description ? "flex" : "hidden group-focus-within/row:flex md:flex"}">
           {#if b.kind !== 'divider'}
             {#if b.description}

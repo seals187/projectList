@@ -7,7 +7,7 @@
   import { t } from '$lib/i18n.svelte';
   import { TAG_PRESETS, tagStyle } from '$lib/tags';
   import type { Tag } from '$lib/types';
-  import PageHeader from '$lib/components/PageHeader.svelte';
+  import DetailHeader from '$lib/components/DetailHeader.svelte';
   import SettingsTabs from '$lib/components/SettingsTabs.svelte';
   import Editable from '$lib/components/Editable.svelte';
   import ConfirmButton from '$lib/components/ConfirmButton.svelte';
@@ -89,9 +89,9 @@
 
 <svelte:head><title>{t('nav.settings')} · ProjectList</title></svelte:head>
 
-<PageHeader>
+<DetailHeader>
   {#snippet title()}{t('nav.settings')}{/snippet}
-</PageHeader>
+</DetailHeader>
 <SettingsTabs />
 
 <div class="max-w-xl space-y-10">

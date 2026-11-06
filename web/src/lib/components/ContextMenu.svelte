@@ -26,6 +26,14 @@
     return () => ro.disconnect();
   });
 
+  // Render at the end of <body>: inside the header band (class "dark" over a
+  // background image) the menu would otherwise inherit the dark variants even
+  // in the light theme.
+  function portal(node: HTMLElement) {
+    document.body.appendChild(node);
+    return { destroy: () => node.remove() };
+  }
+
   function outside(e: Event) {
     if (el && !el.contains(e.target as Node)) onclose();
   }
@@ -39,10 +47,11 @@
 
 <div
   bind:this={el}
+  use:portal
   role="menu"
   aria-label={label}
   tabindex="-1"
-  class="fixed z-50 max-h-[calc(100vh-1rem)] w-72 overflow-y-auto rounded-xl border border-zinc-200 bg-white p-1.5 text-sm shadow-xl dark:border-zinc-700 dark:bg-zinc-900"
+  class="fixed z-50 max-h-[calc(100vh-1rem)] w-72 overflow-y-auto rounded-xl border border-zinc-200/80 bg-zinc-50/75 p-1.5 text-sm text-zinc-900 shadow-xl backdrop-blur-xl dark:border-zinc-700 dark:bg-zinc-900/90 dark:text-zinc-100"
   style:left="{pos.left}px"
   style:top="{pos.top}px">
   {@render children()}

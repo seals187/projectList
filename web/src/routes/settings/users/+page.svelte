@@ -4,7 +4,7 @@
   import { isAdmin, session, sidebar, toast } from '$lib/state.svelte';
   import { t } from '$lib/i18n.svelte';
   import type { AdminUser, Role } from '$lib/types';
-  import PageHeader from '$lib/components/PageHeader.svelte';
+  import DetailHeader from '$lib/components/DetailHeader.svelte';
   import SettingsTabs from '$lib/components/SettingsTabs.svelte';
   import Editable from '$lib/components/Editable.svelte';
   import ConfirmButton from '$lib/components/ConfirmButton.svelte';
@@ -79,12 +79,12 @@
 
 <svelte:head><title>{t('settings.users')} · ProjectList</title></svelte:head>
 
-<PageHeader>
+<DetailHeader>
   {#snippet actions()}
     {#if !creating}<button type="button" class="btn-primary" onclick={() => (creating = true)}><Icon name="plus" size={14} /> {t('users.add')}</button>{/if}
   {/snippet}
   {#snippet title()}{t('nav.settings')}{/snippet}
-</PageHeader>
+</DetailHeader>
 <SettingsTabs />
 
 <p class="mb-6 max-w-2xl text-sm text-zinc-500">{t('users.hint')}</p>

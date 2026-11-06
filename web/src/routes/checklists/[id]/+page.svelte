@@ -7,7 +7,7 @@
   import { fmtDate, t } from '$lib/i18n.svelte';
   import { computeSections, countProgress } from '$lib/blocks';
   import type { ChecklistDetail, Item, Ops, Template } from '$lib/types';
-  import PageHeader from '$lib/components/PageHeader.svelte';
+  import DetailHeader from '$lib/components/DetailHeader.svelte';
   import BlockEditor from '$lib/components/BlockEditor.svelte';
   import Editable from '$lib/components/Editable.svelte';
   import ConfirmButton from '$lib/components/ConfirmButton.svelte';
@@ -114,7 +114,7 @@
 {#if notFound}
   <p class="text-zinc-500">{t('common.notFound')}</p>
 {:else if data}
-  <PageHeader crumbs={[{ label: data.customer.name, href: `/customers/${data.customer.id}` }, { label: data.project.name, href: `/projects/${data.project.id}` }]}>
+  <DetailHeader crumbs={[{ label: data.customer.name, href: `/customers/${data.customer.id}` }, { label: data.project.name, href: `/projects/${data.project.id}` }]}>
     {#snippet actions()}
       <SaveStatus />
       {#if editable}
@@ -140,7 +140,7 @@
           onchange={assign} />
       </span>
     {/snippet}
-  </PageHeader>
+  </DetailHeader>
 
   {#if saveAs}
     <form onsubmit={saveAsTemplate} class="mb-6 flex max-w-xl gap-2">

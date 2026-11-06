@@ -6,6 +6,8 @@ import { goto } from '$app/navigation';
 import { api, errorText } from './api';
 import { OVERVIEW_VIEWS, setBoardHidden, setOverviewView, sidebar, toast, type OverviewView } from './state.svelte';
 import type { SidebarProject } from './types';
+import { normQuery } from './pageStateCore';
+import { syncDisplay } from './display.svelte';
 
 export type BoardGroup = 'status' | 'customer' | 'owner';
 export const BOARD_GROUPS: readonly BoardGroup[] = ['status', 'customer', 'owner'];
@@ -20,9 +22,15 @@ interface Filter {
   compact: boolean; // board: compact cards
 }
 
+/** Pages whose header state can be saved as a view. */
+export type ViewPage = 'overview' | 'tasks' | 'customers' | 'templates';
+export const VIEW_PAGES: Record<ViewPage, string> = { overview: '/', tasks: '/tasks', customers: '/customers', templates: '/templates' };
+
 export interface SavedView extends Omit<Filter, 'compact'> {
   id: string;
   name: string;
+  page: ViewPage; // overview: filters below; other pages: their URL query
+  query: string; // URL query of the page header (without "?")
   view: OverviewView;
   hidden: number[]; // hidden customers
 }
@@ -47,6 +55,8 @@ function parseViews(v: unknown): SavedView[] {
       ...parseFilter(x),
       id: x.id,
       name: x.name,
+      page: x.page in VIEW_PAGES ? (x.page as ViewPage) : 'overview',
+      query: typeof x.query === 'string' ? x.query : '',
       view: OVERVIEW_VIEWS.includes(x.view) ? x.view : 'board',
       hidden: ids(x.hidden)
     }));
@@ -62,6 +72,7 @@ let viewsSaving = false;
 export function syncFromServer() {
   if (!filterTimer) Object.assign(filter, parseFilter(sidebar.prefs.overview));
   if (!viewsSaving) savedViews.list = parseViews(sidebar.prefs.saved_views);
+  syncDisplay();
 }
 
 /** Change filters; shown immediately, saved debounced. */
@@ -96,11 +107,21 @@ async function saveViews(list: SavedView[]) {
   }
 }
 
-/** Saves the current view and filters under a name. */
-export function addSavedView(name: string, view: OverviewView) {
+const newId = () => Math.random().toString(36).slice(2, 10);
+
+/** Saves the header state of another page (its URL query) under a name. */
+export function addPageView(name: string, page: Exclude<ViewPage, 'overview'>, query: string) {
+  const v: SavedView = { id: newId(), name: name.trim().slice(0, 60), page, query, view: 'cards', hidden: [], tags: [], owners: [], group: 'status' };
+  return saveViews([...savedViews.list, v]);
+}
+
+/** Saves the current overview view and filters under a name (query: sorting/search). */
+export function addSavedView(name: string, view: OverviewView, query = '') {
   const v: SavedView = {
-    id: Math.random().toString(36).slice(2, 10),
+    id: newId(),
     name: name.trim().slice(0, 60),
+    page: 'overview',
+    query,
     view,
     hidden: [...sidebar.boardHidden],
     tags: [...filter.tags],
@@ -122,16 +143,39 @@ export function renameSavedView(id: string, name: string) {
 
 /** Applies a saved view (view, filters) and opens the overview. */
 export function applySavedView(v: SavedView) {
+  if (v.page !== 'overview') {
+    goto(VIEW_PAGES[v.page] + (v.query ? `?${v.query}` : ''));
+    return;
+  }
   setBoardHidden(v.hidden);
   setFilter({ tags: v.tags, owners: v.owners, group: v.group });
   setOverviewView(v.view);
-  goto('/');
+  // the overview reads its filters from the URL as well (see routes/+page.svelte)
+  const q = new URLSearchParams(v.query);
+  if (v.view !== 'cards') q.set('view', v.view);
+  if (v.tags.length) q.set('tags', v.tags.join(','));
+  if (v.owners.length) q.set('owners', v.owners.join(','));
+  if (v.hidden.length) q.set('hide', v.hidden.join(','));
+  if (v.group !== 'status') q.set('group', v.group);
+  q.sort();
+  goto('/' + (q.toString() ? `?${q}` : ''));
+}
+
+/** Whether a saved view of another page matches the current page and URL query. */
+export function isActivePageView(v: SavedView, path: string, search: string): boolean {
+  return v.page !== 'overview' && VIEW_PAGES[v.page] === path && normQuery(v.query) === normQuery(search);
+}
+
+/** Resets customer, label and owner filters to "All". */
+export function resetFilters() {
+  setBoardHidden([]);
+  setFilter({ tags: [], owners: [] });
 }
 
 /** Whether the current filters equal a saved view (highlight in the sidebar). */
 export function isActiveView(v: SavedView, view: OverviewView): boolean {
   const same = (a: number[], b: number[]) => a.length === b.length && a.every((x) => b.includes(x));
-  return v.view === view && v.group === filter.group && same(v.hidden, sidebar.boardHidden) && same(v.tags, filter.tags) && same(v.owners, filter.owners);
+  return v.page === 'overview' && v.view === view && v.group === filter.group && same(v.hidden, sidebar.boardHidden) && same(v.tags, filter.tags) && same(v.owners, filter.owners);
 }
 
 /** Whether a project passes the label and owner filters (customer filter is separate). */

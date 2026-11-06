@@ -5,7 +5,7 @@
   import { canWrite, toast } from '$lib/state.svelte';
   import { t } from '$lib/i18n.svelte';
   import type { Ops, Template, TemplateItem } from '$lib/types';
-  import PageHeader from '$lib/components/PageHeader.svelte';
+  import DetailHeader from '$lib/components/DetailHeader.svelte';
   import BlockEditor from '$lib/components/BlockEditor.svelte';
   import Editable from '$lib/components/Editable.svelte';
   import ConfirmButton from '$lib/components/ConfirmButton.svelte';
@@ -59,12 +59,12 @@
 {#if notFound}
   <p class="text-zinc-500">{t('common.notFound')}</p>
 {:else if template}
-  <PageHeader crumbs={[{ label: t('nav.templates'), href: '/templates' }]}>
+  <DetailHeader crumbs={[{ label: t('nav.templates'), href: '/templates' }]}>
     {#snippet actions()}<SaveStatus />{/snippet}
     {#snippet title()}
       <Editable value={template!.name} required disabled={!editable} onsave={(name) => save({ name })} inputClass="font-serif text-2xl! font-bold" />
     {/snippet}
-  </PageHeader>
+  </DetailHeader>
 
   <div class="mb-6 max-w-2xl text-sm text-zinc-600 dark:text-zinc-300">
     <Editable value={template.description} multiline placeholder={t('template.descPlaceholder')} disabled={!editable} onsave={(description) => save({ description })} />

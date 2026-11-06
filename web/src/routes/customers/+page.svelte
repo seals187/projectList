@@ -1,9 +1,10 @@
 <script lang="ts">
-  // Customer overview: list (expandable with projects) or cards, search,
-  // filter (all / with active projects / critical / without project), sorting.
-  import { SvelteSet } from 'svelte/reactivity';
+  // Customer overview: list (expandable with projects) or cards. Header
+  // (PageHeader): search, status filter, chips all / active / critical / without
+  // project, sorting, expand/collapse; state per user in localStorage and in the URL.
+  import { page } from '$app/state';
   import { api } from '$lib/api';
-  import { canWrite, isAdmin, openNewProject, prefs, refreshSidebar, setPref, sidebar } from '$lib/state.svelte';
+  import { canWrite, isAdmin, openNewProject, prefs, refreshSidebar, sidebar } from '$lib/state.svelte';
   import { fmtDate, t, todayISO, withoutText } from '$lib/i18n.svelte';
   import { barCls, customerCode, customerTone, statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
   import { dueUrgent, pct, segGrow } from '$lib/overview';
@@ -12,24 +13,45 @@
     CUSTOMER_FILTERS,
     CUSTOMER_SORTS,
     CUSTOMER_STATUS_BADGE,
+    CUSTOMER_STATUSES,
     matchesFilter,
     sortRows,
     type CustomerFilter,
-    type CustomerRow
+    type CustomerRow,
+    type CustomerSort
   } from '$lib/customers';
+  import { addPageView } from '$lib/overviewFilter.svelte';
+  import { allCollapsed } from '$lib/pageStateCore';
+  import { pageState } from '$lib/pageState.svelte';
+  import { displayLabel, displayOf, setDisplay } from '$lib/display.svelte';
   import type { CustomerListItem } from '$lib/types';
+  import type { FilterId } from '$lib/components/FilterDropdown.svelte';
+  import PageHeader from '$lib/components/PageHeader.svelte';
   import NewCustomerDialog from '$lib/components/NewCustomerDialog.svelte';
   import ProgressToggle from '$lib/components/ProgressToggle.svelte';
   import Icon from '$lib/components/Icon.svelte';
-  import MainHeader from '$lib/components/MainHeader.svelte';
 
   const today = todayISO();
+  // view and sorting start from the former per-browser settings
+  const ps = pageState('customers', {
+    view: { def: prefs.customersView as string, url: 'str' },
+    chip: { def: 'all' as string, url: 'str' },
+    q: { def: '', url: 'str' },
+    status: { def: null as FilterId[] | null, url: 'strs' },
+    sort: { def: prefs.customersSort as string, url: 'str' },
+    expanded: { def: [] as number[] } // expanded customer rows (list view)
+  });
+  const view = $derived<'list' | 'cards'>(ps.view === 'cards' ? 'cards' : 'list');
+  const filter = $derived<CustomerFilter>(CUSTOMER_FILTERS.includes(ps.chip as CustomerFilter) ? (ps.chip as CustomerFilter) : 'all');
+  const sort = $derived<CustomerSort>(CUSTOMER_SORTS.includes(ps.sort as CustomerSort) ? (ps.sort as CustomerSort) : 'activity');
+  const expandedSet = $derived(new Set(ps.expanded));
+  // "Display" options (per user and view)
+  const DISPLAY = { contact: true, percent: true, due: true };
+  const disp = $derived(displayOf(`customers.${view}`, DISPLAY));
+
   let infos = $state<CustomerListItem[]>([]);
-  let query = $state('');
-  let filter = $state<CustomerFilter>('all');
   let adding = $state(false);
   let menuFor = $state<number | null>(null);
-  const expanded = new SvelteSet<number>();
 
   $effect(() => {
     refreshSidebar(0);
@@ -42,10 +64,11 @@
   const rows = $derived(buildCustomerRows(sidebar.customers, infos, today));
   const counts = $derived(Object.fromEntries(CUSTOMER_FILTERS.map((f) => [f, rows.filter((r) => matchesFilter(r, f)).length])) as Record<CustomerFilter, number>);
   const visible = $derived.by(() => {
-    const q = query.trim().toLowerCase();
+    const q = ps.q.trim().toLowerCase();
     const hit = (r: CustomerRow) =>
       !q || [r.customer.name, r.info?.location, r.info?.contact_name, r.info?.contact_email].some((s) => s?.toLowerCase().includes(q));
-    return sortRows(rows.filter((r) => matchesFilter(r, filter) && hit(r)), prefs.customersSort);
+    const statusOk = (r: CustomerRow) => ps.status === null || ps.status.includes(r.status);
+    return sortRows(rows.filter((r) => matchesFilter(r, filter) && statusOk(r) && hit(r)), sort);
   });
   const totals = $derived({
     customers: rows.length,
@@ -53,61 +76,56 @@
     open: rows.reduce((s, r) => s + r.open, 0)
   });
 
-  const toggle = (id: number) => (expanded.has(id) ? expanded.delete(id) : expanded.add(id));
-  const segCls = (on: boolean) =>
-    `inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm ${on ? 'seg-on' : 'sel-off font-medium'}`;
-  const chipCls = (on: boolean) =>
-    `chip ${on ? 'chip-on' : 'chip-off'}`;
+  const toggle = (id: number) => (ps.expanded = expandedSet.has(id) ? ps.expanded.filter((x) => x !== id) : [...ps.expanded, id]);
+  // Expand/collapse all (list view): customers that have projects
+  const expandable = $derived(visible.filter((r) => r.projects.length > 0));
+  const collapsed = $derived(view === 'list' && allCollapsed(expandable.map((r) => expandedSet.has(r.customer.id))));
+  const toggleCollapse = () => (ps.expanded = collapsed ? expandable.map((r) => r.customer.id) : []);
 
   // Columns: customer | contact | projects | open | progress | next due date | status | menu
-  const cols = 'grid grid-cols-[minmax(14rem,1.6fr)_minmax(11rem,1.3fr)_5.5rem_4.5rem_9.5rem_8.5rem_7.5rem_2rem] items-center gap-x-4';
+  const cols = 'grid items-center gap-x-4';
+  const tpl = $derived(
+    ['minmax(14rem,1.6fr)', disp.contact ? 'minmax(11rem,1.3fr)' : null, '5.5rem', '4.5rem', '9.5rem', disp.due ? '8.5rem' : null, '7.5rem', '2rem'].filter(Boolean).join(' ')
+  );
 </script>
 
 <svelte:window onclick={() => (menuFor = null)} />
 <svelte:head><title>{t('nav.customers')} · ProjectList</title></svelte:head>
 
-<MainHeader title={t('nav.customers')}>
-  {#snippet subtitle()}
-    {t('overview.nCustomers', { n: totals.customers })} · {t('overview.nProjects', { n: totals.projects })} · {t('customers.nOpen', { n: totals.open })}
-  {/snippet}
-  {#snippet actions()}
-    <div class="inline-flex gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800/70" role="group" aria-label={t('overview.view')}>
-      <button type="button" class={segCls(prefs.customersView === 'cards')} aria-pressed={prefs.customersView === 'cards'} onclick={() => setPref('customersView', 'cards')}>
-        <Icon name="grid" size={14} />{t('overview.view.cards')}
-      </button>
-      <button type="button" class={segCls(prefs.customersView === 'list')} aria-pressed={prefs.customersView === 'list'} onclick={() => setPref('customersView', 'list')}>
-        <Icon name="list" size={14} />{t('overview.view.list')}
-      </button>
-    </div>
-    {#if isAdmin()}
-      <button type="button" class="btn-primary" onclick={() => (adding = true)}><Icon name="plus" size={15} /> {t('customers.add')}</button>
-    {/if}
-  {/snippet}
-  {#snippet toolbar()}
-    <!-- Search, filter, sorting -->
-    <div class="mb-5 flex flex-wrap items-center gap-2">
-      <label class="relative w-full sm:w-72">
-        <Icon name="search" size={14} class="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-zinc-400" />
-        <input class="input pl-8!" type="search" placeholder={t('customers.search')} bind:value={query} aria-label={t('customers.search')} />
-      </label>
-      {#each CUSTOMER_FILTERS as f (f)}
-        <button type="button" class={chipCls(filter === f)} aria-pressed={filter === f} onclick={() => (filter = f)}>
-          {t(`customers.filter.${f}`)} <span class="ml-0.5 tabular-nums opacity-70">{counts[f]}</span>
-        </button>
-      {/each}
-      <label class="relative ml-auto">
-        <select
-          class="appearance-none rounded-md border border-zinc-200 bg-white py-1 pr-7 pl-2.5 text-xs text-zinc-600 outline-none hover:border-zinc-300 focus:border-accent-500 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300"
-          value={prefs.customersSort}
-          onchange={(e) => setPref('customersSort', e.currentTarget.value as (typeof CUSTOMER_SORTS)[number])}
-          aria-label={t('customers.sortBy', { label: '' })}>
-          {#each CUSTOMER_SORTS as s (s)}<option value={s}>{t('customers.sortBy', { label: t(`customers.sort.${s}`) })}</option>{/each}
-        </select>
-        <Icon name="chevronDown" size={13} class="pointer-events-none absolute top-1/2 right-2 -translate-y-1/2 text-zinc-400" />
-      </label>
-    </div>
-  {/snippet}
-</MainHeader>
+<PageHeader
+  icon="users"
+  title={t('nav.customers')}
+  subtitle="{t('overview.nCustomers', { n: totals.customers })} · {t('overview.nProjects', { n: totals.projects })} · {t('customers.nOpen', { n: totals.open })}"
+  views={[
+    { key: 'cards', label: t('overview.view.cards'), icon: 'grid' },
+    { key: 'list', label: t('overview.view.list'), icon: 'list' }
+  ]}
+  activeView={view}
+  onViewChange={(v) => (ps.view = v)}
+  primaryAction={isAdmin() ? { label: t('customers.add'), onClick: () => (adding = true) } : undefined}
+  searchPlaceholder={t('ph.search.customers')}
+  searchValue={ps.q}
+  onSearch={(q) => (ps.q = q)}
+  filters={[
+    {
+      key: 'status',
+      label: t('filter.status'),
+      items: CUSTOMER_STATUSES.map((s) => ({ id: s, label: t(`customers.status.${s}`) })),
+      value: ps.status,
+      onchange: (v: FilterId[] | null) => (ps.status = v)
+    }
+  ]}
+  quickFilters={CUSTOMER_FILTERS.map((f) => ({ key: f, label: t(`customers.filter.${f}`), count: counts[f], active: filter === f }))}
+  onQuickFilter={(k) => (ps.chip = k)}
+  onSaveView={(name) => addPageView(name, 'customers', page.url.search.slice(1))}
+  sortOptions={CUSTOMER_SORTS.map((s) => ({ value: s, label: t(`customers.sort.${s}`) }))}
+  activeSort={sort}
+  onSortChange={(s) => (ps.sort = s)}
+  {collapsed}
+  onToggleCollapse={toggleCollapse}
+  collapseDisabled={view !== 'list' || !expandable.length}
+  displayOptions={Object.keys(DISPLAY).map((k) => ({ key: k, label: displayLabel(k), value: disp[k] }))}
+  onDisplayChange={(k, v) => setDisplay(`customers.${view}`, k, v)} />
 
 {#snippet statusBadge(r: CustomerRow)}
   <span class="badge inline-flex items-center gap-1.5 {CUSTOMER_STATUS_BADGE[r.status].badge}">
@@ -121,7 +139,7 @@
       <span class="h-1.5 {width} overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
         <span class="block h-full rounded-full {barCls(done, total)}" style:width="{pct(done, total)}%"></span>
       </span>
-      <span class="text-xs text-zinc-500 tabular-nums">{pct(done, total)}%</span>
+      {#if disp.percent}<span class="text-xs text-zinc-500 tabular-nums">{pct(done, total)}%</span>{/if}
     </span>
   {:else}
     <span class="text-zinc-400">–</span>
@@ -168,7 +186,7 @@
   <p class="py-4 text-sm text-zinc-400">{isAdmin() ? t('overview.noCustomersAdmin') : t('overview.noCustomers')}</p>
 {:else if visible.length === 0}
   <p class="py-4 text-sm text-zinc-400">{t('customers.noMatch')}</p>
-{:else if prefs.customersView === 'cards'}
+{:else if view === 'cards'}
   <!-- Cards -->
   <div class="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-4">
     {#each visible as r (r.customer.id)}
@@ -181,7 +199,7 @@
           </div>
           {@render statusBadge(r)}
         </div>
-        {#if r.info?.contact_name || r.info?.contact_email}
+        {#if disp.contact && (r.info?.contact_name || r.info?.contact_email)}
           <p class="mt-3 truncate text-sm">{r.info?.contact_name}</p>
           <p class="truncate text-xs text-zinc-400">{r.info?.contact_email}</p>
         {/if}
@@ -194,7 +212,7 @@
             {@render progressBar(r.done, r.total, 'w-24')}
             {#if r.excluded}<span class="block text-[11px] text-zinc-400">{withoutText(r.excluded)}</span>{/if}
           </div>
-          {@render dueDate(r.nextDue, r.nextDueUrgent)}
+          {#if disp.due}{@render dueDate(r.nextDue, r.nextDueUrgent)}{/if}
         </div>
       </a>
     {/each}
@@ -203,21 +221,21 @@
   <!-- List -->
   <div class="surface overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
     <div class="min-w-[60rem]">
-      <div class="{cols} border-b border-zinc-200 px-4 py-2.5 text-[11px] font-semibold tracking-wider text-zinc-400 uppercase dark:border-zinc-800">
+      <div style:grid-template-columns={tpl} class="{cols} border-b border-zinc-200 px-4 py-2.5 text-[11px] font-semibold tracking-wider text-zinc-400 uppercase dark:border-zinc-800">
         <span class="pl-7">{t('customers.col.customer')}</span>
-        <span>{t('customers.col.contact')}</span>
+        {#if disp.contact}<span>{t('customers.col.contact')}</span>{/if}
         <span>{t('customers.col.projects')}</span>
         <span>{t('customers.col.open')}</span>
         <span>{t('customers.col.progress')}</span>
-        <span>{t('customers.col.due')}</span>
+        {#if disp.due}<span>{t('customers.col.due')}</span>{/if}
         <span>{t('customers.col.status')}</span>
         <span></span>
       </div>
 
       {#each visible as r (r.customer.id)}
-        {@const open = expanded.has(r.customer.id)}
+        {@const open = expandedSet.has(r.customer.id)}
         <div class="border-b border-zinc-100 last:border-b-0 dark:border-zinc-800/70 {open ? 'bg-zinc-50/80 dark:bg-zinc-900/50' : ''}">
-          <div class="{cols} px-4 py-3 text-sm {open ? '' : 'hover:bg-zinc-50 dark:hover:bg-zinc-900/40'}">
+          <div style:grid-template-columns={tpl} class="{cols} px-4 py-3 text-sm {open ? '' : 'hover:bg-zinc-50 dark:hover:bg-zinc-900/40'}">
             <div class="flex min-w-0 items-center gap-2.5">
               <button
                 type="button"
@@ -233,20 +251,22 @@
                 <span class="block truncate text-xs text-zinc-500">{r.info?.location || ''}</span>
               </a>
             </div>
-            <div class="min-w-0">
-              <span class="block truncate">{r.info?.contact_name || ''}</span>
-              {#if r.info?.contact_email}
-                <a href="mailto:{r.info.contact_email}" class="block truncate text-xs text-zinc-500 hover:underline">{r.info.contact_email}</a>
-              {/if}
-              {#if !r.info?.contact_name && !r.info?.contact_email}<span class="text-zinc-400">–</span>{/if}
-            </div>
+            {#if disp.contact}
+              <div class="min-w-0">
+                <span class="block truncate">{r.info?.contact_name || ''}</span>
+                {#if r.info?.contact_email}
+                  <a href="mailto:{r.info.contact_email}" class="block truncate text-xs text-zinc-500 hover:underline">{r.info.contact_email}</a>
+                {/if}
+                {#if !r.info?.contact_name && !r.info?.contact_email}<span class="text-zinc-400">–</span>{/if}
+              </div>
+            {/if}
             <span class="font-semibold tabular-nums">{r.projects.length}</span>
             <span class="font-semibold tabular-nums">{r.open}</span>
             <div>
               {@render progressBar(r.done, r.total)}
               {#if r.excluded}<span class="block text-[11px] text-zinc-400">{withoutText(r.excluded)}</span>{/if}
             </div>
-            {@render dueDate(r.nextDue, r.nextDueUrgent)}
+            {#if disp.due}{@render dueDate(r.nextDue, r.nextDueUrgent)}{/if}
             <span>{@render statusBadge(r)}</span>
             {@render rowMenu(r)}
           </div>
@@ -254,25 +274,29 @@
           {#if open}
             <div class="pb-2">
               {#each r.projects as p (p.id)}
-                <a href="/projects/{p.id}" class="{cols} px-4 py-1.5 text-sm hover:bg-zinc-100/70 dark:hover:bg-zinc-800/50">
+                <a href="/projects/{p.id}" style:grid-template-columns={tpl} class="{cols} px-4 py-1.5 text-sm hover:bg-zinc-100/70 dark:hover:bg-zinc-800/50">
                   <span class="flex min-w-0 items-center gap-2 pl-[3.25rem]">
                     <Icon name="folder" size={14} class="text-zinc-400" />
                     <span class="truncate font-medium {p.include_in_customer_progress ? '' : 'text-zinc-400 dark:text-zinc-500'}">{p.name}</span>
                   </span>
-                  <span class="text-xs text-zinc-500">{t('overview.nChecklists', { n: p.checklists.length })}</span>
-                  <span><span class="badge {statusBadgeCls(p.status)}" style={statusBadgeStyle(p.status)}>{statusLabel(p.status)}</span></span>
+                  <!-- columns as in the customer row: checklists under "projects", status under "status" -->
+                  {#if disp.contact}<span class="text-xs text-zinc-500">{t('overview.nChecklists', { n: p.checklists.length })}</span>{/if}
+                  <span></span>
                   <span class="tabular-nums">{p.total - p.done}</span>
-                  <span class="flex gap-1">
-                    {#each p.checklists as cl (cl.id)}
-                      <span class="h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800" style:flex-grow={segGrow(cl)} style:flex-basis="0" title="{cl.title}: {cl.done}/{cl.total}">
-                        <span class="block h-full rounded-full {barCls(cl.done, cl.total)}" style:width="{pct(cl.done, cl.total)}%"></span>
-                      </span>
-                    {:else}
-                      <span class="h-1.5 flex-1 rounded-full bg-zinc-200 dark:bg-zinc-800"></span>
-                    {/each}
+                  <span class="flex items-center gap-2">
+                    <span class="flex w-[4.5rem] gap-1">
+                      {#each p.checklists as cl (cl.id)}
+                        <span class="h-1.5 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800" style:flex-grow={segGrow(cl)} style:flex-basis="0" title="{cl.title}: {cl.done}/{cl.total}">
+                          <span class="block h-full rounded-full {barCls(cl.done, cl.total)}" style:width="{pct(cl.done, cl.total)}%"></span>
+                        </span>
+                      {:else}
+                        <span class="h-1.5 flex-1 rounded-full bg-zinc-200 dark:bg-zinc-800"></span>
+                      {/each}
+                    </span>
+                    {#if disp.percent}<span class="text-xs text-zinc-500 tabular-nums">{pct(p.done, p.total)}%</span>{/if}
                   </span>
-                  {@render dueDate(p.due_date, dueUrgent(p, today))}
-                  <span class="text-xs text-zinc-500 tabular-nums">{pct(p.done, p.total)}%</span>
+                  {#if disp.due}{@render dueDate(p.due_date, dueUrgent(p, today))}{/if}
+                  <span><span class="badge {statusBadgeCls(p.status)}" style={statusBadgeStyle(p.status)}>{statusLabel(p.status)}</span></span>
                   <span class="-my-1 justify-self-end"><ProgressToggle project={p} customerName={r.customer.name} /></span>
                 </a>
               {/each}

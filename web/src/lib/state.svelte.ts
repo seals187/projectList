@@ -14,7 +14,7 @@ export const sidebar = $state<{
   statusLabels: Partial<Record<ProjectStatus, string>>; // custom status names (global, set by admins)
   statusColors: Partial<Record<ProjectStatus, string>>; // custom status colors #rrggbb (global, set by admins)
   statusWip: Partial<Record<ProjectStatus, number>>; // WIP limit per board column (global, set by admins)
-  prefs: { overview?: unknown; saved_views?: unknown; background?: unknown }; // synced personal settings (DB, per user)
+  prefs: { overview?: unknown; saved_views?: unknown; background?: unknown; display?: unknown }; // synced personal settings (DB, per user)
   loaded: boolean; // first /sidebar response arrived
   boardHidden: number[]; // customers hidden on the board (DB, per user, synced across devices)
   open: boolean;
@@ -167,15 +167,20 @@ export function setBoardHidden(ids: number[]) {
 
 // ---- Theme ----------------------------------------------------------------------
 
-export type Theme = 'system' | 'light' | 'dark' | 'dim';
+// Two themes only. Without a stored choice the OS setting decides once; the old
+// values "dim" (dark gray) and "system" map to dark / the OS setting.
+export type Theme = 'light' | 'dark';
 
 function readTheme(): Theme {
+  let t: string | null = null;
   try {
-    const t = localStorage.getItem('theme');
-    return t === 'light' || t === 'dark' || t === 'dim' ? t : 'system';
+    t = localStorage.getItem('theme');
   } catch {
-    return 'system';
+    /* ignore */
   }
+  if (t === 'light') return 'light';
+  if (t === 'dark' || t === 'dim') return 'dark';
+  return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 }
 
 export const theme = $state<{ value: Theme }>({ value: readTheme() });
@@ -183,14 +188,11 @@ export const theme = $state<{ value: Theme }>({ value: readTheme() });
 export function setTheme(value: Theme) {
   theme.value = value;
   try {
-    if (value === 'system') localStorage.removeItem('theme');
-    else localStorage.setItem('theme', value);
+    localStorage.setItem('theme', value);
   } catch {
     /* ignore */
   }
-  const dark = value === 'dark' || value === 'dim' || (value === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
-  document.documentElement.classList.toggle('dark', dark);
-  document.documentElement.classList.toggle('dim', value === 'dim');
+  document.documentElement.classList.toggle('dark', value === 'dark');
 }
 
 // ---- Checklist display ----------------------------------------------------------

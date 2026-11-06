@@ -16,34 +16,35 @@ export function statusLabel(s: ProjectStatus): string {
 /** Dot (sidebar, board columns). */
 export const STATUS_DOT: Record<ProjectStatus, string> = {
   planning: 'bg-zinc-400 dark:bg-zinc-500',
-  active: 'bg-accent-500',
-  review: 'bg-amber-600 dark:bg-amber-500',
+  active: 'bg-emerald-500',
+  review: 'bg-orange-500',
   blocked: 'bg-red-600 dark:bg-red-500',
-  done: 'bg-emerald-600 dark:bg-emerald-500',
+  done: 'bg-emerald-800 dark:bg-emerald-600',
   archived: 'bg-zinc-300 dark:bg-zinc-600'
 };
 
-/** Badge with text. */
-export const STATUS_BADGE: Record<ProjectStatus, string> = {
-  planning: 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300',
-  active: 'bg-accent-50 text-accent-700 dark:bg-accent-950/60 dark:text-accent-400',
-  review: 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400',
-  blocked: 'bg-red-50 text-red-700 dark:bg-red-950/50 dark:text-red-400',
-  done: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400',
-  archived: 'bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400'
+/** Default base color of a status (same hue as its board dot), used for the badge tint. */
+const STATUS_BASE: Record<ProjectStatus, string> = {
+  planning: 'var(--color-zinc-500)',
+  active: 'var(--color-emerald-500)',
+  review: 'var(--color-orange-500)',
+  blocked: 'var(--color-red-600)',
+  done: 'var(--color-emerald-800)',
+  archived: 'var(--color-zinc-400)'
 };
 
 /** Custom color of a status (#rrggbb, set on the board by admins), '' = default. */
 export const statusColor = (s: ProjectStatus): string => sidebar.statusColors[s] ?? '';
 
-// Dot and badge: default classes, or an inline style for a custom color.
+// Dot: default classes, or an inline style for a custom color.
 export const statusDotCls = (s: ProjectStatus) => (statusColor(s) ? '' : STATUS_DOT[s]);
 export const statusDotStyle = (s: ProjectStatus) => (statusColor(s) ? `background-color:${statusColor(s)}` : undefined);
-export const statusBadgeCls = (s: ProjectStatus) => (statusColor(s) ? '' : STATUS_BADGE[s]);
-/** Light background in the status color; text mixed with the page text color so it stays readable in both themes. */
+// Badge: every status in the same style, tinted with its board color (custom or default).
+export const statusBadgeCls = (_s: ProjectStatus) => '';
+/** Background in the status color (lightened a little so black text stays readable), text always black. */
 export function statusBadgeStyle(s: ProjectStatus) {
-  const c = statusColor(s);
-  return c ? `background-color:color-mix(in srgb, ${c} 16%, transparent);color:color-mix(in srgb, ${c} 75%, currentColor)` : undefined;
+  const c = statusColor(s) || STATUS_BASE[s];
+  return `background-color:color-mix(in srgb, ${c} 55%, white);color:#000`;
 }
 
 /** Progress bar: done = green, otherwise accent. */

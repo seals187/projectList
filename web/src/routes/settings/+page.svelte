@@ -3,7 +3,7 @@
   import { api, errorText } from '$lib/api';
   import { checkRadius, CODE_BGS, isAdmin, OVERVIEW_VIEWS, setOverviewDefault, prefs, session, setPref, setTheme, stepZoom, theme, toast, ZOOM_STEPS, type CheckPos, type CheckShape, type Theme } from '$lib/state.svelte';
   import { i18n, LANGS, setLang, t } from '$lib/i18n.svelte';
-  import PageHeader from '$lib/components/PageHeader.svelte';
+  import DetailHeader from '$lib/components/DetailHeader.svelte';
   import SettingsTabs from '$lib/components/SettingsTabs.svelte';
   import { FONTS } from '$lib/fonts';
   import Avatar from '$lib/components/Avatar.svelte';
@@ -15,7 +15,7 @@
   let next = $state('');
   let busy = $state(false);
 
-  const themes: Theme[] = ['system', 'light', 'dark', 'dim'];
+  const themes: Theme[] = ['light', 'dark'];
   const positions: CheckPos[] = ['right', 'left'];
   const shapes: CheckShape[] = ['square', 'round'];
   // Swatches of the code block backgrounds (as in app.css)
@@ -60,9 +60,9 @@
 
 <svelte:head><title>{t('nav.settings')} · ProjectList</title></svelte:head>
 
-<PageHeader>
+<DetailHeader>
   {#snippet title()}{t('nav.settings')}{/snippet}
-</PageHeader>
+</DetailHeader>
 <SettingsTabs />
 
 <div class="max-w-xl space-y-10">

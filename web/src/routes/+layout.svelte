@@ -148,7 +148,7 @@
     {/if}
     <aside
       class="fixed inset-y-0 left-0 z-30 w-64 overflow-hidden md:relative md:translate-x-0
-        {bgCss ? 'dark border-white/10 bg-zinc-950/45 text-zinc-100 backdrop-blur-lg' : 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900'}
+        {bgCss ? 'glass-bar dark border-white/10 bg-zinc-950/45 text-zinc-100 backdrop-blur-lg' : 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900'}
         {resizing ? '' : 'transition-[translate,width] duration-200'}
         {sidebar.open ? 'translate-x-0' : '-translate-x-full'}
         {sidebar.collapsed ? 'border-r md:w-0 md:border-r-0' : 'border-r md:w-(--sb-w)'}"
@@ -194,7 +194,7 @@
     {/if}
 
     <div class="flex min-w-0 flex-1 flex-col">
-      <header class="flex items-center gap-2 border-b px-3 py-2 md:hidden {bgCss ? 'dark border-white/10 bg-zinc-950/45 text-zinc-100 backdrop-blur-lg' : 'border-zinc-200 dark:border-zinc-800'}">
+      <header class="flex items-center gap-2 border-b px-3 py-2 md:hidden {bgCss ? 'glass-bar dark border-white/10 bg-zinc-950/45 text-zinc-100 backdrop-blur-lg' : 'border-zinc-200 dark:border-zinc-800'}">
         <button type="button" class="btn-ghost px-2!" onclick={() => (sidebar.open = true)} aria-label={t('nav.openMenu')}>
           <Icon name="menu" size={18} />
         </button>
@@ -208,7 +208,7 @@
       <main class="flex-1 overflow-y-auto {bgCss && !panelPage ? 'has-bg' : ''}">
         <div
           class={bgCss && panelPage
-            ? 'm-2 min-h-[calc(100%-1rem)] rounded-2xl bg-white px-4 py-5 shadow-lg sm:m-4 sm:min-h-[calc(100%-2rem)] sm:px-8 sm:py-6 dark:bg-zinc-950'
+            ? 'glass-bar m-2 min-h-[calc(100%-1rem)] rounded-2xl bg-white px-4 py-5 shadow-lg sm:m-4 sm:min-h-[calc(100%-2rem)] sm:px-8 sm:py-6 dark:bg-zinc-900'
             : 'px-4 py-5 sm:px-10 sm:py-7'}>
           {@render children()}
         </div>

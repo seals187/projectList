@@ -10,7 +10,7 @@
 
 {#if pageBg.active}
   <div
-    class="band dark -mx-4 -mt-5 mb-5 border-b border-white/10 bg-zinc-900/50 px-4 py-2.5 text-zinc-100 sm:-mx-10 sm:-mt-7 sm:mb-6 sm:px-10 [&>*:last-child]:mb-0">
+    class="band glass-bar dark -mx-4 -mt-5 mb-5 border-b border-white/10 bg-zinc-900/50 px-4 py-2.5 text-zinc-100 sm:-mx-10 sm:-mt-7 sm:mb-6 sm:px-10 [&>*:last-child]:mb-0">
     {@render children()}
   </div>
 {:else}

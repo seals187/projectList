@@ -72,3 +72,39 @@ export function schedule(p: SidebarProject, today: string): Schedule | null {
   else if (behind > BEHIND_TOLERANCE) state = 'behind';
   return { start, due: p.due_date, elapsed, progress, state, behind };
 }
+
+// ---- Page header: search and sorting of the overview ----------------------------
+
+export type OverviewSort = 'activity' | 'name' | 'progress' | 'due';
+export const OVERVIEW_SORTS: readonly OverviewSort[] = ['activity', 'name', 'progress', 'due'];
+
+/** Search: customer name (keeps all its projects) or project name. */
+export function searchOverview(groups: OvCustomer[], q: string): OvCustomer[] {
+  const s = q.trim().toLowerCase();
+  if (!s) return groups;
+  return groups
+    .map((g) => (g.customer.name.toLowerCase().includes(s) ? g : { ...g, projects: g.projects.filter((p) => p.name.toLowerCase().includes(s)) }))
+    .filter((g) => g.projects.length > 0);
+}
+
+const byName = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'base' });
+const ratio = (done: number, total: number) => (total ? done / total : -1);
+
+/** Customers and their projects in the chosen order (the board keeps its own column order). */
+export function sortOverview(groups: OvCustomer[], sort: OverviewSort): OvCustomer[] {
+  const latest = (g: OvCustomer) => g.projects.reduce((m, p) => (p.updated > m ? p.updated : m), '');
+  const firstDue = (ps: OvProject[]) => ps.filter((p) => p.due_date && p.status !== 'done').map((p) => p.due_date!).sort()[0] ?? '9999';
+  const pc: Record<OverviewSort, (a: OvProject, b: OvProject) => number> = {
+    activity: (a, b) => b.updated.localeCompare(a.updated) || byName(a.name, b.name),
+    name: (a, b) => byName(a.name, b.name),
+    progress: (a, b) => ratio(b.done, b.total) - ratio(a.done, a.total) || byName(a.name, b.name),
+    due: (a, b) => firstDue([a]).localeCompare(firstDue([b])) || byName(a.name, b.name)
+  };
+  const gc: Record<OverviewSort, (a: OvCustomer, b: OvCustomer) => number> = {
+    activity: (a, b) => latest(b).localeCompare(latest(a)) || byName(a.customer.name, b.customer.name),
+    name: (a, b) => byName(a.customer.name, b.customer.name),
+    progress: (a, b) => ratio(b.done, b.total) - ratio(a.done, a.total) || byName(a.customer.name, b.customer.name),
+    due: (a, b) => firstDue(a.projects).localeCompare(firstDue(b.projects)) || byName(a.customer.name, b.customer.name)
+  };
+  return groups.map((g) => ({ ...g, projects: [...g.projects].sort(pc[sort]) })).sort(gc[sort]);
+}

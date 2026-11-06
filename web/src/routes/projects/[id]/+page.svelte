@@ -342,7 +342,7 @@
           <ul use:sortable={{ onsort: sortChecklists, disabled: !editable }} class="divide-y divide-zinc-100 dark:divide-zinc-800">
             {#each d.checklists as cl (cl.id)}
               {@const complete = cl.total > 0 && cl.done === cl.total}
-              <li data-id={cl.id} class="group relative flex items-center bg-white dark:bg-zinc-950 [&.dragging]:shadow-lg">
+              <li data-id={cl.id} class="group relative flex items-center bg-white dark:bg-zinc-900 [&.dragging]:shadow-lg">
                 {#if editable}
                   <button type="button" data-handle class="cursor-grab touch-none py-3 pr-1 pl-2.5 text-zinc-300 hover:text-zinc-500 dark:text-zinc-600" aria-label={t('checklist.drag')}>
                     <Icon name="grip" size={14} />

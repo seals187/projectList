@@ -53,7 +53,7 @@
 
 <div
   data-toolbar
-  class="sticky top-0 z-20 -mx-1 mb-5 flex items-center gap-0.5 gap-y-1 overflow-x-auto rounded-xl md:flex-wrap border border-zinc-200 bg-white/95 px-2 py-1.5 shadow-xs backdrop-blur md:overflow-visible dark:border-zinc-800 dark:bg-zinc-950/95"
+  class="sticky top-0 z-20 -mx-1 mb-5 flex items-center gap-0.5 gap-y-1 overflow-x-auto rounded-xl md:flex-wrap border border-zinc-200 bg-white/95 px-2 py-1.5 shadow-xs backdrop-blur md:overflow-visible dark:border-zinc-800 dark:bg-zinc-900/95"
   role="toolbar"
   tabindex="-1">
   <button type="button" class={btn()} onmousedown={keep} onclick={() => api.undo()} disabled={!api.canUndo} title={t('editor.undo')}>

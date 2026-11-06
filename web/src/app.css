@@ -36,15 +36,6 @@ html[data-font='plex'] { --font-sans: 'IBM Plex Sans Variable', ui-sans-serif, s
 html[data-font='system'] { --font-sans: system-ui, -apple-system, 'Segoe UI Variable Text', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
 html[data-heading='sans'] { --font-serif: var(--font-sans); }
 
-/* Theme "Dark gray": like Dark, but the dark gray tones (backgrounds,
-   sidebar, borders) one step lighter – anthracite instead of near-black. */
-.dim {
-  --color-zinc-950: #2a2b30;
-  --color-zinc-900: #323339;
-  --color-zinc-800: #3d3e45;
-  --color-zinc-700: #4b4c54;
-}
-
 @layer base {
   html { -webkit-tap-highlight-color: transparent; }
   /* Native controls (select lists, date pickers, scrollbars) follow the app theme,
@@ -52,6 +43,11 @@ html[data-heading='sans'] { --font-serif: var(--font-sans); }
      select options as dark text on a dark popup. */
   html { color-scheme: light; }
   html.dark { color-scheme: dark; }
+  /* Options of the native popup get fixed theme colors instead of inheriting the
+     select's tinted/light text (e.g. the accent "Group by" select on the header
+     band over a background image would otherwise be light text on a light popup). */
+  option { color: var(--color-zinc-900); background-color: #fff; text-shadow: none; }
+  html.dark option { color: var(--color-zinc-100); background-color: var(--color-zinc-900); }
   button { cursor: pointer; }
   button:disabled { cursor: default; }
   :focus-visible { outline: 2px solid var(--color-accent-500); outline-offset: 2px; }
@@ -112,6 +108,65 @@ html[data-heading='sans'] { --font-serif: var(--font-sans); }
 @utility chip-on {
   @apply bg-accent-500/12 text-accent-700 ring-1 ring-accent-500/30 ring-inset dark:bg-accent-400/20 dark:text-accent-200 dark:ring-accent-400/30;
 }
+/* ---- Page header (PageHeader.svelte): the one place for its sizes and colors ---- */
+@utility ph-card {
+  @apply mb-4 rounded-2xl bg-[#f7f7fa] px-[18px] py-4 dark:bg-zinc-800/45;
+}
+@utility ph-icon {
+  @apply flex size-10 shrink-0 items-center justify-center rounded-[11px] bg-white text-accent-600 shadow-xs dark:bg-zinc-900 dark:text-accent-400;
+}
+@utility ph-title {
+  @apply truncate text-[22px] leading-tight font-bold tracking-tight;
+}
+@utility ph-subtitle {
+  @apply truncate text-[12.5px] text-zinc-500 dark:text-zinc-400;
+}
+@utility ph-strip {
+  @apply mt-3.5 flex items-center overflow-x-auto rounded-[11px] bg-white px-2 py-[7px] whitespace-nowrap dark:bg-zinc-900;
+}
+@utility ph-ctl {
+  @apply inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[9px] border border-[#e3e6eb] px-2.5 text-[12.5px] whitespace-nowrap text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800;
+}
+@utility ph-ctl-active {
+  @apply border-accent-400/60 bg-accent-50 text-accent-800 dark:border-accent-500/40 dark:bg-accent-950/40 dark:text-accent-300;
+}
+@utility ph-primary {
+  @apply inline-flex h-[34px] shrink-0 items-center gap-1.5 rounded-[9px] bg-[#5b3df5] px-3.5 text-[13px] font-semibold whitespace-nowrap text-white shadow-xs hover:bg-[#4b2fe0];
+}
+@utility ph-seg {
+  @apply inline-flex shrink-0 gap-0.5 rounded-[10px] bg-[#f1f2f5] p-1 dark:bg-zinc-900;
+}
+@utility ph-seg-btn {
+  @apply inline-flex h-[30px] items-center gap-1.5 rounded-[7px] px-2.5 text-[12.5px] font-medium whitespace-nowrap text-[#6b7280] transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100;
+}
+@utility ph-seg-on {
+  @apply bg-white font-semibold text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white;
+}
+@utility ph-chip {
+  @apply inline-flex h-[30px] shrink-0 items-center gap-1 rounded-full px-3 text-[12.5px] font-medium whitespace-nowrap transition-colors;
+}
+@utility ph-chip-on {
+  @apply bg-zinc-900 text-white dark:bg-white dark:text-zinc-900;
+}
+@utility ph-chip-off {
+  @apply bg-[#f3f4f6] text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-white;
+}
+@utility ph-muted-icon {
+  @apply text-[#6b7280] dark:text-zinc-400;
+}
+
+/* ---- Overview list (OverviewList.svelte) ---- */
+@utility ol-card {
+  @apply rounded-[14px] bg-white px-[18px] py-3.5 shadow-[0_4px_18px_rgba(40,20,90,0.12)] dark:bg-zinc-900 dark:shadow-[0_4px_18px_rgba(0,0,0,0.35)];
+}
+@utility ol-head {
+  @apply grid items-center gap-x-4 border-b border-[#f1f2f4] px-2 pb-2 text-[11px] font-semibold tracking-wider whitespace-nowrap text-zinc-400 uppercase dark:border-zinc-800;
+}
+@utility ol-row {
+  @apply grid items-center gap-x-4 gap-y-1 rounded-lg border-b border-[#f1f2f4] px-2 py-3 transition-colors last:border-b-0 hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-800/50;
+}
+[data-layout='c2'] .ol-row { padding-block: 0.6rem; }
+
 @utility row-link {
   @apply -mx-2 flex items-center gap-4 rounded-md px-2 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-900/70;
 }
@@ -226,24 +281,36 @@ html[data-heading='sans'] { --font-serif: var(--font-sans); }
    is still directly on the image is light with a shadow. Unlayered on purpose:
    it must win over the utilities. No backdrop-filter inside main: it would make
    fixed menus and dialogs position relative to the blurred element. */
+/* Sidebar, mobile header and header band over the image: a light dark veil in
+   the light theme; in the dark theme nearly opaque, so the app chrome is dark.
+   The content panel of editor/settings pages uses the same shade in the dark
+   theme (no backdrop blur there: it would trap fixed dialogs inside the panel). */
+html.dark .glass-bar { background-color: rgb(9 9 11 / 0.88); }
+html.dark main.has-bg .band.glass-bar { background-color: rgb(24 24 27 / 0.88); }
 main.has-bg :is(.surface, .card) {
-  background-color: rgb(244 244 245 / 0.78);
+  background-color: #fff;
   box-shadow: 0 4px 16px rgb(0 0 0 / 0.18);
   border-color: transparent;
 }
-.dark main.has-bg :is(.surface, .card) { background-color: rgb(24 24 27 / 0.78); }
-/* tiles inside (project cards, customer cards, task groups, calendar entries,
-   timeline rows) translucent too; header rows and shaded cells only a light veil.
+.dark main.has-bg :is(.surface, .card) { background-color: var(--color-zinc-900); }
+/* the page header card stays light glass over the image (PageHeader) */
+main.has-bg .ph-card { background-color: rgb(247 247 250 / 0.8); }
+.dark main.has-bg .ph-card { background-color: rgb(39 39 42 / 0.72); }
+/* Content is opaque (white / dark gray), only the page background shows the image.
+   tiles inside (project cards, customer cards, task groups, calendar entries,
+   timeline rows) opaque too; header rows and shaded cells only a light veil.
    Sticky cells (timeline name column) stay nearly opaque, content scrolls below
-   them. Menus, dialogs, form fields and the header band keep their own colors. */
+   them. Menus, dialogs, form fields and the header band keep their own colors.
+   Same color as .surface/.card, so tiles on Overview/My tasks look exactly
+   like those on Customers/Templates. */
 main.has-bg .bg-white:not(input, select, textarea, dialog, dialog *, [role="dialog"], [role="dialog"] *, [role="menu"], [role="menu"] *, .fixed, .fixed *, .absolute, .absolute *, .band *) {
-  background-color: rgb(255 255 255 / 0.85);
+  background-color: #fff;
 }
 main.has-bg :is(.bg-zinc-50, .bg-zinc-50\/40, .bg-zinc-50\/70, .bg-zinc-50\/80):not(.band *) {
   background-color: rgb(255 255 255 / 0.4);
 }
 .dark main.has-bg :is([class*="dark:bg-zinc-900"], [class*="dark:bg-zinc-950"]):not(.no-glass, input, select, textarea, dialog, dialog *, [role="dialog"], [role="dialog"] *, [role="menu"], [role="menu"] *, .fixed, .fixed *, .absolute, .absolute *, .band *) {
-  background-color: rgb(24 24 27 / 0.8);
+  background-color: var(--color-zinc-900);
 }
 .dark main.has-bg :is(.bg-zinc-50, .bg-zinc-50\/40, .bg-zinc-50\/70, .bg-zinc-50\/80):not(.band *) {
   background-color: rgb(0 0 0 / 0.2);

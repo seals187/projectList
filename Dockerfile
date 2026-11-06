@@ -10,6 +10,8 @@ WORKDIR /web
 COPY web/package.json web/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
 COPY web/ ./
+# frontend unit/component tests (Vitest); a failing test stops the build
+RUN npx svelte-kit sync && npm test
 RUN npm run build
 
 # ---- 2) Go build (no CGO, frontend embedded) -------------------------------

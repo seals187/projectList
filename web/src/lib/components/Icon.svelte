@@ -54,7 +54,12 @@
     dots: 'M5 12h.01M12 12h.01M19 12h.01',
     pieChart: 'M21.2 15.9A10 10 0 1 1 8 2.8M22 12A10 10 0 0 0 12 2v10z',
     pieChartOff: 'M21.2 15.9A10 10 0 1 1 8 2.8M22 12A10 10 0 0 0 12 2v10zM3 3l18 18',
-    fileText: 'M14 3H7v18h10V6zM14 3v3h3M9.5 12h5M9.5 16h5'
+    fileText: 'M14 3H7v18h10V6zM14 3v3h3M9.5 12h5M9.5 16h5',
+    // lucide: chevrons-down-up, chevrons-up-down, arrow-up-down, list-checks
+    chevronsDownUp: 'M7 20l5-5 5 5M7 4l5 5 5-5',
+    chevronsUpDown: 'M7 15l5 5 5-5M7 9l5-5 5 5',
+    arrowUpDown: 'M21 16l-4 4-4-4M17 20V4M3 8l4-4 4 4M7 4v16',
+    listChecks: 'M13 5h8M13 12h8M13 19h8M3 17l2 2 4-4M3 7l2 2 4-4'
   } as const;
 
   let { name, size = 16, class: cls = '' }: { name: keyof typeof paths; size?: number; class?: string } = $props();

@@ -37,6 +37,13 @@
     return Array.from({ length: weeks * 7 }, (_, i) => first + i);
   });
   const nextMonth = $derived(addMonths(month, 1));
+  // Height: header card, month bar and weekday row plus the "without due date" list
+  // below stay visible; the week rows share the rest of the window (min. 2.75rem).
+  const rows = $derived.by(() => {
+    const weeks = days.length / 7;
+    const reserve = undated.length ? '26rem' : '21.5rem';
+    return `auto repeat(${weeks}, minmax(2.75rem, calc((100dvh - ${reserve}) / ${weeks})))`;
+  });
 
   // drag & drop: new due date
   const editable = canWrite();
@@ -58,8 +65,8 @@
   }
 </script>
 
-<div class="mb-3 flex items-center gap-2">
-  <h2 class="min-w-44 text-lg font-semibold capitalize">{monthLabel(month, locale())}</h2>
+<div class="mb-2 flex items-center gap-2">
+  <h2 class="min-w-44 text-base font-semibold capitalize">{monthLabel(month, locale())}</h2>
   <button type="button" class="btn-ghost px-1.5!" onclick={() => (month = addMonths(month, -1))} aria-label={t('calendar.prev')} title={t('calendar.prev')}>
     <Icon name="chevron" size={16} class="rotate-180" />
   </button>
@@ -70,9 +77,10 @@
 </div>
 
 <div class="overflow-x-auto">
-  <div class="surface grid min-w-[48rem] grid-cols-7 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800">
+  <!-- rows share the visible height (no page scrolling); a busy day scrolls inside its cell -->
+  <div class="surface grid min-w-[48rem] grid-cols-7 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800" style:grid-template-rows={rows}>
     {#each weekdayNames(locale()) as w, i (i)}
-      <div class="border-b border-zinc-200 bg-zinc-50 px-2 py-1.5 text-xs font-semibold text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">{w}</div>
+      <div class="border-b border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-semibold text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">{w}</div>
     {/each}
     {#each days as d (d)}
       {@const inMonth = d >= month && d < nextMonth}
@@ -80,7 +88,7 @@
       <div
         role="group"
         aria-label={fromDay(d)}
-        class="min-h-28 border-zinc-200 p-1.5 dark:border-zinc-800
+        class="min-h-0 overflow-y-auto border-zinc-200 p-1 dark:border-zinc-800
           {weekday(d) < 6 ? 'border-r' : ''} {d < days[days.length - 7] ? 'border-b' : ''}
           {inMonth ? '' : 'bg-zinc-50/70 dark:bg-zinc-900/40'}
           {weekday(d) >= 5 && inMonth ? 'bg-zinc-50/40 dark:bg-zinc-900/20' : ''}
@@ -92,14 +100,14 @@
         }}
         ondragleave={() => overDay === d && (overDay = null)}
         ondrop={(e) => drop(e, d)}>
-        <p class="mb-1 flex justify-end">
+        <p class="mb-0.5 flex justify-end">
           <span
-            class="flex size-6 items-center justify-center rounded-full text-xs tabular-nums
+            class="flex size-5 items-center justify-center rounded-full text-[11px] tabular-nums
               {d === todayDay ? 'bg-accent-600 font-semibold text-white' : inMonth ? 'text-zinc-600 dark:text-zinc-300' : 'text-zinc-400'}">
             {dayOfMonth(d)}
           </span>
         </p>
-        <div class="space-y-1">
+        <div class="space-y-0.5">
           {#each items as p (p.id)}
             <a
               href="/projects/{p.id}"
@@ -114,7 +122,7 @@
               }}
               oncontextmenu={(e) => projectMenu(e, p)}
               title="{p.customer.name} · {p.name}"
-              class="flex items-center gap-1.5 rounded-md border bg-white px-1.5 py-1 text-xs shadow-xs hover:shadow-sm dark:bg-zinc-900
+              class="flex items-center gap-1.5 rounded-md border bg-white px-1.5 py-0.5 text-xs shadow-xs hover:shadow-sm dark:bg-zinc-900
                 {dueUrgent(p, today) ? 'border-red-300 dark:border-red-500/50' : 'border-zinc-200 dark:border-zinc-800'}
                 {dragId === p.id ? 'opacity-50' : ''}">
               <span class="size-2 shrink-0 rounded-full {statusDotCls(p.status)}" style={statusDotStyle(p.status)}></span>
@@ -129,7 +137,7 @@
 </div>
 
 {#if undated.length}
-  <section class="mt-5">
+  <section class="mt-3">
     <h3 class="section-label mb-2">{t('calendar.undated', { n: undated.length })}</h3>
     <div class="flex flex-wrap gap-1.5">
       {#each undated as p (p.id)}

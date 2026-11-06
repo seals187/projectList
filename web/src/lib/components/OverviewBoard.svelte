@@ -24,7 +24,8 @@
     today,
     canCreate,
     oncreate,
-    onmove
+    onmove,
+    display = { tags: true, percent: true, due: true, owner: true }
   }: {
     all: OvCustomer[]; // all customers (column order incl. filtered-out projects)
     groups: OvCustomer[]; // visible customers with their matching projects
@@ -32,6 +33,7 @@
     canCreate: boolean;
     oncreate: (customerId: number | null, status: ProjectStatus) => void;
     onmove: (p: OvProject, status: ProjectStatus, ids: number[]) => void;
+    display?: Record<string, boolean>; // header "Display" options
   } = $props();
 
   // ---- Columns ---------------------------------------------------------------------
@@ -290,7 +292,7 @@
 
             <p class="mt-1.5 line-clamp-2 text-[15px] leading-snug font-semibold break-words" title={p.name}>{p.name}</p>
 
-            {#if !filter.compact && tags.length}
+            {#if !filter.compact && display.tags && tags.length}
               <!-- labels as small dots, max. two, then "+N" -->
               <p class="mt-1.5 flex min-w-0 items-center gap-2.5 text-xs text-zinc-600 dark:text-zinc-400" title={tags.map((x) => x.name).join(', ')}>
                 {#each tags.slice(0, 2) as tag (tag.id)}
@@ -305,12 +307,12 @@
               <span class="block h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
                 <span class="block h-full rounded-full {barCls(p.done, p.total)}" style:width="{pct(p.done, p.total)}%"></span>
               </span>
-              <span class="shrink-0 text-xs text-zinc-500 tabular-nums">{pct(p.done, p.total)}%</span>
+              {#if display.percent}<span class="shrink-0 text-xs text-zinc-500 tabular-nums">{pct(p.done, p.total)}%</span>{/if}
             </div>
 
             {#if !filter.compact && (p.due_date || p.checklists.length || p.team.length || p.owner_id)}
               <div class="mt-2.5 flex items-center gap-3 text-xs text-zinc-500">
-                {#if p.due_date}
+                {#if p.due_date && display.due}
                   <span class="flex items-center gap-1 tabular-nums {dueUrgent(p, today) ? 'font-semibold text-red-600 dark:text-red-400' : ''}">
                     <Icon name="calendar" size={12} />{fmtDate(p.due_date)}
                   </span>
@@ -319,10 +321,12 @@
                   <span class="flex items-center gap-1 tabular-nums" title={t('project.checklists')}><Icon name="checkSquare" size={12} />{p.checklists.length}</span>
                 {/if}
                 <span class="ml-auto flex items-center gap-1.5">
-                  {#if p.owner_id}
-                    <span title="{t('project.owner')}: {p.owner_name}"><Avatar name={p.owner_name} id={p.owner_id} size={20} /></span>
+                  {#if display.owner}
+                    {#if p.owner_id}
+                      <span title="{t('project.owner')}: {p.owner_name}"><Avatar name={p.owner_name} id={p.owner_id} size={20} /></span>
+                    {/if}
+                    <TeamAvatars team={p.team} />
                   {/if}
-                  <TeamAvatars team={p.team} />
                 </span>
               </div>
             {/if}

@@ -5,11 +5,10 @@
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { api } from '$lib/api';
-  import { canWrite, openNewProject, overviewView, palette, session, setTheme, sidebar, theme, toggleSidebar, type Theme } from '$lib/state.svelte';
+  import { canWrite, openNewProject, overviewView, palette, session, setTheme, sidebar, theme, toggleSidebar } from '$lib/state.svelte';
   import { t } from '$lib/i18n.svelte';
-  import { customerCode } from '$lib/projectStatus';
   import { migrateLocalFavorites, toggleFavorite } from '$lib/navMemory.svelte';
-  import { applySavedView, isActiveView, removeSavedView, renameSavedView, savedViews } from '$lib/overviewFilter.svelte';
+  import { applySavedView, isActivePageView, isActiveView, removeSavedView, renameSavedView, resetFilters, savedViews } from '$lib/overviewFilter.svelte';
   import type { SidebarCustomer, SidebarProject } from '$lib/types';
   import Icon from './Icon.svelte';
   import Avatar from './Avatar.svelte';
@@ -82,10 +81,9 @@
     }
   }
 
-  // Cycle the theme by click: light → dark → dim → system
-  const THEME_ORDER: Theme[] = ['light', 'dark', 'dim', 'system'];
-  const themeIcon = $derived(theme.value === 'light' ? 'sun' : theme.value === 'system' ? 'monitor' : 'moon');
-  const nextTheme = () => setTheme(THEME_ORDER[(THEME_ORDER.indexOf(theme.value) + 1) % THEME_ORDER.length]);
+  // Toggle the theme by click: light ↔ dark
+  const themeIcon = $derived(theme.value === 'light' ? 'sun' : 'moon');
+  const nextTheme = () => setTheme(theme.value === 'light' ? 'dark' : 'light');
 
   async function logout() {
     try {
@@ -155,7 +153,8 @@
     <ul class="space-y-px">
       {#each nav as n (n.href)}
         <li>
-          <a href={n.href} class={navCls(n.on)}>
+          <!-- "Overview" always opens the unfiltered overview (saved views apply their own filters) -->
+          <a href={n.href} class={navCls(n.on)} onclick={n.href === '/' ? resetFilters : undefined}>
             <Icon name={n.icon} class={n.on ? '' : 'opacity-70'} />
             <span class="flex-1">{n.label}</span>
             {#if n.badge}<span class="rounded-md bg-zinc-200/70 px-1.5 text-[11px] text-zinc-600 tabular-nums dark:bg-zinc-800 dark:text-zinc-400">{n.badge}</span>{/if}
@@ -188,7 +187,6 @@
             <a href="/projects/{f.p.id}" class="{navCls(active.projectId === f.p.id && !active.checklistId)} pr-8 font-normal!">
               <Icon name="star" size={15} class="fill-amber-400 text-amber-500" />
               <span class="min-w-0 flex-1 truncate">{f.p.name}</span>
-              <span class="text-[11px] text-zinc-400 group-hover:invisible [@media(hover:none)]:invisible">{customerCode(f.c.name)}</span>
             </a>
             <button
               type="button"
@@ -208,7 +206,7 @@
       {#if !closedSections.views}
         <ul class="space-y-px">
           {#each savedViews.list as v (v.id)}
-            {@const on = onOverview && isActiveView(v, overviewView.value)}
+            {@const on = v.page === 'overview' ? onOverview && isActiveView(v, overviewView.value) : isActivePageView(v, page.url.pathname, page.url.search)}
             <li class="group relative">
               {#if renaming === v.id}
                 <!-- rename: Enter or leaving the field saves, Esc cancels -->

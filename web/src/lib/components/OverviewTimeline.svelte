@@ -142,9 +142,9 @@
 <div class="surface overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800 [--weekend:rgb(0_0_0/0.035)] dark:[--weekend:rgb(255_255_255/0.035)]">
   <div class="relative text-sm" style:width="{width}px" style={weekendBg}>
     <!-- header -->
-    <div class="sticky top-0 z-20 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+    <div class="sticky top-0 z-20 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
       <div class="flex h-7">
-        <div class="sticky left-0 z-10 shrink-0 border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950" style:width="{NAME_W}px"></div>
+        <div class="sticky left-0 z-10 shrink-0 border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900" style:width="{NAME_W}px"></div>
         <div class="relative flex-1">
           {#each months as m (m.day)}
             <span class="absolute top-0 h-full border-l border-zinc-200 px-1.5 pt-1 text-xs font-semibold whitespace-nowrap text-zinc-600 capitalize dark:border-zinc-800 dark:text-zinc-300" style:left="{x(m.day)}px">
@@ -154,7 +154,7 @@
         </div>
       </div>
       <div class="flex h-6 text-[10px] text-zinc-400">
-        <div class="sticky left-0 z-10 flex shrink-0 items-center border-r border-zinc-200 bg-white px-3 font-semibold tracking-wider uppercase dark:border-zinc-800 dark:bg-zinc-950" style:width="{NAME_W}px">
+        <div class="sticky left-0 z-10 flex shrink-0 items-center border-r border-zinc-200 bg-white px-3 font-semibold tracking-wider uppercase dark:border-zinc-800 dark:bg-zinc-900" style:width="{NAME_W}px">
           {t('overview.project')}
         </div>
         <div class="relative flex-1">
@@ -196,7 +196,7 @@
         <div class="flex h-9 items-center border-b border-zinc-100 dark:border-zinc-800/70">
           <a
             href="/projects/{p.id}"
-            class="sticky left-0 z-10 flex h-full shrink-0 items-center gap-2 border-r border-zinc-200 bg-white pr-2 pl-5 hover:text-accent-700 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:text-accent-400"
+            class="sticky left-0 z-10 flex h-full shrink-0 items-center gap-2 border-r border-zinc-200 bg-white pr-2 pl-5 hover:text-accent-700 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:text-accent-400"
             style:width="{NAME_W}px"
             oncontextmenu={(ev) => projectMenu(ev, p)}
             title={p.name}>
@@ -220,7 +220,7 @@
                 onpointerdown={(ev) => down(ev, p, 'move')}
                 onpointerup={() => up(p)}
                 oncontextmenu={(ev) => projectMenu(ev, p)}>
-                <span class="absolute inset-0 bg-white/55 dark:bg-zinc-950/55"></span>
+                <span class="absolute inset-0 bg-white/55 dark:bg-zinc-900/55"></span>
                 <span class="absolute inset-y-0 left-0 opacity-90 {c ? '' : statusDotCls(p.status)}" style:background-color={c || undefined} style:width="{pct(p.done, p.total)}%"></span>
                 <span class="relative truncate px-2 text-zinc-900 dark:text-zinc-50">{p.name}</span>
                 {#if editable}

@@ -8,6 +8,61 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unveröffentlicht]
 
+## [0.0.8] – 2026-11-06
+
+### Hinzugefügt
+
+- Einheitlicher Kopfbereich für Übersicht, Meine Aufgaben, Kunden und Templates (`PageHeader`): graue Kopf-Karte
+  mit Seiten-Icon, Titel, Untertitel, Ansicht-Umschalter und Hauptaktion; darunter ein Streifen mit Suche,
+  Filtern, Schnellfiltern, „Ansicht speichern“, Sortierung und „Alle einklappen / aufklappen“. Bei wenig Platz
+  werden die Filter zu „Filter (n)“ zusammengefasst, danach zeigt der Ansicht-Umschalter nur noch Icons
+- Neu: Suche in Übersicht, Meine Aufgaben und Templates; Sortierung in Übersicht, Meine Aufgaben und Templates;
+  Filter „Kunde“ und „Fälligkeit“ in Meine Aufgaben, Filter „Status“ bei Kunden
+- Ansicht, Filter und Sortierung stehen in der URL (teilbare Links) und werden pro Seite und Benutzer gespeichert;
+  „Ansicht speichern“ funktioniert jetzt auf allen vier Seiten
+- Frontend-Tests mit Vitest (laufen im Docker-Build mit)
+- Übersicht „Liste“ neu: pro Kunde eine Karte mit Kürzel, Name, Zusammenfassung („3 Projekte · 5/51 Schritte ·
+  46 offen · nächste 13.11.“) und Fortschrittsring; Projektzeilen mit Status, Fortschritt, Schritten, Fälligkeit
+  und Zuständig, ganze Zeile klickbar. Bei breitem Fenster Schritte als eigene Spalte und Tags neben dem Namen,
+  sonst Schritte neben dem Prozentwert und Tags darunter; Tags werden auf die verfügbare Breite gekürzt („+N“)
+- Knopf „Anzeige“ im Kopfbereich aller Seiten: Schalter pro Seite und Ansicht (z. B. Schritte, Fortschritt in %,
+  alle Tags, Fälligkeit, Zuständig), pro Benutzer auf dem Server gespeichert (Ersatz: Browser)
+
+### Geändert
+
+- Inhalte (Karten, Listen, Kacheln) sind mit Hintergrundbild jetzt deckend weiss bzw. dunkelgrau; nur der
+  Seitenhintergrund und die Kopf-Karte bleiben farbig/durchscheinend
+- Standardfarben der Status (ohne eigene Farbe): In Arbeit grün, Abnahme orange, Erledigt dunkelgrün
+- Deutsch: „Zuständig“ statt „Verantwortlich“ (Filter, Spalten, Projekt)
+- Übersicht „Kalender“: passt samt Liste „Ohne Fälligkeit“ ohne Scrollen ins Fenster (Wochenzeilen teilen sich
+  die Höhe, volle Tage scrollen innerhalb der Zelle); kompaktere Tageszahlen und Einträge
+- Übersicht „Karten“: Projektzeilen neu angeordnet – Name mit Ordner-Icon und Status-Pill rechts, darunter die
+  Labels (so viele wie Platz haben, dann „+N“), darunter Fortschrittsbalken mit Prozent und Fälligkeit (dd.mm.)
+- Ein Klick auf „Übersicht“ in der Seitenleiste setzt die Filter (Kunde, Label, Verantwortlich) auf „Alle“
+  zurück; gespeicherte Ansichten wenden weiterhin ihre eigenen Filter an
+- Übersicht: „Gruppieren nach“ im Board ist jetzt ein Dropdown im selben Stil wie die Filter Kunde, Label und
+  Verantwortlich (gleicher Knopf, gleiches Menü); hervorgehoben nur, wenn nicht nach Status gruppiert wird
+- Status-Badges (Übersicht „Liste“, Kunden, Projekt, Meine Aufgaben) haben für jeden Status denselben Stil:
+  Hintergrund in der Board-Farbe des Status, Schrift immer schwarz (in beiden Designs)
+- Kundenliste: Bei aufgeklappten Projekten steht der Projektstatus in der Spalte „Status“ (statt unter
+  „Projekte“), der Prozentwert neben dem Fortschrittsbalken
+- Nur noch zwei Designs: Hell und Dunkel („Dunkelgrau“ wird zu Dunkel; ohne Auswahl entscheidet einmalig die
+  Systemeinstellung). Der Knopf in der Seitenleiste wechselt direkt zwischen Hell und Dunkel
+- Dropdown- und Kontextmenüs (z. B. Kunde, Label, Verantwortlich, Gruppieren nach) sind mit Hintergrundbild im
+  hellen Design nicht mehr dunkel, sondern folgen dem gewählten Design
+- Mit Hintergrundbild haben die Kacheln in Übersicht und „Meine Aufgaben“ dieselbe Helligkeit wie bei Kunden
+  und Templates
+- Mit Hintergrundbild sind Seitenleiste und Kopfband im dunklen Design jetzt dunkel (fast deckend) statt
+  halbtransparent wie im hellen Design
+- Dropdown- und Kontextmenüs sind im hellen Design nicht mehr reinweiss, sondern leicht durchscheinend
+  (Milchglas wie die Kacheln); im dunklen Design ebenfalls leicht durchscheinend
+- Mit Hintergrundbild hat der Inhaltsblock von Checklisten, Template-Editor und Einstellungen im dunklen Design
+  denselben Farbton wie die Seitenleiste (vorher deckend schwarz)
+- Dunkles Design ohne Hintergrundbild: Der Inhaltsbereich (Übersicht, Meine Aufgaben, Einstellungen usw.) hat
+  dieselbe Farbe wie die Seitenleiste statt fast schwarz
+- Native Auswahllisten sind im aufgeklappten Zustand auch mit Hintergrundbild und im dunklen Design gut lesbar
+- Favoriten in der Seitenleiste zeigen das Kundenkürzel nicht mehr zusätzlich rechts an
+
 ## [0.0.7] – 2026-11-05
 
 ### Hinzugefügt
@@ -258,7 +313,8 @@ Erste Version.
   Code in JetBrains Mono; keine externen Anfragen
 - Checkbox links oder rechts, eckig oder rund; Codeblock-Hintergrund Hellgrau, Dunkelgrau oder Schwarz
 
-[Unveröffentlicht]: https://github.com/seals187/projectList/compare/v0.0.7...HEAD
+[Unveröffentlicht]: https://github.com/seals187/projectList/compare/v0.0.8...HEAD
+[0.0.8]: https://github.com/seals187/projectList/compare/v0.0.7...v0.0.8
 [0.0.7]: https://github.com/seals187/projectList/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/seals187/projectList/compare/v0.0.5...v0.0.6
 [0.0.5]: https://github.com/seals187/projectList/compare/v0.0.4...v0.0.5
