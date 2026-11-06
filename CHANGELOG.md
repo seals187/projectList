@@ -8,6 +8,15 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unveröffentlicht]
 
+## [0.1.3] – 2026-11-07
+
+### Hinzugefügt
+
+- Darstellung → Hintergrund: „Inhalt abdunkeln“ mit den Stufen Aus / Leicht / Mittel / Stark. Macht alles im
+  Hauptfenster (Übersicht, Meine Aufgaben, Kunden, Templates, Checklisten, Einstellungen …) dunkler – mit oder ohne
+  Hintergrundbild; Seitenleiste und Zurück-Leiste bleiben unverändert, Menüs und Dialoge liegen darüber. Gilt auf
+  allen Geräten des Benutzers
+
 ## [0.1.2] – 2026-11-07
 
 ### Hinzugefügt
@@ -458,7 +467,8 @@ Erste Version.
   Code in JetBrains Mono; keine externen Anfragen
 - Checkbox links oder rechts, eckig oder rund; Codeblock-Hintergrund Hellgrau, Dunkelgrau oder Schwarz
 
-[Unveröffentlicht]: https://github.com/seals187/projectList/compare/v0.1.2...HEAD
+[Unveröffentlicht]: https://github.com/seals187/projectList/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/seals187/projectList/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/seals187/projectList/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/seals187/projectList/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/seals187/projectList/compare/v0.0.9...v0.1.0

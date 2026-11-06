@@ -28,6 +28,7 @@
   import NewProjectDialog from '$lib/components/NewProjectDialog.svelte';
   import Toasts from '$lib/components/Toasts.svelte';
   import BackBar from '$lib/components/BackBar.svelte';
+  import { DIM_ALPHA } from '$lib/appearance';
   import ChecklistTabs from '$lib/components/ChecklistTabs.svelte';
   import { recordNav } from '$lib/navHistory.svelte';
   import Icon from '$lib/components/Icon.svelte';
@@ -51,6 +52,7 @@
   // Sidebar and bars over a background image: dark glass (glass effect on); with the
   // glass effect off they look exactly as without a background image
   const glassChrome = $derived(!!bgCss && prefs.glass);
+  const dimAlpha = $derived(DIM_ALPHA[prefs.dimContent] ?? 0);
   // "Darken image" (Settings → Appearance): a dark veil over the background
   const bgImage = $derived(bgCss && prefs.dimBg ? `linear-gradient(rgb(0 0 0 / 0.35), rgb(0 0 0 / 0.35)), ${bgCss}` : bgCss);
   // pages with free-flowing content (checklist/template editor, settings) on one panel
@@ -223,6 +225,9 @@
            header bands are dark glass, content surfaces light glass (app.css, main.has-bg).
            Editor and settings pages keep their content on one opaque panel instead.
            No backdrop-filter inside main: it would make fixed menus/dialogs position wrongly. -->
+      <!-- main window; "Darken content" (Settings → Appearance) lays a dark veil over it that lets
+           clicks through (menus and dialogs lie above it) -->
+      <div class="relative isolate flex min-h-0 flex-1 flex-col">
       <main class="flex-1 overflow-y-auto {bgCss && !panelPage ? 'has-bg' : ''}">
         {#if checklistId}
           <!-- open checklists as tabs -->
@@ -241,6 +246,10 @@
           {@render children()}
         </div>
       </main>
+      {#if dimAlpha > 0}
+        <div class="pointer-events-none absolute inset-0 z-40" style:background-color="rgb(0 0 0 / {dimAlpha})" aria-hidden="true" data-testid="content-dim"></div>
+      {/if}
+      </div>
     </div>
   </div>
   <CommandPalette />

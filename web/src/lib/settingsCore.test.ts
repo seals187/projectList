@@ -12,8 +12,9 @@ describe('appearance', () => {
   });
 
   it('defaults and validation of the appearance prefs', () => {
-    expect(readAppearance({})).toEqual({ accent: 'violet', glass: true, dimBg: false, density: 'normal', scale: 1 });
-    expect(readAppearance({ accent: 'teal', glass: false, dimBg: true, density: 'airy', scale: 0.9 })).toEqual({ accent: 'teal', glass: false, dimBg: true, density: 'airy', scale: 0.9 });
+    expect(readAppearance({})).toEqual({ accent: 'violet', glass: true, dimBg: false, dimContent: 'off', density: 'normal', scale: 1 });
+    expect(readAppearance({ accent: 'teal', glass: false, dimBg: true, dimContent: 'medium', density: 'airy', scale: 0.9 })).toEqual({ accent: 'teal', glass: false, dimBg: true, dimContent: 'medium', density: 'airy', scale: 0.9 });
+    expect(readAppearance({ dimContent: 'extreme' }).dimContent).toBe('off');
     expect(readAppearance({ accent: 'gold', density: 'x', scale: 3 })).toMatchObject({ accent: 'violet', density: 'normal', scale: 1 });
   });
 
@@ -27,7 +28,7 @@ describe('appearance', () => {
   it('synced "ui" pref: only known keys, malformed input ignored', () => {
     expect(parseUi(null)).toEqual({});
     expect(parseUi([1])).toEqual({});
-    expect(parseUi({ theme: 'dim', lang: 'fr', prefs: { accent: 'red', zoom: 2, noteWidth: 300 } })).toEqual({ theme: 'dark', lang: 'fr', prefs: { accent: 'red' } });
+    expect(parseUi({ theme: 'dim', lang: 'fr', prefs: { accent: 'red', dimContent: 'strong', zoom: 2, noteWidth: 300 } })).toEqual({ theme: 'dark', lang: 'fr', prefs: { accent: 'red', dimContent: 'strong' } });
   });
 });
 

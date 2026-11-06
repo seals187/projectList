@@ -14,7 +14,7 @@ export interface SettingsNavItem {
 
 export const SETTINGS_NAV: readonly SettingsNavItem[] = [
   { id: 'profile', href: '/settings/profile', icon: 'user', label: 'set.nav.profile', keys: ['common.name', 'common.email', 'settings.password', 'nav.logout'] },
-  { id: 'appearance', href: '/settings/appearance', icon: 'palette', label: 'set.nav.appearance', keys: ['settings.language', 'set.colorScheme', 'set.accent', 'bg.title', 'set.glass', 'set.dimBg', 'set.density', 'set.rowSpacing', 'set.fontSize'] },
+  { id: 'appearance', href: '/settings/appearance', icon: 'palette', label: 'set.nav.appearance', keys: ['settings.language', 'set.colorScheme', 'set.accent', 'bg.title', 'set.glass', 'set.dimBg', 'set.dimContent', 'set.density', 'set.rowSpacing', 'set.fontSize'] },
   { id: 'font', href: '/settings/font', icon: 'type', label: 'set.nav.font', keys: ['set.fontFamily', 'settings.headings'] },
   { id: 'checklists', href: '/settings/font#checklists', icon: 'clipboard', label: 'set.nav.checklists', keys: ['set.checkbox', 'set.dividers', 'set.codeBlock'] },
   { id: 'overview', href: '/settings/overview', icon: 'home', label: 'set.nav.overview', keys: ['settings.defaultView'] },

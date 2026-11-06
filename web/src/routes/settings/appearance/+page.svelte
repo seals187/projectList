@@ -5,7 +5,7 @@
   import { errorText } from '$lib/api';
   import { i18n, LANGS, setLang, t } from '$lib/i18n.svelte';
   import { prefs, setPref, setTheme, theme, toast } from '$lib/state.svelte';
-  import { ACCENT_SWATCH, ACCENTS, DENSITIES, SCALE_STEPS, stepScale, THEME_CHOICES } from '$lib/appearance';
+  import { ACCENT_SWATCH, ACCENTS, DENSITIES, DIM_CONTENT, SCALE_STEPS, stepScale, THEME_CHOICES } from '$lib/appearance';
   import { pushUi } from '$lib/uiSync.svelte';
   import { backgroundCss, setUserBackground, userBackground } from '$lib/backgrounds';
   import SettingsShell from '$lib/components/SettingsShell.svelte';
@@ -79,6 +79,9 @@
       </SetRow>
       <SetRow title={t('set.dimBg')} desc={t('set.dimBg.desc')}>
         <Switch label={t('set.dimBg')} checked={prefs.dimBg} onchange={(v) => setPref('dimBg', v)} />
+      </SetRow>
+      <SetRow title={t('set.dimContent')} desc={t('set.dimContent.desc')}>
+        <Seg label={t('set.dimContent')} options={DIM_CONTENT.map((d) => ({ value: d, label: t(`set.dimContent.${d}`) }))} value={prefs.dimContent} onchange={(v) => setPref('dimContent', v)} />
       </SetRow>
     </SetCard>
 

@@ -19,6 +19,11 @@ export const ACCENT_SWATCH: Record<Accent, string> = {
 export type Density = 'compact' | 'normal' | 'airy';
 export const DENSITIES: readonly Density[] = ['compact', 'normal', 'airy'];
 
+// darken the main window (all pages next to the sidebar): strength of a dark veil
+export type DimContent = 'off' | 'light' | 'medium' | 'strong';
+export const DIM_CONTENT: readonly DimContent[] = ['off', 'light', 'medium', 'strong'];
+export const DIM_ALPHA: Record<DimContent, number> = { off: 0, light: 0.07, medium: 0.14, strong: 0.24 };
+
 // app font size: 80 % to 120 % in 5 % steps (rounded so values compare exactly)
 export const SCALE_STEPS: readonly number[] = Array.from({ length: 9 }, (_, i) => Math.round(80 + i * 5) / 100);
 
@@ -45,6 +50,7 @@ export const UI_PREF_KEYS = [
   'accent',
   'glass',
   'dimBg',
+  'dimContent',
   'density',
   'scale',
   'font',
@@ -83,6 +89,7 @@ export function readAppearance(p: Record<string, unknown>) {
     accent: ACCENTS.includes(p.accent as Accent) ? (p.accent as Accent) : 'violet',
     glass: p.glass !== false,
     dimBg: p.dimBg === true,
+    dimContent: DIM_CONTENT.includes(p.dimContent as DimContent) ? (p.dimContent as DimContent) : 'off',
     density: DENSITIES.includes(p.density as Density) ? (p.density as Density) : 'normal',
     scale: SCALE_STEPS.includes(p.scale as number) ? (p.scale as number) : 1
   };

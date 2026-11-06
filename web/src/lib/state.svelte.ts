@@ -1,7 +1,7 @@
 import type { Favorite, FavoriteGroup, ProjectStatus, SidebarCustomer, Tag, User } from './types';
 import { applyFonts, DEFAULT_FONT, FONT_IDS, type FontId, type HeadingFont } from './fonts';
 import { CUSTOMER_SORTS, type CustomerSort } from './customers';
-import { applyAppearance, parseTheme, readAppearance, UI_PREF_KEYS, type Accent, type Density, type ThemeChoice, type UiPrefKey } from './appearance';
+import { applyAppearance, parseTheme, readAppearance, UI_PREF_KEYS, type Accent, type Density, type DimContent, type ThemeChoice, type UiPrefKey } from './appearance';
 
 // Global state (Svelte 5 runes).
 
@@ -241,6 +241,7 @@ interface ViewPrefs {
   accent: Accent; // accent color (buttons, selection, progress)
   glass: boolean; // sidebar and header translucent over a background image
   dimBg: boolean; // darken the background image
+  dimContent: DimContent; // darken the main window (veil over all pages)
   density: Density; // row spacing of lists and checklists
   scale: number; // font size of the whole app (1 = 100 %)
 }
