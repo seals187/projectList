@@ -171,6 +171,7 @@ func New(o Options) http.Handler {
 	mux.Handle("PUT /api/favorites/{kind}/{id}", s.authed(s.addFavorite))
 	mux.Handle("DELETE /api/favorites/{kind}/{id}", s.authed(s.removeFavorite))
 	mux.Handle("GET /api/admin/backup", s.admin(s.backup))
+	mux.Handle("POST /api/admin/restore", s.admin(s.restore))
 
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusNotFound, &httpError{Msg: "unknown_endpoint"})

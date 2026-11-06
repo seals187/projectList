@@ -19,7 +19,7 @@ export const SETTINGS_NAV: readonly SettingsNavItem[] = [
   { id: 'overview', href: '/settings/overview', icon: 'home', label: 'set.nav.overview', keys: ['settings.defaultView'] },
   { id: 'tags', href: '/settings/tags', icon: 'tag', label: 'set.nav.tags', keys: ['tags.title', 'tags.color'], admin: true },
   { id: 'users', href: '/settings/users', icon: 'users', label: 'set.nav.users', keys: ['common.role', 'set.users.invite', 'set.users.access', 'set.users.resetPassword'], admin: true },
-  { id: 'backup', href: '/settings/backup', icon: 'database', label: 'set.nav.backup', keys: ['settings.backupDownload'], admin: true }
+  { id: 'backup', href: '/settings/backup', icon: 'database', label: 'set.nav.backup', keys: ['settings.backupDownload', 'set.restore.title'], admin: true }
 ];
 
 const norm = (s: string) =>

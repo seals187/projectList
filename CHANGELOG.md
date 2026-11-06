@@ -8,6 +8,22 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unveröffentlicht]
 
+## [0.1.0] – 2026-11-06
+
+### Hinzugefügt
+
+- Backup wiederherstellen direkt in der App: *Einstellungen → Backup & Restore → Wiederherstellen*. Die Datei
+  wird zuerst geprüft (SQLite, Integrität, ProjectList-Datenbank, nicht neuer als die laufende Version,
+  mindestens ein Admin); danach legt die App eine Sicherheitskopie des aktuellen Stands im Datenverzeichnis ab
+  (`pre-restore-<Zeit>.db`) und übernimmt das Backup ohne Neustart. Ältere Backups werden automatisch
+  migriert. Der Admin bleibt angemeldet, wenn er im Backup Admin ist, sonst meldet er sich neu an
+- Gespeicherte Ansichten: Ordner und Reihenfolge wie bei den Favoriten – per Drag & Drop verschieben, per
+  Rechtsklick Ordner anlegen, umbenennen, löschen und Ansichten in Ordner verschieben; gilt auf allen Geräten
+
+### Geändert
+
+- Einstellungen: „Backup“ heisst jetzt „Backup & Restore“
+
 ## [0.0.9] – 2026-11-06
 
 ### Hinzugefügt
@@ -352,7 +368,8 @@ Erste Version.
   Code in JetBrains Mono; keine externen Anfragen
 - Checkbox links oder rechts, eckig oder rund; Codeblock-Hintergrund Hellgrau, Dunkelgrau oder Schwarz
 
-[Unveröffentlicht]: https://github.com/seals187/projectList/compare/v0.0.9...HEAD
+[Unveröffentlicht]: https://github.com/seals187/projectList/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/seals187/projectList/compare/v0.0.9...v0.1.0
 [0.0.9]: https://github.com/seals187/projectList/compare/v0.0.8...v0.0.9
 [0.0.8]: https://github.com/seals187/projectList/compare/v0.0.7...v0.0.8
 [0.0.7]: https://github.com/seals187/projectList/compare/v0.0.6...v0.0.7

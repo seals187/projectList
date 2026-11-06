@@ -1,14 +1,14 @@
 <script lang="ts">
-  // Favorites section of the sidebar: favorites and folders in the user's order
-  // (pref "fav_layout", synced across devices). Drag & drop moves favorites
-  // before/after others or into a folder, folders move on the top level.
-  // Right click: on the section "New folder"; on a folder rename / delete /
-  // move; on a favorite move up/down, into a folder or remove it.
+  // Sidebar section with user-defined order and folders (favorites, saved views).
+  // The layout is a per-user pref (e.g. "fav_layout"), synced across devices.
+  // Drag & drop moves entries before/after others or into a folder; folders
+  // move on the top level. Right click: on the section "New folder"; on a folder
+  // rename / move / delete; on an entry move up/down, into a folder, plus the
+  // entry's own actions (`itemMenu`). The entry itself is rendered by `item`.
   import type { Snippet } from 'svelte';
   import { api, errorText } from '$lib/api';
   import { t } from '$lib/i18n.svelte';
   import { sidebar, toast } from '$lib/state.svelte';
-  import { toggleFavorite } from '$lib/navMemory.svelte';
   import {
     addFolder,
     deleteFolder,
@@ -20,23 +20,41 @@
     setFolderOpen,
     stepNode,
     type DropTarget,
-    type FavEntry,
     type FavLayout,
     type FavRef
   } from '$lib/favLayout';
   import ContextMenu from './ContextMenu.svelte';
   import Icon from './Icon.svelte';
 
-  let { entries, closed, head, navCls }: { entries: FavEntry[]; closed: boolean; head: Snippet; navCls: (on: boolean) => string } = $props();
+  let {
+    keys,
+    prefKey,
+    label,
+    closed,
+    head,
+    navCls,
+    item,
+    itemMenu,
+    testid
+  }: {
+    keys: string[]; // entries in their default order (new ones are appended)
+    prefKey: 'fav_layout' | 'views_layout';
+    label: string;
+    closed: boolean;
+    head: Snippet;
+    navCls: (on: boolean) => string;
+    item: Snippet<[string, boolean]>; // (key, inside a folder)
+    itemMenu?: Snippet<[string, () => void]>; // (key, close menu)
+    testid: string;
+  } = $props();
 
-  const byKey = $derived(new Map(entries.map((e) => [e.key, e])));
-  const layout = $derived(resolveLayout(parseLayout(sidebar.prefs.fav_layout), entries.map((e) => e.key)));
+  const layout = $derived(resolveLayout(parseLayout(sidebar.prefs[prefKey]), keys));
   const folders = $derived(layout.filter((n) => n.t === 'f'));
-  const visible = $derived(entries.length > 0 || folders.length > 0);
+  const visible = $derived(keys.length > 0 || folders.length > 0);
 
   function save(l: FavLayout) {
-    sidebar.prefs.fav_layout = l;
-    api.put('/prefs/fav_layout', l).catch((e) => toast(errorText(e)));
+    sidebar.prefs[prefKey] = l;
+    api.put(`/prefs/${prefKey}`, l).catch((e) => toast(errorText(e)));
   }
 
   // ---- drag & drop ----------------------------------------------------------------
@@ -44,6 +62,7 @@
   let drop = $state<DropTarget | null>(null);
 
   function start(e: DragEvent, ref: FavRef) {
+    if ((e.target as HTMLElement).closest?.('input')) return e.preventDefault(); // renaming
     drag = ref;
     if (e.dataTransfer) {
       e.dataTransfer.effectAllowed = 'move';
@@ -63,7 +82,7 @@
     e.stopPropagation();
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const y = (e.clientY - r.top) / r.height;
-    // a favorite goes into the folder (upper edge: before it); a folder goes before/after
+    // an entry goes into the folder (upper edge: before it); a folder goes before/after
     if (drag.t === 'i') drop = y < 0.3 ? { pos: 'before', ref: { t: 'f', id } } : { pos: 'into', folder: id };
     else drop = { pos: y < 0.5 ? 'before' : 'after', ref: { t: 'f', id } };
   }
@@ -103,10 +122,12 @@
   // ---- context menus ----------------------------------------------------------------
   let menu = $state<{ x: number; y: number; on: { t: 'section' } | FavRef } | null>(null);
   function openMenu(e: MouseEvent, on: { t: 'section' } | FavRef) {
+    if ((e.target as HTMLElement).closest?.('input')) return; // native menu while renaming
     e.preventDefault();
     e.stopPropagation();
     menu = { x: e.clientX, y: e.clientY, on };
   }
+  const closeMenu = () => (menu = null);
   const run = (fn: () => void) => () => {
     fn();
     menu = null;
@@ -114,30 +135,19 @@
   const itemCls = 'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800';
 </script>
 
-{#snippet fav(e: FavEntry, nested: boolean)}
-  {@const ref = { t: 'i' as const, k: e.key }}
+{#snippet entry(key: string, nested: boolean)}
+  {@const ref = { t: 'i' as const, k: key }}
   <li
-    class="group relative {drag?.t === 'i' && drag.k === e.key ? 'opacity-40' : ''}"
+    class="group relative {drag?.t === 'i' && drag.k === key ? 'opacity-40' : ''}"
     draggable="true"
     ondragstart={(ev) => start(ev, ref)}
-    ondragover={(ev) => overItem(ev, e.key)}
+    ondragover={(ev) => overItem(ev, key)}
     ondrop={finish}
     ondragend={() => (drag = drop = null)}
     oncontextmenu={(ev) => openMenu(ev, ref)}
-    data-testid="fav-item">
+    data-testid="{testid}-item">
     {#if isDrop('before', ref)}<div class="pointer-events-none absolute inset-x-1 -top-px z-10 h-0.5 rounded bg-accent-500"></div>{/if}
-    <a href={e.href} class="{navCls(e.on)} pr-8 font-normal! {nested ? 'pl-7!' : ''}" title={e.hint ? `${e.label} · ${e.hint}` : e.label} draggable="false">
-      <Icon name="star" size={15} class="fill-amber-400 text-amber-500" />
-      <span class="min-w-0 flex-1 truncate">{e.label}</span>
-    </a>
-    <button
-      type="button"
-      class="absolute top-1/2 right-1.5 hidden -translate-y-1/2 rounded p-1 text-zinc-400 group-hover:block hover:text-zinc-700 dark:hover:text-zinc-200 [@media(hover:none)]:block"
-      onclick={() => toggleFavorite(e.kind, e.id)}
-      title={t('nav.removeFavorite')}
-      aria-label="{t('nav.removeFavorite')}: {e.label}">
-      <Icon name="x" size={13} />
-    </button>
+    {@render item(key, nested)}
     {#if isDrop('after', ref)}<div class="pointer-events-none absolute inset-x-1 -bottom-px z-10 h-0.5 rounded bg-accent-500"></div>{/if}
   </li>
 {/snippet}
@@ -146,14 +156,13 @@
   <div oncontextmenu={(e) => openMenu(e, { t: 'section' })} role="presentation">{@render head()}</div>
 {/if}
 {#if visible && !closed}
-  <ul class="space-y-px" oncontextmenu={(e) => openMenu(e, { t: 'section' })} aria-label={t('nav.favorites')}>
+  <ul class="space-y-px" oncontextmenu={(e) => openMenu(e, { t: 'section' })} aria-label={label}>
     {#each layout as n (n.t === 'i' ? n.k : `f:${n.id}`)}
       {#if n.t === 'i'}
-        {@const e = byKey.get(n.k)}
-        {#if e}{@render fav(e, false)}{/if}
+        {@render entry(n.k, false)}
       {:else}
         {@const ref = { t: 'f' as const, id: n.id }}
-        <li class="relative {drag?.t === 'f' && drag.id === n.id ? 'opacity-40' : ''}" data-testid="fav-folder">
+        <li class="relative {drag?.t === 'f' && drag.id === n.id ? 'opacity-40' : ''}" data-testid="{testid}-folder">
           {#if isDrop('before', ref)}<div class="pointer-events-none absolute inset-x-1 -top-px z-10 h-0.5 rounded bg-accent-500"></div>{/if}
           {#if renaming === n.id}
             <!-- rename: Enter or leaving the field saves, Esc cancels -->
@@ -190,8 +199,7 @@
           {#if n.open}
             <ul class="space-y-px">
               {#each n.items as k (k)}
-                {@const e = byKey.get(k)}
-                {#if e}{@render fav(e, true)}{/if}
+                {@render entry(k, true)}
               {:else}
                 <li class="py-1 pl-7 text-xs text-zinc-400">{t('fav.emptyFolder')}</li>
               {/each}
@@ -211,7 +219,7 @@
 {#if menu}
   {@const m = menu}
   {@const on = m.on}
-  <ContextMenu x={m.x} y={m.y} label={t('nav.favorites')} onclose={() => (menu = null)}>
+  <ContextMenu x={m.x} y={m.y} {label} onclose={closeMenu}>
     {#if on.t === 'section'}
       <button type="button" class={itemCls} role="menuitem" onclick={run(newFolder)}><Icon name="folder" size={15} class="text-zinc-400" />{t('fav.newFolder')}</button>
     {:else if on.t === 'f'}
@@ -227,7 +235,6 @@
         <Icon name="trash" size={15} />{t('fav.deleteFolder')}
       </button>
     {:else}
-      {@const e = byKey.get(on.k)}
       {@const cur = folderOf(layout, on.k)}
       <button type="button" class={itemCls} role="menuitem" onclick={run(() => save(stepNode(layout, on, -1)))}><Icon name="chevronDown" size={15} class="rotate-180 text-zinc-400" />{t('fav.moveUp')}</button>
       <button type="button" class={itemCls} role="menuitem" onclick={run(() => save(stepNode(layout, on, 1)))}><Icon name="chevronDown" size={15} class="text-zinc-400" />{t('fav.moveDown')}</button>
@@ -249,11 +256,7 @@
       {/if}
       <div class="my-1 border-t border-zinc-100 dark:border-zinc-800"></div>
       <button type="button" class={itemCls} role="menuitem" onclick={run(newFolder)}><Icon name="folder" size={15} class="text-zinc-400" />{t('fav.newFolder')}</button>
-      {#if e}
-        <button type="button" class="{itemCls} text-red-600 dark:text-red-400" role="menuitem" onclick={run(() => toggleFavorite(e.kind, e.id))}>
-          <Icon name="star" size={15} />{t('nav.removeFavorite')}
-        </button>
-      {/if}
+      {@render itemMenu?.(on.k, closeMenu)}
     {/if}
   </ContextMenu>
 {/if}

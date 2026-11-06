@@ -309,4 +309,5 @@ func TestAppSettingsMailAndRedmineTest(t *testing.T) {
 	if fl, ok := pr.Prefs["fav_layout"].([]any); !ok || len(fl) != 1 {
 		t.Fatalf("fav_layout pref: %+v", pr.Prefs)
 	}
+	expect(t, "views_layout pref", member.do("PUT", "/api/prefs/views_layout", layout, nil), 204)
 }

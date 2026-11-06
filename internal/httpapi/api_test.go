@@ -30,19 +30,21 @@ type env struct {
 	srv *httptest.Server
 	q   *sqlc.Queries
 	db  *sql.DB
+	dir string // data directory (next to the database file)
 }
 
 func newEnv(t *testing.T) *env {
 	d, q := testutil.DB(t)
+	dir := t.TempDir()
 	h := httpapi.New(httpapi.Options{
 		DB:       d,
-		DBPath:   t.TempDir() + "/test.db",
+		DBPath:   dir + "/test.db",
 		Sessions: &auth.Sessions{Q: q, TTL: time.Hour},
 		Logger:   testutil.Logger(),
 	})
 	srv := httptest.NewServer(h)
 	t.Cleanup(srv.Close)
-	return &env{t: t, srv: srv, q: q, db: d}
+	return &env{t: t, srv: srv, q: q, db: d, dir: dir}
 }
 
 type client struct {

@@ -7,11 +7,11 @@
   import { api } from '$lib/api';
   import { canWrite, openNewProject, overviewView, palette, session, setTheme, sidebar, theme, toggleSidebar } from '$lib/state.svelte';
   import { t } from '$lib/i18n.svelte';
-  import { migrateLocalFavorites } from '$lib/navMemory.svelte';
+  import { migrateLocalFavorites, toggleFavorite } from '$lib/navMemory.svelte';
   import { applySavedView, isActivePageView, isActiveView, removeSavedView, renameSavedView, resetFilters, savedViews } from '$lib/overviewFilter.svelte';
   import type { SidebarCustomer, SidebarProject } from '$lib/types';
   import type { FavEntry } from '$lib/favLayout';
-  import FavoritesList from './FavoritesList.svelte';
+  import SidebarTree from './SidebarTree.svelte';
   import Icon from './Icon.svelte';
   import Avatar from './Avatar.svelte';
 
@@ -71,6 +71,10 @@
       return x ? [{ key, ...f, href: `/checklists/${f.id}`, label: lookup.checklistTitles.get(f.id) ?? '', hint: x.p.name, on: active.checklistId === f.id }] : [];
     })
   );
+
+  const favByKey = $derived(new Map(favorites.map((f) => [f.key, f])));
+  const viewById = $derived(new Map(savedViews.list.map((v) => [v.id, v])));
+  const menuItemCls = 'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800';
 
   // Saved views (filters of the overview): open = apply on the overview
   const onOverview = $derived(page.url.pathname === '/');
@@ -202,59 +206,111 @@
       </div>
     {/snippet}
 
+    <!-- Favorites: own order and folders (pref "fav_layout") -->
     {#snippet favHead()}{@render sectionHead('favorites', t('nav.favorites'))}{/snippet}
-    <FavoritesList entries={favorites} closed={!!closedSections.favorites} head={favHead} {navCls} />
-
-    {#if savedViews.list.length}
-      {@render sectionHead('views', t('views.title'))}
-      {#if !closedSections.views}
-        <ul class="space-y-px">
-          {#each savedViews.list as v (v.id)}
-            {@const on = v.page === 'overview' ? onOverview && isActiveView(v, overviewView.value) : isActivePageView(v, page.url.pathname, page.url.search)}
-            <li class="group relative">
-              {#if renaming === v.id}
-                <!-- rename: Enter or leaving the field saves, Esc cancels -->
-                <!-- svelte-ignore a11y_autofocus -->
-                <input
-                  class="input py-1! text-sm!"
-                  maxlength="60"
-                  bind:value={renameText}
-                  autofocus
-                  aria-label={t('views.rename')}
-                  onkeydown={(e) => {
-                    if (e.key === 'Enter') finishRename(v.id);
-                    if (e.key === 'Escape') renaming = null;
-                  }}
-                  onblur={() => finishRename(v.id)} />
-              {:else}
-                <button type="button" class="{navCls(on)} w-full pr-14 text-left font-normal!" onclick={() => applySavedView(v)} ondblclick={() => startRename(v.id, v.name)} title={v.name}>
-                  <Icon name="filter" size={15} class={on ? '' : 'opacity-70'} />
-                  <span class="min-w-0 flex-1 truncate">{v.name}</span>
-                </button>
-                <span class="absolute top-1/2 right-1.5 hidden -translate-y-1/2 items-center group-hover:flex [@media(hover:none)]:flex">
-                  <button
-                    type="button"
-                    class="rounded p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-                    onclick={() => startRename(v.id, v.name)}
-                    title={t('views.rename')}
-                    aria-label="{t('views.rename')}: {v.name}">
-                    <Icon name="pencil" size={13} />
-                  </button>
-                  <button
-                    type="button"
-                    class="rounded p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
-                    onclick={() => removeSavedView(v.id)}
-                    title={t('views.remove')}
-                    aria-label="{t('views.remove')}: {v.name}">
-                    <Icon name="x" size={13} />
-                  </button>
-                </span>
-              {/if}
-            </li>
-          {/each}
-        </ul>
+    {#snippet favItem(key: string, nested: boolean)}
+      {@const f = favByKey.get(key)}
+      {#if f}
+        <a href={f.href} class="{navCls(f.on)} pr-8 font-normal! {nested ? 'pl-7!' : ''}" title={f.hint ? `${f.label} · ${f.hint}` : f.label} draggable="false">
+          <Icon name="star" size={15} class="fill-amber-400 text-amber-500" />
+          <span class="min-w-0 flex-1 truncate">{f.label}</span>
+        </a>
+        <button
+          type="button"
+          class="absolute top-1/2 right-1.5 hidden -translate-y-1/2 rounded p-1 text-zinc-400 group-hover:block hover:text-zinc-700 dark:hover:text-zinc-200 [@media(hover:none)]:block"
+          onclick={() => toggleFavorite(f.kind, f.id)}
+          title={t('nav.removeFavorite')}
+          aria-label="{t('nav.removeFavorite')}: {f.label}">
+          <Icon name="x" size={13} />
+        </button>
       {/if}
-    {/if}
+    {/snippet}
+    {#snippet favMenu(key: string, close: () => void)}
+      {@const f = favByKey.get(key)}
+      {#if f}
+        <button type="button" class="{menuItemCls} text-red-600 dark:text-red-400" role="menuitem" onclick={() => (toggleFavorite(f.kind, f.id), close())}>
+          <Icon name="star" size={15} />{t('nav.removeFavorite')}
+        </button>
+      {/if}
+    {/snippet}
+    <SidebarTree
+      keys={favorites.map((f) => f.key)}
+      prefKey="fav_layout"
+      label={t('nav.favorites')}
+      closed={!!closedSections.favorites}
+      head={favHead}
+      {navCls}
+      item={favItem}
+      itemMenu={favMenu}
+      testid="fav" />
+
+    <!-- Saved views: own order and folders (pref "views_layout") -->
+    {#snippet viewsHead()}{@render sectionHead('views', t('views.title'))}{/snippet}
+    {#snippet viewItem(id: string, nested: boolean)}
+      {@const v = viewById.get(id)}
+      {#if v}
+        {@const on = v.page === 'overview' ? onOverview && isActiveView(v, overviewView.value) : isActivePageView(v, page.url.pathname, page.url.search)}
+        {#if renaming === v.id}
+          <!-- rename: Enter or leaving the field saves, Esc cancels -->
+          <!-- svelte-ignore a11y_autofocus -->
+          <input
+            class="input py-1! text-sm!"
+            maxlength="60"
+            bind:value={renameText}
+            autofocus
+            aria-label={t('views.rename')}
+            onkeydown={(e) => {
+              if (e.key === 'Enter') finishRename(v.id);
+              if (e.key === 'Escape') renaming = null;
+            }}
+            onblur={() => finishRename(v.id)} />
+        {:else}
+          <button type="button" class="{navCls(on)} w-full pr-14 text-left font-normal! {nested ? 'pl-7!' : ''}" onclick={() => applySavedView(v)} ondblclick={() => startRename(v.id, v.name)} title={v.name}>
+            <Icon name="filter" size={15} class={on ? '' : 'opacity-70'} />
+            <span class="min-w-0 flex-1 truncate">{v.name}</span>
+          </button>
+          <span class="absolute top-1/2 right-1.5 hidden -translate-y-1/2 items-center group-hover:flex [@media(hover:none)]:flex">
+            <button
+              type="button"
+              class="rounded p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+              onclick={() => startRename(v.id, v.name)}
+              title={t('views.rename')}
+              aria-label="{t('views.rename')}: {v.name}">
+              <Icon name="pencil" size={13} />
+            </button>
+            <button
+              type="button"
+              class="rounded p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+              onclick={() => removeSavedView(v.id)}
+              title={t('views.remove')}
+              aria-label="{t('views.remove')}: {v.name}">
+              <Icon name="x" size={13} />
+            </button>
+          </span>
+        {/if}
+      {/if}
+    {/snippet}
+    {#snippet viewMenu(id: string, close: () => void)}
+      {@const v = viewById.get(id)}
+      {#if v}
+        <button type="button" class={menuItemCls} role="menuitem" onclick={() => (startRename(v.id, v.name), close())}>
+          <Icon name="pencil" size={15} class="text-zinc-400" />{t('views.rename')}
+        </button>
+        <button type="button" class="{menuItemCls} text-red-600 dark:text-red-400" role="menuitem" onclick={() => (removeSavedView(v.id), close())}>
+          <Icon name="trash" size={15} />{t('views.remove')}
+        </button>
+      {/if}
+    {/snippet}
+    <SidebarTree
+      keys={savedViews.list.map((v) => v.id)}
+      prefKey="views_layout"
+      label={t('views.title')}
+      closed={!!closedSections.views}
+      head={viewsHead}
+      {navCls}
+      item={viewItem}
+      itemMenu={viewMenu}
+      testid="view" />
   </div>
 
   <!-- Footer: user (→ settings), theme, logout -->
