@@ -26,6 +26,7 @@ import (
 	"github.com/seals187/projectList/internal/db"
 	"github.com/seals187/projectList/internal/db/sqlc"
 	"github.com/seals187/projectList/internal/httpapi"
+	"github.com/seals187/projectList/internal/mail"
 	"github.com/seals187/projectList/internal/static"
 	"github.com/seals187/projectList/web"
 )
@@ -114,6 +115,7 @@ func serve(cfg config.Config, log *slog.Logger) error {
 		Addr: cfg.ListenAddr,
 		Handler: httpapi.New(httpapi.Options{
 			DB: database, DBPath: cfg.DBPath, Sessions: sessions, Logger: log, Static: staticHandler, Subtitle: cfg.AppSubtitle,
+			Mailer: &mail.SMTP{Cfg: cfg.SMTP}, AppURL: cfg.AppURL,
 		}),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       3 * time.Minute, // file uploads (max. 25 MB) on slow connections

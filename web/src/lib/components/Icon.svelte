@@ -59,7 +59,14 @@
     chevronsDownUp: 'M7 20l5-5 5 5M7 4l5 5 5-5',
     chevronsUpDown: 'M7 15l5 5 5-5M7 9l5-5 5 5',
     arrowUpDown: 'M21 16l-4 4-4-4M17 20V4M3 8l4-4 4 4M7 4v16',
-    listChecks: 'M13 5h8M13 12h8M13 19h8M3 17l2 2 4-4M3 7l2 2 4-4'
+    listChecks: 'M13 5h8M13 12h8M13 19h8M3 17l2 2 4-4M3 7l2 2 4-4',
+    // settings: palette, type (T), database, mail, lock, clipboard list
+    palette: 'M12 21a9 9 0 1 1 9-9c0 2.5-2 3.5-4 3.5h-2a2 2 0 0 0-1.4 3.4c.9.9.2 2.1-1.6 2.1zM7.5 10.5h.01M10.5 7h.01M15 7.5h.01M17 11h.01',
+    type: 'M5 7V5h14v2M12 5v14M9 19h6',
+    database: 'M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3',
+    mail: 'M3 6h18v12H3zM3 7l9 6 9-6',
+    lock: 'M6 11h12v10H6zM8.5 11V7.5a3.5 3.5 0 0 1 7 0V11',
+    clipboard: 'M9 4h6v3H9zM9 5.5H6V21h12V5.5h-3M9 12h6M9 16h4'
   } as const;
 
   let { name, size = 16, class: cls = '' }: { name: keyof typeof paths; size?: number; class?: string } = $props();

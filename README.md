@@ -17,7 +17,7 @@ docker compose up -d        # pulls the published image ghcr.io/seals187/project
 ```
 
 Version via `PROJECTLIST_VERSION` in `.env`: `latest` = newest release (default), `edge` =
-current development state (every push to `main`), or a fixed version such as `0.0.8`.
+current development state (every push to `main`), or a fixed version such as `0.0.9`.
 Update: `docker compose pull && docker compose up -d`.
 
 Then sign in at <http://localhost:8080> with the admin credentials from `.env`.
@@ -36,7 +36,7 @@ docker compose logs -f projectlist    # structured JSON logs
 Every release has an image for **linux/amd64** and **linux/arm64** (e.g. Raspberry Pi):
 
 ```bash
-docker pull ghcr.io/seals187/projectlist:latest   # or a fixed version, e.g. :0.0.8
+docker pull ghcr.io/seals187/projectlist:latest   # or a fixed version, e.g. :0.0.9
 ```
 
 `docker-compose.yml` already uses this image. Without Compose:
@@ -62,13 +62,28 @@ For every version tag, the workflow `release.yml` creates the GitHub release wit
 | `ADMIN_NAME`          | `Admin`                | Display name of the first admin |
 | `APP_SUBTITLE`        | –                      | Optional subtitle below "ProjectList" in the sidebar (e.g. company or department name) |
 | `PORT`                | `8080`                 | Host port (docker compose only) |
-| `PROJECTLIST_VERSION` | `latest`               | Image version for docker compose: `latest`, `edge` or e.g. `0.0.8` |
+| `PROJECTLIST_VERSION` | `latest`               | Image version for docker compose: `latest`, `edge` or e.g. `0.0.9` |
 | `LISTEN_ADDR`         | `:8080`                | Listen address inside the container |
 | `DB_PATH`             | `/data/projectlist.db` | Path of the SQLite file |
 | `COOKIE_SECURE`       | `true`                 | Send the session cookie over HTTPS only. On `http://localhost` this works in Chrome/Edge/Firefox; set `false` for plain HTTP access via an IP or hostname |
 | `SESSION_TTL`         | `720h`                 | Session lifetime (extended while in use) |
 | `LOG_LEVEL`           | `info`                 | `debug`, `info`, `warn`, `error` |
 | `LOG_FORMAT`          | `json`                 | `json` or `text` |
+| `APP_URL`             | –                      | Public address, e.g. `https://projects.example.com`, used for links in invitation and password e-mails (default: the address of the admin's request) |
+| `SMTP_HOST`           | –                      | SMTP server for e-mails; together with `SMTP_FROM` enables sending invitations and password links |
+| `SMTP_PORT`           | `587`                  | SMTP port |
+| `SMTP_USERNAME`       | –                      | SMTP login (optional) |
+| `SMTP_PASSWORD`       | –                      | SMTP password |
+| `SMTP_FROM`           | –                      | Sender, e.g. `ProjectList <noreply@example.com>` |
+| `SMTP_TLS`            | `starttls`             | `starttls`, `tls` (implicit TLS, usually port 465) or `none` |
+
+### Invitations & e-mail
+
+In *Settings → Users & permissions* admins invite users by e-mail. The invited user opens the link,
+chooses a password and is signed in; the link is valid for 7 days and works once. *Reset password*
+sends a link valid for 24 hours; accepting it signs the user out on all other devices. Without
+`SMTP_HOST`/`SMTP_FROM` (or if sending fails) the admin gets the link to pass on by hand.
+Set `APP_URL` when the app runs behind a reverse proxy so the links point to the public address.
 
 For production, put a reverse proxy with TLS (Caddy, Traefik, nginx) in front of the container.
 The proxy must pass the `Host` header through unchanged (origin check).
@@ -143,8 +158,8 @@ the user interface translates them.
   change status, start/due date, person responsible, tags or favorite; right-click a customer to open it, add a
   project or filter the overview (only this customer, hide)
 - **Board order**: drag cards between columns (status) and within a column; the order is shared by all users
-- **Sidebar**: search and **+** (new project), **favorites** (star on a project in the sidebar or on the project
-  page) and **saved views** (both stored per user in the database, so they are the same on every device); sections
+- **Sidebar**: search and **+** (new project), **favorites** (customers, projects and checklists: star next to the title of the customer, project or
+  checklist page, or in the context menu of a customer or project) and **saved views** (both stored per user in the database, so they are the same on every device); sections
   collapsible; at the bottom: user (→ settings), theme toggle, sign out. Customers are opened via *Customers*
 - **Ctrl+K** / **⌘K** opens the search (customers, projects, checklists)
 - Click the title of a customer, project or checklist to edit it – **Enter** saves, **Esc** cancels
@@ -330,7 +345,7 @@ All endpoints under `/api`, JSON. Writing requests need the header `X-CSRF-Token
 | Checklists  | `GET/POST /projects/{id}/checklists`, `POST /projects/{id}/checklists/from-template`, `PUT /projects/{id}/checklists/order`, `GET/PATCH/DELETE /checklists/{id}`, `POST /checklists/{id}/save-as-template` |
 | Items       | `POST /checklists/{id}/items`, `PUT /checklists/{id}/items/order`, `PATCH/DELETE /items/{id}`, `POST /items/{id}/done` |
 | Templates   | `GET/POST /templates`, `GET/PATCH/DELETE /templates/{id}`, `POST /templates/{id}/items`, `PUT /templates/{id}/items/order`, `PATCH/DELETE /template-items/{id}` |
-| Sidebar     | `PUT/DELETE /favorites/{projectId}`, `PUT /board/order` (`status`, `ids`), `PUT /prefs/board-hidden` (`customer_ids`), `PUT /prefs/{overview,saved_views}` (any JSON, per user); favorites and settings come with `GET /sidebar` |
+| Sidebar     | `PUT/DELETE /favorites/{kind}/{id}` (`kind` = customer, project or checklist), `PUT /board/order` (`status`, `ids`), `PUT /prefs/board-hidden` (`customer_ids`), `PUT /prefs/{overview,saved_views}` (any JSON, per user); favorites and settings come with `GET /sidebar` |
 | Other       | `GET /sidebar`, `GET /overview`, `GET /my-tasks`, `GET /my-checklists`, `GET /search?q=`, `GET /admin/backup`, `GET /healthz` |
 
 ## License

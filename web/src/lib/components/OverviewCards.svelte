@@ -138,7 +138,7 @@
                 <!-- line 3: progress bar, percent … due date -->
                 <span class="mt-1.5 flex items-center gap-2.5 pl-[23px] text-xs">
                   <span class="block h-1.5 min-w-8 flex-1 overflow-hidden rounded-full bg-[#eceef2] dark:bg-zinc-800" title="{p.done}/{p.total}">
-                    <span class="block h-full rounded-full {p.total > 0 && p.done === p.total ? 'bg-emerald-500' : 'bg-[#5b3df5]'}" style:width="{pct(p.done, p.total)}%"></span>
+                    <span class="block h-full rounded-full {p.total > 0 && p.done === p.total ? 'bg-emerald-500' : 'bg-[var(--accent-primary)]'}" style:width="{pct(p.done, p.total)}%"></span>
                   </span>
                   <span class="w-9 shrink-0 text-right text-[13px] font-bold tabular-nums" title="{p.done}/{p.total}">{pct(p.done, p.total)}%</span>
                   {#if display.due}

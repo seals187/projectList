@@ -4,6 +4,7 @@
   import { t } from '$lib/i18n.svelte';
   import { customerCode, customerTone } from '$lib/projectStatus';
   import type { SidebarCustomer } from '$lib/types';
+  import { isFavorite, toggleFavorite } from '$lib/navMemory.svelte';
   import ContextMenu from './ContextMenu.svelte';
   import Icon from './Icon.svelte';
 
@@ -27,6 +28,7 @@
     onfilter: (mode: 'only' | 'toggle' | 'all') => void;
   } = $props();
 
+  const fav = $derived(isFavorite('customer', customer.id));
   const itemCls = 'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800';
   // run the action first: closing the menu drops the customer reference in the parent
   const run = (fn: () => void) => () => {
@@ -45,6 +47,9 @@
   </div>
   <button type="button" class={itemCls} role="menuitem" onclick={run(() => goto(`/customers/${customer.id}`))}>
     <Icon name="external" size={15} class="text-zinc-400" />{t('menu.openCustomer')}
+  </button>
+  <button type="button" class={itemCls} role="menuitem" onclick={run(() => toggleFavorite('customer', customer.id))}>
+    <Icon name="star" size={15} class={fav ? 'fill-amber-400 text-amber-500' : 'text-zinc-400'} />{t(fav ? 'nav.removeFavorite' : 'nav.addFavorite')}
   </button>
   {#if canCreate}
     <button type="button" class={itemCls} role="menuitem" onclick={run(oncreate)}>

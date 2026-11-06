@@ -8,6 +8,7 @@ import { OVERVIEW_VIEWS, setBoardHidden, setOverviewView, sidebar, toast, type O
 import type { SidebarProject } from './types';
 import { normQuery } from './pageStateCore';
 import { syncDisplay } from './display.svelte';
+import { syncUi } from './uiSync.svelte';
 
 export type BoardGroup = 'status' | 'customer' | 'owner';
 export const BOARD_GROUPS: readonly BoardGroup[] = ['status', 'customer', 'owner'];
@@ -73,6 +74,7 @@ export function syncFromServer() {
   if (!filterTimer) Object.assign(filter, parseFilter(sidebar.prefs.overview));
   if (!viewsSaving) savedViews.list = parseViews(sidebar.prefs.saved_views);
   syncDisplay();
+  syncUi();
 }
 
 /** Change filters; shown immediately, saved debounced. */

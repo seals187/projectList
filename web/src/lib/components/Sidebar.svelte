@@ -7,22 +7,31 @@
   import { api } from '$lib/api';
   import { canWrite, openNewProject, overviewView, palette, session, setTheme, sidebar, theme, toggleSidebar } from '$lib/state.svelte';
   import { t } from '$lib/i18n.svelte';
-  import { migrateLocalFavorites, toggleFavorite } from '$lib/navMemory.svelte';
+  import { migrateLocalFavorites } from '$lib/navMemory.svelte';
   import { applySavedView, isActivePageView, isActiveView, removeSavedView, renameSavedView, resetFilters, savedViews } from '$lib/overviewFilter.svelte';
   import type { SidebarCustomer, SidebarProject } from '$lib/types';
+  import type { FavEntry } from '$lib/favLayout';
+  import FavoritesList from './FavoritesList.svelte';
   import Icon from './Icon.svelte';
   import Avatar from './Avatar.svelte';
 
-  // Projects by ID (favorites, active project)
+  // Customers, projects and checklists by ID (favorites, active project)
   const lookup = $derived.by(() => {
+    const customers = new Map<number, SidebarCustomer>();
     const projects = new Map<number, { p: SidebarProject; c: SidebarCustomer }>();
     const checklists = new Map<number, number>(); // checklist → project
-    for (const c of sidebar.customers)
+    const checklistTitles = new Map<number, string>();
+    for (const c of sidebar.customers) {
+      customers.set(c.id, c);
       for (const p of c.projects) {
         projects.set(p.id, { p, c });
-        for (const cl of p.checklists) checklists.set(cl.id, p.id);
+        for (const cl of p.checklists) {
+          checklists.set(cl.id, p.id);
+          checklistTitles.set(cl.id, cl.title);
+        }
       }
-    return { projects, checklists };
+    }
+    return { customers, projects, checklists, checklistTitles };
   });
 
   // Active customer/project from the URL ("+" preselects the customer, favorite highlighted)
@@ -45,7 +54,23 @@
   $effect(() => {
     if (sidebar.customers.length) untrack(migrateLocalFavorites); // migrate old browser favorites once
   });
-  const favorites = $derived(sidebar.favorites.map((id) => lookup.projects.get(id)).filter((x) => !!x));
+  // resolved favorites (targets that are gone or no longer visible are skipped)
+  const favorites = $derived(
+    sidebar.favorites.flatMap((f): FavEntry[] => {
+      const key = `${f.kind}:${f.id}`;
+      if (f.kind === 'customer') {
+        const c = lookup.customers.get(f.id);
+        return c ? [{ key, ...f, href: `/customers/${c.id}`, label: c.name, hint: '', on: page.url.pathname === `/customers/${c.id}` }] : [];
+      }
+      if (f.kind === 'project') {
+        const x = lookup.projects.get(f.id);
+        return x ? [{ key, ...f, href: `/projects/${x.p.id}`, label: x.p.name, hint: '', on: active.projectId === x.p.id && !active.checklistId }] : [];
+      }
+      const pid = lookup.checklists.get(f.id);
+      const x = pid ? lookup.projects.get(pid) : undefined;
+      return x ? [{ key, ...f, href: `/checklists/${f.id}`, label: lookup.checklistTitles.get(f.id) ?? '', hint: x.p.name, on: active.checklistId === f.id }] : [];
+    })
+  );
 
   // Saved views (filters of the overview): open = apply on the overview
   const onOverview = $derived(page.url.pathname === '/');
@@ -81,9 +106,9 @@
     }
   }
 
-  // Toggle the theme by click: light ↔ dark
-  const themeIcon = $derived(theme.value === 'light' ? 'sun' : 'moon');
-  const nextTheme = () => setTheme(theme.value === 'light' ? 'dark' : 'light');
+  // Toggle the theme by click: light ↔ dark (from "system": the opposite of what is shown)
+  const themeIcon = $derived(theme.dark ? 'moon' : 'sun');
+  const nextTheme = () => setTheme(theme.dark ? 'light' : 'dark');
 
   async function logout() {
     try {
@@ -177,29 +202,8 @@
       </div>
     {/snippet}
 
-    {#if favorites.length}
-      {@render sectionHead('favorites', t('nav.favorites'))}
-    {/if}
-    {#if favorites.length && !closedSections.favorites}
-      <ul class="space-y-px">
-        {#each favorites as f (f.p.id)}
-          <li class="group relative">
-            <a href="/projects/{f.p.id}" class="{navCls(active.projectId === f.p.id && !active.checklistId)} pr-8 font-normal!">
-              <Icon name="star" size={15} class="fill-amber-400 text-amber-500" />
-              <span class="min-w-0 flex-1 truncate">{f.p.name}</span>
-            </a>
-            <button
-              type="button"
-              class="absolute top-1/2 right-1.5 hidden -translate-y-1/2 rounded p-1 text-zinc-400 group-hover:block hover:text-zinc-700 dark:hover:text-zinc-200 [@media(hover:none)]:block"
-              onclick={() => toggleFavorite(f.p.id)}
-              title={t('nav.removeFavorite')}
-              aria-label="{t('nav.removeFavorite')}: {f.p.name}">
-              <Icon name="x" size={13} />
-            </button>
-          </li>
-        {/each}
-      </ul>
-    {/if}
+    {#snippet favHead()}{@render sectionHead('favorites', t('nav.favorites'))}{/snippet}
+    <FavoritesList entries={favorites} closed={!!closedSections.favorites} head={favHead} {navCls} />
 
     {#if savedViews.list.length}
       {@render sectionHead('views', t('views.title'))}

@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/seals187/projectList/internal/mail"
 )
 
 type Config struct {
@@ -21,6 +23,8 @@ type Config struct {
 	SessionTTL    time.Duration
 	LogLevel      slog.Level
 	LogFormat     string // "json" | "text"
+	AppURL        string // public base URL for links in e-mails (optional; default: from the request)
+	SMTP          mail.Config
 }
 
 func Load() (Config, error) {
@@ -32,6 +36,14 @@ func Load() (Config, error) {
 		AdminName:     env("ADMIN_NAME", "Admin"),
 		AppSubtitle:   strings.TrimSpace(os.Getenv("APP_SUBTITLE")),
 		LogFormat:     strings.ToLower(env("LOG_FORMAT", "json")),
+		AppURL:        strings.TrimRight(strings.TrimSpace(os.Getenv("APP_URL")), "/"),
+		SMTP: mail.Config{
+			Host:     strings.TrimSpace(os.Getenv("SMTP_HOST")),
+			Username: strings.TrimSpace(os.Getenv("SMTP_USERNAME")),
+			Password: os.Getenv("SMTP_PASSWORD"),
+			From:     strings.TrimSpace(os.Getenv("SMTP_FROM")),
+			TLS:      strings.ToLower(env("SMTP_TLS", "starttls")),
+		},
 	}
 
 	var err error
@@ -46,6 +58,15 @@ func Load() (Config, error) {
 	}
 	if c.LogFormat != "json" && c.LogFormat != "text" {
 		return c, fmt.Errorf("LOG_FORMAT muss json oder text sein")
+	}
+	if c.SMTP.Port, err = strconv.Atoi(env("SMTP_PORT", "587")); err != nil || c.SMTP.Port < 1 || c.SMTP.Port > 65535 {
+		return c, fmt.Errorf("SMTP_PORT ungültig")
+	}
+	if t := c.SMTP.TLS; t != "starttls" && t != "tls" && t != "none" {
+		return c, fmt.Errorf("SMTP_TLS muss starttls, tls oder none sein")
+	}
+	if c.AppURL != "" && !strings.HasPrefix(c.AppURL, "http://") && !strings.HasPrefix(c.AppURL, "https://") {
+		return c, fmt.Errorf("APP_URL muss mit http:// oder https:// beginnen")
 	}
 	return c, nil
 }

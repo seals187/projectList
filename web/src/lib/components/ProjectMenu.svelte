@@ -34,7 +34,7 @@
   // always show the current state from the store (the overview passes a copy)
   const p = $derived(storeProject(project.id) ?? project);
   const editable = canWrite();
-  const fav = $derived(isFavorite(project.id));
+  const fav = $derived(isFavorite('project', project.id));
 
   let name = $state('');
   let newChecklist = $state('');
@@ -190,7 +190,7 @@
     {/if}
   {/if}
 
-  <button type="button" class={itemCls} role="menuitem" onclick={() => toggleFavorite(p.id)}>
+  <button type="button" class={itemCls} role="menuitem" onclick={() => toggleFavorite('project', p.id)}>
     <Icon name="star" size={15} class={fav ? 'fill-amber-400 text-amber-500' : 'text-zinc-400'} />{t(fav ? 'nav.removeFavorite' : 'nav.addFavorite')}
   </button>
 </ContextMenu>

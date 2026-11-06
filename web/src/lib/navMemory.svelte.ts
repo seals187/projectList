@@ -1,18 +1,19 @@
-// Sidebar favorites (projects): stored in the database per user (API),
-// loaded with /api/sidebar (sidebar.favorites). Changes are shown
-// immediately and saved in the background.
+// Sidebar favorites (customers, projects, checklists): stored in the database
+// per user (API), loaded with /api/sidebar (sidebar.favorites, in the order
+// they were added). Changes are shown immediately and saved in the background.
 import { api, errorText } from './api';
 import { session, sidebar, toast } from './state.svelte';
+import type { Favorite, FavoriteKind } from './types';
 
-export const isFavorite = (projectId: number) => sidebar.favorites.includes(projectId);
+export const isFavorite = (kind: FavoriteKind, id: number) => sidebar.favorites.some((f) => f.kind === kind && f.id === id);
 
-export async function toggleFavorite(projectId: number) {
-  const was = isFavorite(projectId);
+export async function toggleFavorite(kind: FavoriteKind, id: number) {
+  const was = isFavorite(kind, id);
   const prev = sidebar.favorites;
-  sidebar.favorites = was ? prev.filter((id) => id !== projectId) : [...prev, projectId];
+  sidebar.favorites = was ? prev.filter((f) => !(f.kind === kind && f.id === id)) : [...prev, { kind, id } satisfies Favorite];
   try {
-    if (was) await api.del(`/favorites/${projectId}`);
-    else await api.put(`/favorites/${projectId}`, null);
+    if (was) await api.del(`/favorites/${kind}/${id}`);
+    else await api.put(`/favorites/${kind}/${id}`, null);
   } catch (e) {
     sidebar.favorites = prev;
     toast(errorText(e));
@@ -20,8 +21,8 @@ export async function toggleFavorite(projectId: number) {
 }
 
 /**
- * One-time migration: transfer favorites that an earlier version stored
- * in the browser (localStorage) to the server.
+ * One-time migration: transfer project favorites that an earlier version
+ * stored in the browser (localStorage) to the server.
  */
 export async function migrateLocalFavorites() {
   const key = `favorites:${session.user?.id ?? 0}`;
@@ -35,10 +36,10 @@ export async function migrateLocalFavorites() {
   }
   if (!Array.isArray(ids)) return;
   for (const id of ids) {
-    if (Number.isInteger(id) && !isFavorite(id)) {
+    if (Number.isInteger(id) && !isFavorite('project', id)) {
       try {
-        await api.put(`/favorites/${id}`, null);
-        sidebar.favorites = [...sidebar.favorites, id];
+        await api.put(`/favorites/project/${id}`, null);
+        sidebar.favorites = [...sidebar.favorites, { kind: 'project', id }];
       } catch {
         /* project deleted or no longer accessible */
       }

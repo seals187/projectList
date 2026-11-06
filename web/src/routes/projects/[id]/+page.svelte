@@ -12,7 +12,7 @@
   import { ALL_STATUSES, barCls, customerCode, customerTone, statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
   import { pct } from '$lib/overview';
   import { toDay } from '$lib/dates';
-  import { isFavorite, toggleFavorite } from '$lib/navMemory.svelte';
+  import FavoriteStar from '$lib/components/FavoriteStar.svelte';
   import Editable from '$lib/components/Editable.svelte';
   import ConfirmButton from '$lib/components/ConfirmButton.svelte';
   import Avatar from '$lib/components/Avatar.svelte';
@@ -258,7 +258,6 @@
   <p class="text-zinc-500">{t('common.notFound')}</p>
 {:else if data}
   {@const d = data}
-  {@const fav = isFavorite(id)}
   {#snippet tabBar()}
     <div class="mb-4 flex gap-6 border-b border-zinc-200 in-[.band]:mt-1.5 in-[.band]:border-b-0 dark:border-zinc-800" role="tablist">
       {#each TABS as tb (tb)}
@@ -284,15 +283,7 @@
           <Editable value={d.project.name} required disabled={!editable} onsave={(name) => save({ name })} inputClass="font-serif text-2xl! font-bold" />
         </h1>
         <span class="badge {statusBadgeCls(d.project.status)}" style={statusBadgeStyle(d.project.status)}>{statusLabel(d.project.status)}</span>
-        <button
-          type="button"
-          class="rounded-md p-1 {fav ? 'text-amber-500' : 'text-zinc-400 hover:text-amber-500'}"
-          onclick={() => toggleFavorite(id)}
-          title={t(fav ? 'nav.removeFavorite' : 'nav.addFavorite')}
-          aria-label={t(fav ? 'nav.removeFavorite' : 'nav.addFavorite')}
-          aria-pressed={fav}>
-          <Icon name="star" size={18} class={fav ? 'fill-amber-400' : ''} />
-        </button>
+        <FavoriteStar kind="project" {id} />
         <SaveStatus />
       </div>
       {#if editable}

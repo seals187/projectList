@@ -1,6 +1,7 @@
-import type { ProjectStatus, SidebarCustomer, Tag, User } from './types';
+import type { Favorite, ProjectStatus, SidebarCustomer, Tag, User } from './types';
 import { applyFonts, DEFAULT_FONT, FONT_IDS, type FontId, type HeadingFont } from './fonts';
 import { CUSTOMER_SORTS, type CustomerSort } from './customers';
+import { applyAppearance, parseTheme, readAppearance, UI_PREF_KEYS, type Accent, type Density, type ThemeChoice, type UiPrefKey } from './appearance';
 
 // Global state (Svelte 5 runes).
 
@@ -9,12 +10,12 @@ export const session = $state<{ user: User | null; ready: boolean; subtitle: str
 export const sidebar = $state<{
   customers: SidebarCustomer[];
   myTasks: number;
-  favorites: number[]; // project IDs (DB, per user)
+  favorites: Favorite[]; // customers, projects, checklists (DB, per user, in the order added)
   tags: Tag[]; // tag catalog (global)
   statusLabels: Partial<Record<ProjectStatus, string>>; // custom status names (global, set by admins)
   statusColors: Partial<Record<ProjectStatus, string>>; // custom status colors #rrggbb (global, set by admins)
   statusWip: Partial<Record<ProjectStatus, number>>; // WIP limit per board column (global, set by admins)
-  prefs: { overview?: unknown; saved_views?: unknown; background?: unknown; display?: unknown }; // synced personal settings (DB, per user)
+  prefs: { overview?: unknown; saved_views?: unknown; background?: unknown; display?: unknown; ui?: unknown; fav_layout?: unknown }; // synced personal settings (DB, per user)
   loaded: boolean; // first /sidebar response arrived
   boardHidden: number[]; // customers hidden on the board (DB, per user, synced across devices)
   open: boolean;
@@ -123,7 +124,7 @@ export function refreshSidebar(delay = 400) {
       const r = await api.get<{
         customers: SidebarCustomer[];
         my_tasks: number;
-        favorites: number[];
+        favorites: Favorite[];
         tags: Tag[];
         status_labels: Partial<Record<ProjectStatus, string>>;
         status_colors?: Partial<Record<ProjectStatus, string>>;
@@ -167,32 +168,45 @@ export function setBoardHidden(ids: number[]) {
 
 // ---- Theme ----------------------------------------------------------------------
 
-// Two themes only. Without a stored choice the OS setting decides once; the old
-// values "dim" (dark gray) and "system" map to dark / the OS setting.
-export type Theme = 'light' | 'dark';
+// Light, dark or like the operating system ("system", also without a stored
+// choice; the old value "dim" = dark). `dark` is the effective result.
+export type Theme = ThemeChoice;
 
 function readTheme(): Theme {
-  let t: string | null = null;
   try {
-    t = localStorage.getItem('theme');
+    return parseTheme(localStorage.getItem('theme'));
   } catch {
-    /* ignore */
+    return 'system';
   }
-  if (t === 'light') return 'light';
-  if (t === 'dark' || t === 'dim') return 'dark';
-  return typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+const osDark = () => typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches;
+const initialTheme = readTheme();
+
+export const theme = $state<{ value: Theme; dark: boolean }>({ value: initialTheme, dark: initialTheme === 'system' ? osDark() : initialTheme === 'dark' });
+
+function applyTheme() {
+  theme.dark = theme.value === 'system' ? osDark() : theme.value === 'dark';
+  if (typeof document !== 'undefined') document.documentElement.classList.toggle('dark', theme.dark);
+}
+// follow OS changes while "system" is selected
+if (typeof matchMedia === 'function') {
+  matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => {
+    if (theme.value === 'system') applyTheme();
+  });
 }
 
-export const theme = $state<{ value: Theme }>({ value: readTheme() });
+/** Hooks for settings that sync across devices (set by uiSync.svelte.ts). */
+export const uiHooks: { changed: () => void } = { changed: () => {} };
 
-export function setTheme(value: Theme) {
+export function setTheme(value: Theme, sync = true) {
   theme.value = value;
   try {
     localStorage.setItem('theme', value);
   } catch {
     /* ignore */
   }
-  document.documentElement.classList.toggle('dark', value === 'dark');
+  applyTheme();
+  if (sync) uiHooks.changed();
 }
 
 // ---- Checklist display ----------------------------------------------------------
@@ -220,6 +234,11 @@ interface ViewPrefs {
   font: FontId; // app font
   headingFont: HeadingFont; // headings: serif or same as the text
   noteWidth: number; // checklist note column in px, 0 = default (dragged at its left edge)
+  accent: Accent; // accent color (buttons, selection, progress)
+  glass: boolean; // sidebar and header translucent over a background image
+  dimBg: boolean; // darken the background image
+  density: Density; // row spacing of lists and checklists
+  scale: number; // font size of the whole app (1 = 100 %)
 }
 
 // width range of the checklist note column (px, before zoom)
@@ -227,12 +246,20 @@ export const NOTE_MIN = 160;
 export const NOTE_MAX = 900;
 
 const PREFS_KEY = 'view-prefs';
-const defaultPrefs: ViewPrefs = { checkPos: 'right', checkShape: 'square', gridLines: true, zoom: 1, codeBg: 'dark', overview: 'cards', overviewDefault: 'last', customersView: 'list', customersSort: 'activity', font: DEFAULT_FONT, headingFont: 'serif', noteWidth: 0 };
+const defaultPrefs: ViewPrefs = { checkPos: 'right', checkShape: 'square', gridLines: true, zoom: 1, codeBg: 'dark', overview: 'cards', overviewDefault: 'last', customersView: 'list', customersSort: 'activity', font: DEFAULT_FONT, headingFont: 'serif', noteWidth: 0, ...readAppearance({}) };
 
 function readPrefs(): ViewPrefs {
   try {
-    const p = JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}');
-    return {
+    return readPrefsFrom(JSON.parse(localStorage.getItem(PREFS_KEY) ?? '{}'));
+  } catch {
+    return { ...defaultPrefs };
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function readPrefsFrom(p: any): ViewPrefs {
+  if (!p || typeof p !== 'object') return { ...defaultPrefs };
+  return {
       checkPos: p.checkPos === 'left' ? 'left' : 'right',
       checkShape: p.checkShape === 'round' ? 'round' : 'square',
       gridLines: p.gridLines !== false,
@@ -244,18 +271,32 @@ function readPrefs(): ViewPrefs {
       customersSort: CUSTOMER_SORTS.includes(p.customersSort) ? p.customersSort : 'activity',
       font: FONT_IDS.includes(p.font) ? p.font : DEFAULT_FONT,
       headingFont: p.headingFont === 'sans' ? 'sans' : 'serif',
-      noteWidth: Number.isFinite(p.noteWidth) && p.noteWidth >= NOTE_MIN && p.noteWidth <= NOTE_MAX ? Math.round(p.noteWidth) : 0
-    };
-  } catch {
-    return { ...defaultPrefs };
-  }
+      noteWidth: Number.isFinite(p.noteWidth) && p.noteWidth >= NOTE_MIN && p.noteWidth <= NOTE_MAX ? Math.round(p.noteWidth) : 0,
+      ...readAppearance(p)
+  };
 }
 
 export const prefs = $state<ViewPrefs>(readPrefs());
 
-export function setPref<K extends keyof ViewPrefs>(key: K, value: ViewPrefs[K]) {
+export function setPref<K extends keyof ViewPrefs>(key: K, value: ViewPrefs[K], sync = true) {
   prefs[key] = value;
   if (key === 'font' || key === 'headingFont') applyFonts(prefs.font, prefs.headingFont);
+  if (key === 'accent' || key === 'glass' || key === 'density' || key === 'scale') applyAppearance(prefs);
+  try {
+    localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+  } catch {
+    /* ignore */
+  }
+  if (sync && (UI_PREF_KEYS as readonly string[]).includes(key)) uiHooks.changed();
+}
+
+/** Takes over synced values from another device (validated, no re-sync). */
+export function applyUiPrefs(values: Partial<Record<UiPrefKey, unknown>>) {
+  const merged = { ...$state.snapshot(prefs), ...values } as Record<string, unknown>;
+  const check = readPrefsFrom(merged);
+  for (const k of UI_PREF_KEYS) if (k in values) (prefs as unknown as Record<string, unknown>)[k] = check[k];
+  applyFonts(prefs.font, prefs.headingFont);
+  applyAppearance(prefs);
   try {
     localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
   } catch {

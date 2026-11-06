@@ -294,7 +294,7 @@
         aria-checked={o.value}
         class="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-[13px] hover:bg-zinc-200/60 dark:hover:bg-zinc-800"
         onclick={() => onDisplayChange?.(o.key, !o.value)}>
-        <span class="relative inline-flex h-[18px] w-8 shrink-0 items-center rounded-full transition-colors {o.value ? 'bg-[#5b3df5]' : 'bg-zinc-300 dark:bg-zinc-600'}">
+        <span class="relative inline-flex h-[18px] w-8 shrink-0 items-center rounded-full transition-colors {o.value ? 'bg-[var(--accent-primary)]' : 'bg-zinc-300 dark:bg-zinc-600'}">
           <span class="absolute size-3.5 rounded-full bg-white shadow-sm transition-[left] {o.value ? 'left-4' : 'left-0.5'}"></span>
         </span>
         <span class="min-w-0 flex-1 truncate">{o.label}</span>

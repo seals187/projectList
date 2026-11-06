@@ -52,3 +52,25 @@ FROM users u
 WHERE u.role = 'admin'
    OR u.id IN (SELECT m.user_id FROM memberships m WHERE m.customer_id = ?)
 ORDER BY u.name COLLATE NOCASE;
+
+-- name: TouchUserSeen :exec
+UPDATE users SET last_seen_at = sqlc.arg(now)
+WHERE id = sqlc.arg(id) AND (last_seen_at IS NULL OR last_seen_at < sqlc.arg(before));
+
+-- name: SetUserInvited :exec
+UPDATE users SET invited_at = ? WHERE id = ?;
+
+-- name: CreateUserToken :exec
+INSERT INTO user_tokens (id, user_id, purpose, expires_at) VALUES (?, ?, ?, ?);
+
+-- name: DeleteUserTokens :exec
+DELETE FROM user_tokens WHERE user_id = ?;
+
+-- name: GetUserToken :one
+SELECT t.id, t.user_id, t.purpose, t.expires_at, u.name, u.email
+FROM user_tokens t
+JOIN users u ON u.id = t.user_id
+WHERE t.id = ? AND t.expires_at > ?;
+
+-- name: DeleteExpiredUserTokens :execrows
+DELETE FROM user_tokens WHERE expires_at <= ?;

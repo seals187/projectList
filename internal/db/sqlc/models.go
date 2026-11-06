@@ -156,17 +156,20 @@ type TemplateItem struct {
 }
 
 type User struct {
-	ID           int64     `json:"id"`
-	Email        string    `json:"email"`
-	Name         string    `json:"name"`
-	PasswordHash string    `json:"password_hash"`
-	Role         string    `json:"role"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID           int64      `json:"id"`
+	Email        string     `json:"email"`
+	Name         string     `json:"name"`
+	PasswordHash string     `json:"password_hash"`
+	Role         string     `json:"role"`
+	CreatedAt    time.Time  `json:"created_at"`
+	LastSeenAt   *time.Time `json:"last_seen_at"`
+	InvitedAt    *time.Time `json:"invited_at"`
 }
 
 type UserFavorite struct {
 	UserID    int64     `json:"user_id"`
-	ProjectID int64     `json:"project_id"`
+	Kind      string    `json:"kind"`
+	TargetID  int64     `json:"target_id"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -174,4 +177,12 @@ type UserPref struct {
 	UserID int64  `json:"user_id"`
 	Key    string `json:"key"`
 	Value  string `json:"value"`
+}
+
+type UserToken struct {
+	ID        string    `json:"id"`
+	UserID    int64     `json:"user_id"`
+	Purpose   string    `json:"purpose"`
+	ExpiresAt time.Time `json:"expires_at"`
+	CreatedAt time.Time `json:"created_at"`
 }

@@ -405,35 +405,6 @@ func (s *Server) redmineURL(ctx context.Context) (string, error) {
 	return v, err
 }
 
-// GET /api/settings/app (all users: the URL is needed to build ticket links).
-func (s *Server) getAppSettings(w http.ResponseWriter, r *http.Request, u authz.User) error {
-	url, err := s.redmineURL(r.Context())
-	if err != nil {
-		return err
-	}
-	writeJSON(w, http.StatusOK, map[string]string{"redmine_url": url})
-	return nil
-}
-
-// PUT /api/settings/app {"redmine_url"} (admin): http(s) URL or empty.
-func (s *Server) setAppSettings(w http.ResponseWriter, r *http.Request, u authz.User) error {
-	var req struct {
-		RedmineURL string `json:"redmine_url"`
-	}
-	if err := decode(w, r, &req); err != nil {
-		return err
-	}
-	url := strings.TrimRight(strings.TrimSpace(req.RedmineURL), "/")
-	if url != "" && !(strings.HasPrefix(url, "https://") || strings.HasPrefix(url, "http://")) || len(url) > 500 {
-		return &httpError{Status: http.StatusBadRequest, Msg: "validation", Fields: map[string]string{"redmine_url": "invalid_url"}}
-	}
-	if err := s.q.SetAppSetting(r.Context(), sqlc.SetAppSettingParams{Key: settingRedmineURL, Value: url}); err != nil {
-		return err
-	}
-	writeJSON(w, http.StatusOK, map[string]string{"redmine_url": url})
-	return nil
-}
-
 // dateOrEmpty formats an optional date for the activity log.
 func dateOrEmpty(d *string) string {
 	if d == nil {

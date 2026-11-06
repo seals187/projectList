@@ -14,16 +14,21 @@ import (
 	"github.com/seals187/projectList/internal/auth"
 	"github.com/seals187/projectList/internal/authz"
 	"github.com/seals187/projectList/internal/db/sqlc"
+	"github.com/seals187/projectList/internal/mail"
 )
 
 type Server struct {
-	db       *sql.DB
-	q        *sqlc.Queries
-	sessions *auth.Sessions
-	limiter  *auth.LoginLimiter
-	log      *slog.Logger
-	dbPath   string
-	subtitle string
+	db            *sql.DB
+	q             *sqlc.Queries
+	sessions      *auth.Sessions
+	limiter       *auth.LoginLimiter
+	log           *slog.Logger
+	dbPath        string
+	subtitle      string
+	mailer        mail.Sender
+	appURL        string
+	now           func() time.Time
+	redmineClient *http.Client // nil = default (tests may replace)
 }
 
 type Options struct {
@@ -31,8 +36,11 @@ type Options struct {
 	DBPath   string // for backups (target directory for the temporary file)
 	Sessions *auth.Sessions
 	Logger   *slog.Logger
-	Static   http.Handler // SPA; nil = no static files
-	Subtitle string       // APP_SUBTITLE, included in /api/auth/me
+	Static   http.Handler     // SPA; nil = no static files
+	Subtitle string           // APP_SUBTITLE, included in /api/auth/me
+	Mailer   mail.Sender      // nil = e-mail disabled (links are shown to the admin)
+	AppURL   string           // APP_URL: base for links in e-mails; "" = from the request
+	Now      func() time.Time // nil = time.Now (tests)
 }
 
 // handlerFunc is an API handler for logged-in users.
@@ -54,6 +62,15 @@ func New(o Options) http.Handler {
 		log:      o.Logger,
 		dbPath:   o.DBPath,
 		subtitle: o.Subtitle,
+		mailer:   o.Mailer,
+		appURL:   o.AppURL,
+		now:      o.Now,
+	}
+	if s.mailer == nil {
+		s.mailer = mail.Disabled{}
+	}
+	if s.now == nil {
+		s.now = time.Now
 	}
 
 	mux := http.NewServeMux()
@@ -64,10 +81,14 @@ func New(o Options) http.Handler {
 	mux.Handle("POST /api/auth/logout", s.authed(s.logout))
 	mux.Handle("GET /api/auth/me", s.authed(s.me))
 	mux.Handle("PUT /api/auth/password", s.authed(s.changePassword))
+	mux.HandleFunc("GET /api/auth/token/{token}", s.getToken)
+	mux.HandleFunc("POST /api/auth/token", s.acceptToken)
 
 	// User management (admin)
 	mux.Handle("GET /api/users", s.admin(s.listUsers))
 	mux.Handle("POST /api/users", s.admin(s.createUser))
+	mux.Handle("POST /api/users/invite", s.admin(s.inviteUser))
+	mux.Handle("POST /api/users/{id}/reset-link", s.admin(s.resetLink))
 	mux.Handle("PATCH /api/users/{id}", s.admin(s.updateUser))
 	mux.Handle("DELETE /api/users/{id}", s.admin(s.deleteUser))
 	mux.Handle("PUT /api/users/{id}/customers", s.admin(s.setUserCustomers))
@@ -96,6 +117,7 @@ func New(o Options) http.Handler {
 	mux.Handle("DELETE /api/files/{id}", s.writer(s.deleteProjectFile))
 	mux.Handle("GET /api/settings/app", s.authed(s.getAppSettings))
 	mux.Handle("PUT /api/settings/app", s.admin(s.setAppSettings))
+	mux.Handle("POST /api/settings/redmine/test", s.admin(s.testRedmine))
 	mux.Handle("GET /api/backgrounds", s.authed(s.listBackgrounds))
 	mux.Handle("POST /api/backgrounds", s.authed(s.uploadBackground))
 	mux.Handle("GET /api/backgrounds/{id}", s.authed(s.getBackground))
@@ -146,8 +168,8 @@ func New(o Options) http.Handler {
 	mux.Handle("PUT /api/board/order", s.writer(s.orderBoard))
 	mux.Handle("PUT /api/prefs/board-hidden", s.authed(s.setBoardHidden))
 	mux.Handle("PUT /api/prefs/{key}", s.authed(s.setClientPref))
-	mux.Handle("PUT /api/favorites/{id}", s.authed(s.addFavorite))
-	mux.Handle("DELETE /api/favorites/{id}", s.authed(s.removeFavorite))
+	mux.Handle("PUT /api/favorites/{kind}/{id}", s.authed(s.addFavorite))
+	mux.Handle("DELETE /api/favorites/{kind}/{id}", s.authed(s.removeFavorite))
 	mux.Handle("GET /api/admin/backup", s.admin(s.backup))
 
 	mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) {
@@ -184,6 +206,7 @@ func (s *Server) authed(h handlerFunc) http.Handler {
 			return
 		}
 		r = r.WithContext(context.WithValue(r.Context(), ctxKey{}, id))
+		s.touchSeen(r.Context(), id.User.ID)
 		if err := h(w, r, id.User); err != nil {
 			s.writeError(w, r, err)
 		}

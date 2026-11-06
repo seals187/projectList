@@ -104,8 +104,11 @@ func (s *Sessions) Destroy(ctx context.Context, w http.ResponseWriter, sessionID
 	return s.Q.DeleteSession(ctx, sessionID)
 }
 
-// Cleanup removes expired sessions.
+// Cleanup removes expired sessions and expired invitation/reset links.
 func (s *Sessions) Cleanup(ctx context.Context) (int64, error) {
+	if _, err := s.Q.DeleteExpiredUserTokens(ctx, s.now()); err != nil {
+		return 0, err
+	}
 	return s.Q.DeleteExpiredSessions(ctx, s.now())
 }
 

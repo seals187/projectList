@@ -10,17 +10,18 @@ import (
 )
 
 const addFavorite = `-- name: AddFavorite :exec
-INSERT INTO user_favorites (user_id, project_id) VALUES (?, ?)
-ON CONFLICT (user_id, project_id) DO NOTHING
+INSERT INTO user_favorites (user_id, kind, target_id) VALUES (?, ?, ?)
+ON CONFLICT (user_id, kind, target_id) DO NOTHING
 `
 
 type AddFavoriteParams struct {
-	UserID    int64 `json:"user_id"`
-	ProjectID int64 `json:"project_id"`
+	UserID   int64  `json:"user_id"`
+	Kind     string `json:"kind"`
+	TargetID int64  `json:"target_id"`
 }
 
 func (q *Queries) AddFavorite(ctx context.Context, arg AddFavoriteParams) error {
-	_, err := q.db.ExecContext(ctx, addFavorite, arg.UserID, arg.ProjectID)
+	_, err := q.db.ExecContext(ctx, addFavorite, arg.UserID, arg.Kind, arg.TargetID)
 	return err
 }
 
@@ -41,22 +42,33 @@ func (q *Queries) GetUserPref(ctx context.Context, arg GetUserPrefParams) (strin
 }
 
 const listFavorites = `-- name: ListFavorites :many
-SELECT project_id FROM user_favorites WHERE user_id = ? ORDER BY created_at, project_id
+SELECT f.kind, f.target_id FROM user_favorites f
+WHERE f.user_id = ?
+  AND ((f.kind = 'customer' AND EXISTS (SELECT 1 FROM customers c WHERE c.id = f.target_id))
+    OR (f.kind = 'project' AND EXISTS (SELECT 1 FROM projects p WHERE p.id = f.target_id))
+    OR (f.kind = 'checklist' AND EXISTS (SELECT 1 FROM checklists cl WHERE cl.id = f.target_id)))
+ORDER BY f.created_at, f.kind, f.target_id
 `
 
-func (q *Queries) ListFavorites(ctx context.Context, userID int64) ([]int64, error) {
+type ListFavoritesRow struct {
+	Kind     string `json:"kind"`
+	TargetID int64  `json:"target_id"`
+}
+
+// Only existing targets (the triggers of migration 00021 also clean up).
+func (q *Queries) ListFavorites(ctx context.Context, userID int64) ([]ListFavoritesRow, error) {
 	rows, err := q.db.QueryContext(ctx, listFavorites, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []int64{}
+	items := []ListFavoritesRow{}
 	for rows.Next() {
-		var project_id int64
-		if err := rows.Scan(&project_id); err != nil {
+		var i ListFavoritesRow
+		if err := rows.Scan(&i.Kind, &i.TargetID); err != nil {
 			return nil, err
 		}
-		items = append(items, project_id)
+		items = append(items, i)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, err
@@ -68,16 +80,17 @@ func (q *Queries) ListFavorites(ctx context.Context, userID int64) ([]int64, err
 }
 
 const removeFavorite = `-- name: RemoveFavorite :exec
-DELETE FROM user_favorites WHERE user_id = ? AND project_id = ?
+DELETE FROM user_favorites WHERE user_id = ? AND kind = ? AND target_id = ?
 `
 
 type RemoveFavoriteParams struct {
-	UserID    int64 `json:"user_id"`
-	ProjectID int64 `json:"project_id"`
+	UserID   int64  `json:"user_id"`
+	Kind     string `json:"kind"`
+	TargetID int64  `json:"target_id"`
 }
 
 func (q *Queries) RemoveFavorite(ctx context.Context, arg RemoveFavoriteParams) error {
-	_, err := q.db.ExecContext(ctx, removeFavorite, arg.UserID, arg.ProjectID)
+	_, err := q.db.ExecContext(ctx, removeFavorite, arg.UserID, arg.Kind, arg.TargetID)
 	return err
 }
 

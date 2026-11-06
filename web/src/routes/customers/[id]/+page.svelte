@@ -10,6 +10,7 @@
   import type { Customer, Project, ProjectWithProgress } from '$lib/types';
   import Editable from '$lib/components/Editable.svelte';
   import ConfirmButton from '$lib/components/ConfirmButton.svelte';
+  import FavoriteStar from '$lib/components/FavoriteStar.svelte';
   import SaveStatus from '$lib/components/SaveStatus.svelte';
   import Avatar from '$lib/components/Avatar.svelte';
   import Icon from '$lib/components/Icon.svelte';
@@ -131,6 +132,7 @@
             <span class="block truncate">{c.name}</span>
           {/if}
         </h1>
+        <FavoriteStar kind="customer" id={c.id} />
         <SaveStatus />
       </div>
       {#if editable}

@@ -12,9 +12,18 @@ export interface User {
   role: Role;
 }
 
+/** Favorite in the sidebar (per user). */
+export type FavoriteKind = 'customer' | 'project' | 'checklist';
+export interface Favorite {
+  kind: FavoriteKind;
+  id: number;
+}
+
 export interface AdminUser extends User {
   created_at: string;
   customer_ids: number[];
+  last_seen_at: string | null; // last request or sign-in (written at most every 5 min)
+  invited: boolean; // invitation not accepted yet
 }
 
 export interface Customer {

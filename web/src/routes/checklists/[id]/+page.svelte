@@ -10,6 +10,7 @@
   import DetailHeader from '$lib/components/DetailHeader.svelte';
   import BlockEditor from '$lib/components/BlockEditor.svelte';
   import Editable from '$lib/components/Editable.svelte';
+  import FavoriteStar from '$lib/components/FavoriteStar.svelte';
   import ConfirmButton from '$lib/components/ConfirmButton.svelte';
   import Progress from '$lib/components/Progress.svelte';
   import SaveStatus from '$lib/components/SaveStatus.svelte';
@@ -127,6 +128,7 @@
       <Editable value={data!.checklist.title} required disabled={!editable} onsave={rename} inputClass="font-serif text-2xl! font-bold" />
     {/snippet}
     {#snippet meta()}
+      <FavoriteStar kind="checklist" id={data!.checklist.id} />
       <Progress done={progress.done} total={progress.total} label={false} />
       <span class="text-[13px] text-zinc-500 tabular-nums dark:text-zinc-400">
         {t('checklist.progress', progress)}{#if due}{' · '}{t('checklist.due', { date: fmtDate(due) })}{/if}

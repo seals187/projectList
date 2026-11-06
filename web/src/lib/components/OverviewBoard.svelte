@@ -112,7 +112,7 @@
   function favorite(e: MouseEvent, id: number) {
     e.preventDefault();
     e.stopPropagation();
-    toggleFavorite(id);
+    toggleFavorite('project', id);
   }
   function statusMenu(e: MouseEvent, status: ProjectStatus) {
     e.preventDefault();
@@ -188,7 +188,7 @@
       ondrop={(e) => col.status && drop(e, col.status)}>
       <!-- title takes the full width and wraps (long custom status names are never cut off); count right after it -->
       {#snippet count()}<span class="ml-1.5 text-sm font-normal text-zinc-400 tabular-nums">{col.items.length}</span>{/snippet}
-      <header class="mb-3 flex items-start gap-2 px-1">
+      <header class="{filter.compact ? 'mb-2' : 'mb-3'} flex items-start gap-2 px-1">
         {#if col.status}
           {@const s = col.status}
           {#if isAdmin()}
@@ -230,10 +230,10 @@
         {/if}
       </header>
 
-      <div class="flex flex-1 flex-col gap-2.5">
+      <div class="flex flex-1 flex-col {filter.compact ? 'gap-1.5' : 'gap-2.5'}">
         {#each col.items as p (p.id)}
           {@const tags = tagsByIds(p.tag_ids)}
-          {@const fav = isFavorite(p.id)}
+          {@const fav = isFavorite('project', p.id)}
           {#if col.status && over?.status === col.status && over.before === p.id}<div class="-my-1.5 h-1 shrink-0 rounded-full bg-accent-500"></div>{/if}
           <a
             href="/projects/{p.id}"
@@ -250,7 +250,7 @@
               over = null;
             }}
             class="group relative block rounded-xl border bg-white shadow-xs transition-shadow hover:border-accent-300 hover:shadow-md dark:bg-zinc-900 dark:hover:border-accent-500/50
-              {filter.compact ? 'px-3 py-2.5' : 'p-3'}
+              {filter.compact ? 'px-3 py-2' : 'p-3'}
               {p.status === 'blocked' ? 'border-red-300 dark:border-red-500/50' : 'border-zinc-200 dark:border-zinc-800'}
               {dragId === p.id ? 'opacity-50' : ''}">
             <!-- customer (in customer columns: the status instead) -->
@@ -290,7 +290,7 @@
               </button>
             </span>
 
-            <p class="mt-1.5 line-clamp-2 text-[15px] leading-snug font-semibold break-words" title={p.name}>{p.name}</p>
+            <p class="line-clamp-2 leading-snug font-semibold break-words {filter.compact ? 'mt-1 text-[14px]' : 'mt-1.5 text-[15px]'}" title={p.name}>{p.name}</p>
 
             {#if !filter.compact && display.tags && tags.length}
               <!-- labels as small dots, max. two, then "+N" -->
@@ -303,7 +303,7 @@
             {/if}
 
             <!-- progress -->
-            <div class="mt-2.5 flex items-center gap-2">
+            <div class="flex items-center gap-2 {filter.compact ? 'mt-1.5' : 'mt-2.5'}">
               <span class="block h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">
                 <span class="block h-full rounded-full {barCls(p.done, p.total)}" style:width="{pct(p.done, p.total)}%"></span>
               </span>

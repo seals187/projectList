@@ -105,8 +105,9 @@ func (s *Server) setBoardHidden(w http.ResponseWriter, r *http.Request, u authz.
 // Personal settings of the web app that follow the user across devices, stored
 // as opaque JSON: the overview filters ("overview") and the saved views
 // ("saved_views"), the own background ("background") and the display options of
-// the page headers ("display", per page and view). Only these keys are accepted.
-var clientPrefKeys = []string{"overview", "saved_views", "background", "display"}
+// the page headers ("display", per page and view) and the appearance settings
+// ("ui": accent color, density, …; synced across devices). Only these keys are accepted.
+var clientPrefKeys = []string{"overview", "saved_views", "background", "display", "ui", "fav_layout"}
 
 const maxClientPref = 32 << 10
 

@@ -11,19 +11,22 @@ import (
 // password_hash never ends up in a response.
 
 type userDTO struct {
-	ID          int64     `json:"id"`
-	Email       string    `json:"email"`
-	Name        string    `json:"name"`
-	Role        string    `json:"role"`
-	CreatedAt   time.Time `json:"created_at"`
-	CustomerIDs []int64   `json:"customer_ids"`
+	ID          int64      `json:"id"`
+	Email       string     `json:"email"`
+	Name        string     `json:"name"`
+	Role        string     `json:"role"`
+	CreatedAt   time.Time  `json:"created_at"`
+	CustomerIDs []int64    `json:"customer_ids"`
+	LastSeenAt  *time.Time `json:"last_seen_at"`
+	Invited     bool       `json:"invited"`
 }
 
 func toUserDTO(u sqlc.User, customerIDs []int64) userDTO {
 	if customerIDs == nil {
 		customerIDs = []int64{}
 	}
-	return userDTO{ID: u.ID, Email: u.Email, Name: u.Name, Role: u.Role, CreatedAt: u.CreatedAt, CustomerIDs: customerIDs}
+	return userDTO{ID: u.ID, Email: u.Email, Name: u.Name, Role: u.Role, CreatedAt: u.CreatedAt, CustomerIDs: customerIDs,
+		LastSeenAt: u.LastSeenAt, Invited: u.InvitedAt != nil}
 }
 
 const kindItem = "item"

@@ -3,6 +3,7 @@ package httpapi_test
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -28,6 +29,7 @@ type env struct {
 	t   *testing.T
 	srv *httptest.Server
 	q   *sqlc.Queries
+	db  *sql.DB
 }
 
 func newEnv(t *testing.T) *env {
@@ -40,7 +42,7 @@ func newEnv(t *testing.T) *env {
 	})
 	srv := httptest.NewServer(h)
 	t.Cleanup(srv.Close)
-	return &env{t: t, srv: srv, q: q}
+	return &env{t: t, srv: srv, q: q, db: d}
 }
 
 type client struct {
@@ -811,15 +813,21 @@ func TestProjectStatusDueAndOverview(t *testing.T) {
 func TestFavorites(t *testing.T) {
 	e := newEnv(t)
 	admin := e.user("admin@example.com", "admin")
-	var a, b, p, q idResp
+	var a, b, p, q, cl, qcl idResp
 	admin.do("POST", "/api/customers", map[string]string{"name": "A"}, &a)
 	admin.do("POST", "/api/customers", map[string]string{"name": "B"}, &b)
 	admin.do("POST", fmt.Sprintf("/api/customers/%d/projects", a.ID), map[string]string{"name": "P"}, &p)
 	admin.do("POST", fmt.Sprintf("/api/customers/%d/projects", b.ID), map[string]string{"name": "Q"}, &q)
+	admin.do("POST", fmt.Sprintf("/api/projects/%d/checklists", p.ID), map[string]string{"title": "CL"}, &cl)
+	admin.do("POST", fmt.Sprintf("/api/projects/%d/checklists", q.ID), map[string]string{"title": "QCL"}, &qcl)
 	member := e.user("member@example.com", "member", a.ID)
 
+	type fav struct {
+		Kind string `json:"kind"`
+		ID   int64  `json:"id"`
+	}
 	type side struct {
-		Favorites []int64 `json:"favorites"`
+		Favorites []fav `json:"favorites"`
 	}
 	var s side
 	member.do("GET", "/api/sidebar", nil, &s)
@@ -827,15 +835,30 @@ func TestFavorites(t *testing.T) {
 		t.Fatalf("anfangs leere liste erwartet (nicht null): %+v", s)
 	}
 
-	fav := fmt.Sprintf("/api/favorites/%d", p.ID)
-	expect(t, "favorit", member.do("PUT", fav, nil, nil), 204)
-	expect(t, "favorit doppelt", member.do("PUT", fav, nil, nil), 204)
-	expect(t, "fremdes projekt", member.do("PUT", fmt.Sprintf("/api/favorites/%d", q.ID), nil, nil), 404)
-	expect(t, "zuletzt gibt es nicht mehr", member.do("POST", "/api/recent", map[string]any{"kind": "customer", "id": a.ID}, nil), 404)
+	url := func(kind string, id int64) string { return fmt.Sprintf("/api/favorites/%s/%d", kind, id) }
+	expect(t, "kunde", member.do("PUT", url("customer", a.ID), nil, nil), 204)
+	expect(t, "projekt", member.do("PUT", url("project", p.ID), nil, nil), 204)
+	expect(t, "projekt doppelt", member.do("PUT", url("project", p.ID), nil, nil), 204)
+	expect(t, "checkliste", member.do("PUT", url("checklist", cl.ID), nil, nil), 204)
+	expect(t, "fremder kunde", member.do("PUT", url("customer", b.ID), nil, nil), 404)
+	expect(t, "fremdes projekt", member.do("PUT", url("project", q.ID), nil, nil), 404)
+	expect(t, "fremde checkliste", member.do("PUT", url("checklist", qcl.ID), nil, nil), 404)
+	expect(t, "unbekannte art", member.do("PUT", url("template", 1), nil, nil), 404)
+	expect(t, "kunde existiert nicht", admin.do("PUT", url("customer", 9999), nil, nil), 404)
 
 	member.do("GET", "/api/sidebar", nil, &s)
-	if len(s.Favorites) != 1 || s.Favorites[0] != p.ID {
+	want := []fav{{"customer", a.ID}, {"project", p.ID}, {"checklist", cl.ID}}
+	if len(s.Favorites) != 3 {
 		t.Fatalf("favoriten falsch: %+v", s.Favorites)
+	}
+	for _, w := range want { // same second → order not guaranteed, only membership
+		found := false
+		for _, f := range s.Favorites {
+			found = found || f == w
+		}
+		if !found {
+			t.Fatalf("favorit %+v fehlt: %+v", w, s.Favorites)
+		}
 	}
 	// Admin sees their own (empty) list
 	var as side
@@ -844,14 +867,28 @@ func TestFavorites(t *testing.T) {
 		t.Fatalf("favoriten sind pro benutzer: %+v", as)
 	}
 
-	expect(t, "favorit entfernen", member.do("DELETE", fav, nil, nil), 204)
-	// deleted project disappears from favorites
-	admin.do("PUT", fav, nil, nil)
-	admin.do("DELETE", fmt.Sprintf("/api/projects/%d", p.ID), nil, nil)
-	admin.do("GET", "/api/sidebar", nil, &as)
+	expect(t, "favorit entfernen", member.do("DELETE", url("project", p.ID), nil, nil), 204)
 	member.do("GET", "/api/sidebar", nil, &s)
-	if len(as.Favorites) != 0 || len(s.Favorites) != 0 {
-		t.Fatalf("favoriten nach löschen: %+v / %+v", as.Favorites, s.Favorites)
+	if len(s.Favorites) != 2 {
+		t.Fatalf("nach entfernen: %+v", s.Favorites)
+	}
+	// deleted targets disappear: checklist directly, customer (with its projects) via cascade
+	admin.do("PUT", url("project", p.ID), nil, nil)
+	admin.do("PUT", url("checklist", cl.ID), nil, nil)
+	expect(t, "checkliste löschen", admin.do("DELETE", fmt.Sprintf("/api/checklists/%d", cl.ID), nil, nil), 204)
+	member.do("GET", "/api/sidebar", nil, &s)
+	if len(s.Favorites) != 1 || s.Favorites[0] != (fav{"customer", a.ID}) {
+		t.Fatalf("nach checkliste löschen: %+v", s.Favorites)
+	}
+	expect(t, "kunde löschen", admin.do("DELETE", fmt.Sprintf("/api/customers/%d", a.ID), nil, nil), 204)
+	admin.do("GET", "/api/sidebar", nil, &as)
+	if len(as.Favorites) != 0 {
+		t.Fatalf("favoriten nach löschen (admin): %+v", as.Favorites)
+	}
+	// the triggers also removed the rows (not only hidden by the query)
+	var n int
+	if err := e.db.QueryRow(`SELECT COUNT(*) FROM user_favorites`).Scan(&n); err != nil || n != 0 {
+		t.Fatalf("verwaiste favoriten: %d (%v)", n, err)
 	}
 }
 

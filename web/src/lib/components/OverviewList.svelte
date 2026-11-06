@@ -53,7 +53,7 @@
       .filter(Boolean)
       .join(' ')
   );
-  const barColor = (done: number, total: number) => (total > 0 && done === total ? 'bg-emerald-500' : 'bg-[#5b3df5]');
+  const barColor = (done: number, total: number) => (total > 0 && done === total ? 'bg-emerald-500' : 'bg-[var(--accent-primary)]');
 </script>
 
 <svelte:window bind:innerWidth={winWidth} />
@@ -71,7 +71,7 @@
           <p class="text-xs text-zinc-500">{t('overview.nProjects', { n: 0 })}</p>
         </div>
         {#if canCreate}
-          <button type="button" class="shrink-0 text-sm font-semibold text-[#5b3df5] hover:underline dark:text-accent-300" onclick={() => oncreate(g.customer.id)}>
+          <button type="button" class="shrink-0 text-sm font-semibold text-[var(--accent-primary)] hover:underline dark:text-accent-300" onclick={() => oncreate(g.customer.id)}>
             + {t('cards.projectFromTemplate')}
           </button>
         {/if}

@@ -1170,13 +1170,13 @@
   {/snippet}
 
   <!-- Free-text status of an item ("Fulfilled", "Achieved" …); fixed width = aligned column -->
-  {#snippet statusField(b: Blk)}
+  {#snippet statusField(b: Blk, cls = '')}
     {#if editable}
       <input
         type="text"
-        class="w-20 shrink-0 rounded border border-transparent bg-transparent px-1.5 py-0 text-xs leading-5 text-zinc-700 outline-none md:w-28
-          placeholder:text-transparent group-hover/row:placeholder:text-zinc-300 hover:border-zinc-200 focus:border-accent-400 focus:bg-white focus:placeholder:text-zinc-400
-          dark:text-zinc-200 dark:group-hover/row:placeholder:text-zinc-600 dark:hover:border-zinc-700 dark:focus:bg-zinc-900"
+        class="{cls} w-20 shrink-0 rounded border border-transparent bg-transparent px-1.5 py-0 text-xs leading-5 text-zinc-700 outline-none md:w-28
+          placeholder:text-zinc-300 hover:border-zinc-200 focus:border-accent-400 focus:bg-white focus:placeholder:text-zinc-400
+          dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:hover:border-zinc-700 dark:focus:bg-zinc-900"
         value={b.status ?? ''}
         placeholder={t('checklist.status')}
         aria-label={t('checklist.status')}
@@ -1197,9 +1197,9 @@
           }
         }} />
     {:else if b.status}
-      <span class="w-20 shrink-0 truncate px-1.5 text-xs leading-5 text-zinc-700 md:w-28 dark:text-zinc-200" title={b.status}>{b.status}</span>
+      <span class="{cls} w-20 shrink-0 truncate px-1.5 text-xs leading-5 text-zinc-700 md:w-28 dark:text-zinc-200" title={b.status}>{b.status}</span>
     {:else}
-      <span class="w-20 shrink-0 md:w-28"></span>
+      <span class="{cls} w-20 shrink-0 md:w-28"></span>
     {/if}
   {/snippet}
 
@@ -1267,7 +1267,7 @@
           {isFocused && editable ? 'ring-1 ring-accent-400/80 dark:ring-accent-500/60' : ''}
           [&.dragging]:bg-white [&.dragging]:shadow-lg dark:[&.dragging]:bg-zinc-900">
         <!-- Main column -->
-        <div class="relative flex min-w-0 items-start gap-2 py-[3px] pr-2 {i > 0 ? (rowSpacing[b.kind] ?? '') : ''}" style:padding-left="{32 + b.indent * 24}px">
+        <div class="relative flex min-w-0 items-start gap-2 py-(--dens-px) pr-2 {i > 0 ? (rowSpacing[b.kind] ?? '') : ''}" style:padding-left="{32 + b.indent * 24}px">
           {#if editable}
             <div class="absolute flex items-center" style:left="{b.indent * 24}px" style:top="{(i > 0 ? (spacingPx[b.kind] ?? 0) : 0) + (b.kind === "h1" ? 7 : b.kind === "h2" ? 5 : 3)}px">
               <button type="button" class="{gutterBtn} max-md:hidden" onclick={() => plus(b.id)} title={t('editor.addBlock')} aria-label={t('editor.addBlock')}>
@@ -1340,6 +1340,7 @@
             <!-- Marker per block type -->
             {#if b.kind === 'item' && prefs.checkPos === 'left'}
               {@render checkbox(b, done, '')}
+              {#if isChecklist}{@render statusField(b, '-ml-1')}{/if}
             {:else if b.kind === 'bullet'}
               <span class="mt-[2px] flex size-4 shrink-0 items-center justify-center text-zinc-500">•</span>
             {:else if b.kind === 'numbered'}
@@ -1454,8 +1455,8 @@
             {#if b.kind === 'item' && prefs.checkPos === 'right'}
               {@render checkbox(b, done, 'ml-1')}
             {/if}
-            {#if b.kind === 'item' && isChecklist}
-              {@render statusField(b)}
+            {#if b.kind === 'item' && isChecklist && prefs.checkPos === 'right'}
+              {@render statusField(b, '-ml-1')}
             {/if}
           {/if}
 
@@ -1489,7 +1490,7 @@
 
         <!-- Note -->
         <div
-          class="min-w-0 items-start gap-2.5 pb-1 pl-8 bg-white md:border-l md:border-zinc-300 md:py-[3px] md:pl-4 dark:bg-zinc-900 dark:md:border-zinc-700 {i > 0 ? (noteSpacing[b.kind] ?? "") : ""}
+          class="min-w-0 items-start gap-2.5 pb-1 pl-8 bg-white md:border-l md:border-zinc-300 md:py-(--dens-px) md:pl-4 dark:bg-zinc-900 dark:md:border-zinc-700 {i > 0 ? (noteSpacing[b.kind] ?? "") : ""}
             {b.description ? "flex" : "hidden group-focus-within/row:flex md:flex"}">
           {#if b.kind !== 'divider'}
             {#if b.description}

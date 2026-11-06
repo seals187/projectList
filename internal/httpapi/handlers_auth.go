@@ -65,6 +65,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, r, err)
 		return
 	}
+	s.touchSeen(r.Context(), user.ID)
 	writeJSON(w, http.StatusOK, sessionResp{
 		User:      authz.User{ID: user.ID, Email: user.Email, Name: user.Name, Role: user.Role},
 		CSRFToken: csrf,

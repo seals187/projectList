@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"time"
 )
 
 const addMembership = `-- name: AddMembership :exec
@@ -48,7 +49,7 @@ func (q *Queries) CountUsers(ctx context.Context) (int64, error) {
 const createUser = `-- name: CreateUser :one
 INSERT INTO users (email, name, password_hash, role)
 VALUES (?, ?, ?, ?)
-RETURNING id, email, name, password_hash, role, created_at
+RETURNING id, email, name, password_hash, role, created_at, last_seen_at, invited_at
 `
 
 type CreateUserParams struct {
@@ -73,8 +74,43 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		&i.PasswordHash,
 		&i.Role,
 		&i.CreatedAt,
+		&i.LastSeenAt,
+		&i.InvitedAt,
 	)
 	return i, err
+}
+
+const createUserToken = `-- name: CreateUserToken :exec
+INSERT INTO user_tokens (id, user_id, purpose, expires_at) VALUES (?, ?, ?, ?)
+`
+
+type CreateUserTokenParams struct {
+	ID        string    `json:"id"`
+	UserID    int64     `json:"user_id"`
+	Purpose   string    `json:"purpose"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+func (q *Queries) CreateUserToken(ctx context.Context, arg CreateUserTokenParams) error {
+	_, err := q.db.ExecContext(ctx, createUserToken,
+		arg.ID,
+		arg.UserID,
+		arg.Purpose,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
+const deleteExpiredUserTokens = `-- name: DeleteExpiredUserTokens :execrows
+DELETE FROM user_tokens WHERE expires_at <= ?
+`
+
+func (q *Queries) DeleteExpiredUserTokens(ctx context.Context, expiresAt time.Time) (int64, error) {
+	result, err := q.db.ExecContext(ctx, deleteExpiredUserTokens, expiresAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
 }
 
 const deleteMembershipsForUser = `-- name: DeleteMembershipsForUser :exec
@@ -95,8 +131,17 @@ func (q *Queries) DeleteUser(ctx context.Context, id int64) error {
 	return err
 }
 
+const deleteUserTokens = `-- name: DeleteUserTokens :exec
+DELETE FROM user_tokens WHERE user_id = ?
+`
+
+func (q *Queries) DeleteUserTokens(ctx context.Context, userID int64) error {
+	_, err := q.db.ExecContext(ctx, deleteUserTokens, userID)
+	return err
+}
+
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, email, name, password_hash, role, created_at FROM users WHERE email = ?
+SELECT id, email, name, password_hash, role, created_at, last_seen_at, invited_at FROM users WHERE email = ?
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
@@ -109,12 +154,14 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error
 		&i.PasswordHash,
 		&i.Role,
 		&i.CreatedAt,
+		&i.LastSeenAt,
+		&i.InvitedAt,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, email, name, password_hash, role, created_at FROM users WHERE id = ?
+SELECT id, email, name, password_hash, role, created_at, last_seen_at, invited_at FROM users WHERE id = ?
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
@@ -127,6 +174,43 @@ func (q *Queries) GetUserByID(ctx context.Context, id int64) (User, error) {
 		&i.PasswordHash,
 		&i.Role,
 		&i.CreatedAt,
+		&i.LastSeenAt,
+		&i.InvitedAt,
+	)
+	return i, err
+}
+
+const getUserToken = `-- name: GetUserToken :one
+SELECT t.id, t.user_id, t.purpose, t.expires_at, u.name, u.email
+FROM user_tokens t
+JOIN users u ON u.id = t.user_id
+WHERE t.id = ? AND t.expires_at > ?
+`
+
+type GetUserTokenParams struct {
+	ID        string    `json:"id"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+type GetUserTokenRow struct {
+	ID        string    `json:"id"`
+	UserID    int64     `json:"user_id"`
+	Purpose   string    `json:"purpose"`
+	ExpiresAt time.Time `json:"expires_at"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+}
+
+func (q *Queries) GetUserToken(ctx context.Context, arg GetUserTokenParams) (GetUserTokenRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserToken, arg.ID, arg.ExpiresAt)
+	var i GetUserTokenRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Purpose,
+		&i.ExpiresAt,
+		&i.Name,
+		&i.Email,
 	)
 	return i, err
 }
@@ -204,7 +288,7 @@ func (q *Queries) ListMembershipsForUser(ctx context.Context, userID int64) ([]i
 }
 
 const listUsers = `-- name: ListUsers :many
-SELECT id, email, name, password_hash, role, created_at FROM users ORDER BY name COLLATE NOCASE, id
+SELECT id, email, name, password_hash, role, created_at, last_seen_at, invited_at FROM users ORDER BY name COLLATE NOCASE, id
 `
 
 func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
@@ -223,6 +307,8 @@ func (q *Queries) ListUsers(ctx context.Context) ([]User, error) {
 			&i.PasswordHash,
 			&i.Role,
 			&i.CreatedAt,
+			&i.LastSeenAt,
+			&i.InvitedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -274,10 +360,40 @@ func (q *Queries) ListUsersWithAccessToCustomer(ctx context.Context, customerID 
 	return items, nil
 }
 
+const setUserInvited = `-- name: SetUserInvited :exec
+UPDATE users SET invited_at = ? WHERE id = ?
+`
+
+type SetUserInvitedParams struct {
+	InvitedAt *time.Time `json:"invited_at"`
+	ID        int64      `json:"id"`
+}
+
+func (q *Queries) SetUserInvited(ctx context.Context, arg SetUserInvitedParams) error {
+	_, err := q.db.ExecContext(ctx, setUserInvited, arg.InvitedAt, arg.ID)
+	return err
+}
+
+const touchUserSeen = `-- name: TouchUserSeen :exec
+UPDATE users SET last_seen_at = ?1
+WHERE id = ?2 AND (last_seen_at IS NULL OR last_seen_at < ?3)
+`
+
+type TouchUserSeenParams struct {
+	Now    *time.Time `json:"now"`
+	ID     int64      `json:"id"`
+	Before *time.Time `json:"before"`
+}
+
+func (q *Queries) TouchUserSeen(ctx context.Context, arg TouchUserSeenParams) error {
+	_, err := q.db.ExecContext(ctx, touchUserSeen, arg.Now, arg.ID, arg.Before)
+	return err
+}
+
 const updateUser = `-- name: UpdateUser :one
 UPDATE users SET email = ?, name = ?, role = ?
 WHERE id = ?
-RETURNING id, email, name, password_hash, role, created_at
+RETURNING id, email, name, password_hash, role, created_at, last_seen_at, invited_at
 `
 
 type UpdateUserParams struct {
@@ -302,6 +418,8 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.PasswordHash,
 		&i.Role,
 		&i.CreatedAt,
+		&i.LastSeenAt,
+		&i.InvitedAt,
 	)
 	return i, err
 }

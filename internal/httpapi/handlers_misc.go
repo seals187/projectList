@@ -136,7 +136,7 @@ func (s *Server) sidebar(w http.ResponseWriter, r *http.Request, u authz.User) e
 	if err != nil {
 		return err
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"customers": out, "my_tasks": myTasks, "favorites": favorites,
+	writeJSON(w, http.StatusOK, map[string]any{"customers": out, "my_tasks": myTasks, "favorites": toFavoriteDTOs(favorites),
 		"tags": tags, "status_labels": statuses.Labels, "status_colors": statuses.Colors, "status_wip": statuses.WIP,
 		"board_hidden": boardHidden, "prefs": prefs,
 	})

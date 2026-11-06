@@ -8,6 +8,45 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unveröffentlicht]
 
+## [0.0.9] – 2026-11-06
+
+### Hinzugefügt
+
+- Einstellungen neu aufgebaut: links eine eigene Navigation mit Suche („Einstellung suchen …“) und den Gruppen
+  „Persönlich“ (Profil & Konto, Darstellung, Schrift, Checklisten, Übersicht) und „Arbeitsbereich“ (Tags,
+  Benutzer & Rechte, Backup; nur Admins), rechts die Seite mit Karten und Zeilen
+- Darstellung: Farbschema „System“ (folgt dem Betriebssystem), Akzentfarbe (Violett, Blau, Petrol, Grün, Orange,
+  Rot, Pink), Glas-Effekt ein/aus, Hintergrundbild abdunkeln, Zeilenabstand (Kompakt/Normal/Luftig) und
+  Schriftgrösse der ganzen App (80–120 %). Sprache, Farbschema und Darstellung gelten jetzt auf allen Geräten
+  des Benutzers
+- Schrift & Checklisten mit Live-Vorschau einer Checkliste
+- Favoriten: Neben Projekten lassen sich jetzt auch Kunden und Checklisten als Favorit speichern (Stern neben dem
+  Titel der Kunden-, Projekt- oder Checklisten-Seite, bei Kunden und Projekten auch im Kontextmenü). In der
+  Seitenleiste stehen sie in der Reihenfolge, in der sie hinzugefügt wurden (Checklisten nur mit ihrem Namen).
+  Bestehende Projekt-Favoriten bleiben erhalten
+- Favoriten ordnen: per Drag & Drop nach oben oder unten schieben; per Rechtsklick in der Favoritenliste Ordner
+  anlegen (umbenennen per Rechtsklick oder Doppelklick, auf- und zuklappen, löschen – die Favoriten bleiben dann
+  erhalten). Favoriten lassen sich in Ordner ziehen oder per Rechtsklick „In Ordner verschieben“, Ordner selbst
+  ebenfalls verschieben. Reihenfolge und Ordner gelten auf allen Geräten des Benutzers
+- Tags: Filter, „+ Tag“, Menü „…“ pro Tag mit Bearbeiten (Name und Farbe) und Löschen
+- Benutzer & Rechte: Suche, Rollen-Filter, Spalte „Zuletzt aktiv“, Rolle direkt in der Tabelle änderbar,
+  Detailbereich mit Rolle, Kunden-Zugriff („Alle auswählen“), „Passwort zurücksetzen“ und „Benutzer entfernen“
+- Benutzer einladen: Admins laden per E-Mail ein; der Link (7 Tage gültig) führt auf eine Seite zum Festlegen
+  des Passworts. „Passwort zurücksetzen“ schickt ebenso einen Link (24 Stunden gültig). Ohne eingerichteten
+  Mailversand zeigt die App den Link zum Kopieren an. Neue Umgebungsvariablen `APP_URL` und `SMTP_*`
+  (siehe README)
+
+### Geändert
+
+- Benutzer werden nicht mehr mit einem vom Admin gesetzten Passwort angelegt, sondern eingeladen
+- Übersicht „Board“: Zugeklappte Karten sind kompakter (weniger Abstand zwischen und in den Karten, Projektname
+  etwas kleiner); Aufbau und Design bleiben gleich
+- Checklisten: Das Statusfeld (z. B. „Erledigt“, „Terminée“, „Effectué“) steht direkt rechts neben der Checkbox
+  und ist auch leer als „Status“ sichtbar; vorher war es ohne Inhalt unsichtbar, bis man über die Zeile fuhr.
+  Bei Checkbox links steht es zwischen Checkbox und Text
+- Die Grösse der Checklisten-Ansicht (100 % …) wird nur noch in der Checklisten-Werkzeugleiste eingestellt;
+  in den Einstellungen gibt es dafür die Schriftgrösse der ganzen App
+
 ## [0.0.8] – 2026-11-06
 
 ### Hinzugefügt
@@ -313,7 +352,8 @@ Erste Version.
   Code in JetBrains Mono; keine externen Anfragen
 - Checkbox links oder rechts, eckig oder rund; Codeblock-Hintergrund Hellgrau, Dunkelgrau oder Schwarz
 
-[Unveröffentlicht]: https://github.com/seals187/projectList/compare/v0.0.8...HEAD
+[Unveröffentlicht]: https://github.com/seals187/projectList/compare/v0.0.9...HEAD
+[0.0.9]: https://github.com/seals187/projectList/compare/v0.0.8...v0.0.9
 [0.0.8]: https://github.com/seals187/projectList/compare/v0.0.7...v0.0.8
 [0.0.7]: https://github.com/seals187/projectList/compare/v0.0.6...v0.0.7
 [0.0.6]: https://github.com/seals187/projectList/compare/v0.0.5...v0.0.6

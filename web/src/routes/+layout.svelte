@@ -6,6 +6,7 @@
   import { api, setCsrf } from '$lib/api';
   import {
     newProject,
+    prefs,
     refreshSidebar,
     saveState,
     session,
@@ -44,8 +45,14 @@
     }
     return backgroundCss(userBackground());
   });
+  // "Darken image" (Settings → Appearance): a dark veil over the background
+  const bgImage = $derived(bgCss && prefs.dimBg ? `linear-gradient(rgb(0 0 0 / 0.35), rgb(0 0 0 / 0.35)), ${bgCss}` : bgCss);
   // pages with free-flowing content (checklist/template editor, settings) on one panel
   const panelPage = $derived(/^\/(checklists|templates\/\d|settings)/.test(page.url.pathname));
+  // settings: own two-column shell (SettingsShell) that fills the panel without padding
+  const settingsPage = $derived(page.url.pathname.startsWith('/settings'));
+  // reachable without a session: sign-in and invitation / password links
+  const publicPage = $derived(page.url.pathname === '/login' || page.url.pathname === '/invite');
   $effect(() => {
     pageBg.active = !!bgCss && !panelPage;
     pageBg.panel = !!bgCss && panelPage;
@@ -70,7 +77,7 @@
   });
 
   $effect(() => {
-    if (session.ready && !session.user && page.url.pathname !== '/login') goto('/login');
+    if (session.ready && !session.user && !publicPage) goto('/login');
   });
 
   // Desktop width (md): only there is the collapsed sidebar made inert for keyboard/screen readers.
@@ -131,12 +138,12 @@
 
 {#if !session.ready}
   <div class="h-dvh"></div>
-{:else if page.url.pathname === '/login'}
+{:else if publicPage}
   {@render children()}
 {:else if session.user}
   <div
     class="flex h-dvh overflow-hidden"
-    style:background-image={bgCss || undefined}
+    style:background-image={bgImage || undefined}
     style:background-size={bgCss ? 'cover' : undefined}
     style:background-position={bgCss ? 'center' : undefined}>
     {#if sidebar.open}
@@ -207,9 +214,13 @@
            No backdrop-filter inside main: it would make fixed menus/dialogs position wrongly. -->
       <main class="flex-1 overflow-y-auto {bgCss && !panelPage ? 'has-bg' : ''}">
         <div
-          class={bgCss && panelPage
-            ? 'glass-bar m-2 min-h-[calc(100%-1rem)] rounded-2xl bg-white px-4 py-5 shadow-lg sm:m-4 sm:min-h-[calc(100%-2rem)] sm:px-8 sm:py-6 dark:bg-zinc-900'
-            : 'px-4 py-5 sm:px-10 sm:py-7'}>
+          class={settingsPage
+            ? bgCss
+              ? 'glass-bar m-2 h-[calc(100%-1rem)] overflow-hidden rounded-2xl bg-white shadow-lg sm:m-4 sm:h-[calc(100%-2rem)] dark:bg-zinc-900'
+              : 'h-full'
+            : bgCss && panelPage
+              ? 'glass-bar m-2 min-h-[calc(100%-1rem)] rounded-2xl bg-white px-4 py-5 shadow-lg sm:m-4 sm:min-h-[calc(100%-2rem)] sm:px-8 sm:py-6 dark:bg-zinc-900'
+              : 'px-4 py-5 sm:px-10 sm:py-7'}>
           {@render children()}
         </div>
       </main>
