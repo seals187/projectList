@@ -6,7 +6,7 @@
   import { statusDotCls, statusDotStyle } from '$lib/projectStatus';
   import { dueUrgent, type OvCustomer, type OvProject } from '$lib/overview';
   import { patchProject } from '$lib/projectActions';
-  import { addMonths, dayOfMonth, fromDay, mondayOf, monthLabel, monthStart, toDay, weekday, weekdayNames } from '$lib/dates';
+  import { addMonths, dayOfMonth, fromDay, isoWeek, mondayOf, monthLabel, monthStart, toDay, weekday, weekdayNames } from '$lib/dates';
   import ProjectMenu from './ProjectMenu.svelte';
   import Icon from './Icon.svelte';
   import EntityIcon from './EntityIcon.svelte';
@@ -42,7 +42,7 @@
   // below stay visible; the week rows share the rest of the window (min. 2.75rem).
   const rows = $derived.by(() => {
     const weeks = days.length / 7;
-    const reserve = undated.length ? '26rem' : '21.5rem';
+    const reserve = undated.length ? '27.5rem' : '23rem'; // header card, back bar, month bar, list "without due date"
     return `auto repeat(${weeks}, minmax(2.75rem, calc((100dvh - ${reserve}) / ${weeks})))`;
   });
 
@@ -79,20 +79,30 @@
 
 <div class="overflow-x-auto">
   <!-- rows share the visible height (no page scrolling); a busy day scrolls inside its cell -->
-  <div class="surface grid min-w-[48rem] grid-cols-7 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800" style:grid-template-rows={rows}>
+  <!-- first column: ISO calendar week of the row -->
+  <div class="surface grid min-w-[48rem] grid-cols-[2.25rem_repeat(7,minmax(0,1fr))] overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800" style:grid-template-rows={rows}>
+    <div class="border-r border-b border-zinc-200 bg-zinc-50 px-1 py-1 text-center text-[11px] font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-900" title={t('calendar.week')}>{t('calendar.weekShort')}</div>
     {#each weekdayNames(locale()) as w, i (i)}
       <div class="border-b border-zinc-200 bg-zinc-50 px-2 py-1 text-xs font-semibold text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">{w}</div>
     {/each}
     {#each days as d (d)}
       {@const inMonth = d >= month && d < nextMonth}
       {@const items = byDay.get(d) ?? []}
+      {#if weekday(d) === 0}
+        <div class="flex justify-center border-r border-zinc-200 bg-zinc-50 pt-1.5 text-[11px] font-medium text-zinc-400 tabular-nums dark:border-zinc-800 dark:bg-zinc-900 {d < days[days.length - 7] ? 'border-b' : ''}" title="{t('calendar.week')} {isoWeek(d)}" data-testid="calendar-week">
+          {isoWeek(d)}
+        </div>
+      {/if}
       <div
         role="group"
         aria-label={fromDay(d)}
         class="min-h-0 overflow-y-auto border-zinc-200 p-1 dark:border-zinc-800
           {weekday(d) < 6 ? 'border-r' : ''} {d < days[days.length - 7] ? 'border-b' : ''}
-          {inMonth ? '' : 'bg-zinc-50/70 dark:bg-zinc-900/40'}
-          {weekday(d) >= 5 && inMonth ? 'bg-zinc-50/40 dark:bg-zinc-900/20' : ''}
+          {inMonth /* fixed colors: the background-image rules (app.css, main.has-bg) must not override them */
+            ? weekday(d) >= 5
+              ? 'bg-[#fafafa] dark:bg-[#232327]'
+              : 'bg-[#ffffff] dark:bg-[#2a2a2e]'
+            : 'bg-[#f0f0f2] dark:bg-[#141416]'}
           {overDay === d ? 'bg-accent-50! dark:bg-accent-950/40!' : ''}"
         ondragover={(e) => {
           if (dragId === null) return;
@@ -104,7 +114,7 @@
         <p class="mb-0.5 flex justify-end">
           <span
             class="flex size-5 items-center justify-center rounded-full text-[11px] tabular-nums
-              {d === todayDay ? 'bg-accent-600 font-semibold text-white' : inMonth ? 'text-zinc-600 dark:text-zinc-300' : 'text-zinc-400'}">
+              {d === todayDay ? 'bg-accent-600 font-semibold text-white' : inMonth ? 'font-medium text-zinc-700 dark:text-zinc-100' : 'text-zinc-400 dark:text-zinc-600'}">
             {dayOfMonth(d)}
           </span>
         </p>

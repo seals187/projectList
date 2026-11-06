@@ -37,3 +37,15 @@ export function clearNav() {
     /* ignore */
   }
 }
+
+/** Keeps the current entry in step with silent address changes (replaceState, e.g. the overview view). */
+export function syncCurrentUrl(url: URL) {
+  const cur = navHist.h.entries[navHist.h.index];
+  if (!cur || cur.path !== url.pathname || cur.search === url.search) return;
+  navHist.h = { ...navHist.h, entries: navHist.h.entries.map((e, i) => (i === navHist.h.index ? { path: e.path, search: url.search } : e)) };
+  try {
+    sessionStorage.setItem(KEY, JSON.stringify(navHist.h));
+  } catch {
+    /* ignore */
+  }
+}

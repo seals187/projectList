@@ -19,11 +19,11 @@
   type TKey = Parameters<typeof t>[0];
   const texts = $derived<NavTexts>({
     overview: t('nav.overview'),
+    view: (v) => (['cards', 'board', 'list', 'calendar', 'timeline'].includes(v) ? t(`overview.view.${v}` as TKey) : null),
     myTasks: t('nav.myTasks'),
     customers: t('nav.customers'),
     templates: t('nav.templates'),
     settings: t('nav.settings'),
-    view: (v) => (['cards', 'board', 'list', 'calendar', 'timeline'].includes(v) ? t(`overview.view.${v}` as TKey) : null),
     settingsPage: (slug) => {
       const it = SETTINGS_NAV.find((x) => x.href === `/settings/${slug}`);
       return it ? t(it.label as TKey) : null;
@@ -179,7 +179,7 @@
         onclick={() => go(b.delta)}
         data-testid="history-item">
         {#if d.type}<EntityIcon type={d.type} size="sm" />{:else}<span class="flex size-[22px] items-center justify-center"><Icon name={d.icon ?? 'home'} size={15} class="text-zinc-500" /></span>{/if}
-        <span class="min-w-0 flex-1 truncate">{d.label}</span>
+        <span class="min-w-0 flex-1 truncate">{d.label}{#if d.sub}<span class="text-zinc-500 dark:text-zinc-400">{` · ${d.sub}`}</span>{/if}</span>
         <span class="shrink-0 text-[11px] text-zinc-400">{typeText(d)}</span>
       </button>
     {/each}

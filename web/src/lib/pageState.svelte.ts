@@ -6,6 +6,7 @@
 import { untrack } from 'svelte';
 import { page } from '$app/state';
 import { replaceState } from '$app/navigation';
+import { syncCurrentUrl } from './navHistory.svelte';
 import { session } from './state.svelte';
 import { defaults, fromQuery, initial, normQuery, toQuery, type Spec, type UrlKind, type Values } from './pageStateCore';
 
@@ -60,6 +61,7 @@ export function pageState<S extends Spec>(name: string, spec: S, ext: Record<str
       url.search = q;
       try {
         replaceState(url, page.state);
+        syncCurrentUrl(url); // history of the back bar (e.g. overview view icon)
       } catch {
         /* router not ready yet */
       }

@@ -8,6 +8,23 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unveröffentlicht]
 
+## [0.1.2] – 2026-11-07
+
+### Hinzugefügt
+
+- Übersicht „Kalender“: Kalenderwochen (ISO) in einer schmalen ersten Spalte „KW“
+
+### Geändert
+
+- Übersicht „Kalender“: Der aktuelle Monat hebt sich deutlicher ab – die Tage der Nachbarmonate sind im hellen
+  Design grauer, im dunklen Design dunkler, die Tage des Monats im dunklen Design etwas heller; Tageszahlen des
+  Monats kräftiger. Gilt auch mit Hintergrundbild
+- Übersicht „Board“: Projektnamen auf den Karten etwas kleiner (13 px), zugeklappt und aufgeklappt gleich gross
+- Übersicht „Kalender“: passt mit Zurück-Leiste und Kalenderwochen wieder ganz ins Fenster (kein Scrollen)
+- Zurück-Leiste: Die Übersicht zeigt im Verlauf das Icon und den Namen der damaligen Ansicht (z. B.
+  „Übersicht · Kalender“), im Pfad nur „Übersicht“ mit dem Ansichts-Icon; ein Ansichtswechsel aktualisiert den
+  Eintrag
+
 ## [0.1.1] – 2026-11-07
 
 ### Hinzugefügt
@@ -441,7 +458,8 @@ Erste Version.
   Code in JetBrains Mono; keine externen Anfragen
 - Checkbox links oder rechts, eckig oder rund; Codeblock-Hintergrund Hellgrau, Dunkelgrau oder Schwarz
 
-[Unveröffentlicht]: https://github.com/seals187/projectList/compare/v0.1.1...HEAD
+[Unveröffentlicht]: https://github.com/seals187/projectList/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/seals187/projectList/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/seals187/projectList/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/seals187/projectList/compare/v0.0.9...v0.1.0
 [0.0.9]: https://github.com/seals187/projectList/compare/v0.0.8...v0.0.9

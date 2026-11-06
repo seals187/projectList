@@ -45,11 +45,15 @@ export function backList(h: Hist, max = 8): { entry: HistEntry; delta: number }[
 
 // ---- Descriptions ------------------------------------------------------------------
 
-export type PageIcon = 'home' | 'tasks' | 'building2' | 'template' | 'settings';
+export type PageIcon = 'home' | 'tasks' | 'building2' | 'template' | 'settings' | 'grid' | 'columns' | 'list' | 'calendar' | 'timeline';
+
+// overview: the view is shown by its icon (cards = default, not in the URL)
+const VIEW_ICON: Record<string, PageIcon> = { cards: 'grid', board: 'columns', list: 'list', calendar: 'calendar', timeline: 'timeline' };
 export interface Described {
   label: string;
   type?: EntityType; // object page: type icon (colored)
   icon?: PageIcon; // list page: plain icon
+  sub?: string; // addition shown in the history menu (overview: name of the view)
 }
 export interface NavData {
   customers: readonly SidebarCustomer[];
@@ -57,11 +61,11 @@ export interface NavData {
 }
 export interface NavTexts {
   overview: string;
+  view: (v: string) => string | null; // name of an overview view ("Kalender")
   myTasks: string;
   customers: string;
   templates: string;
   settings: string;
-  view: (v: string) => string | null; // overview view name ("Liste")
   settingsPage: (slug: string) => string | null;
 }
 
@@ -109,7 +113,9 @@ function pageCrumbs(path: string, search: string, data: NavData, tx: NavTexts): 
     const tpl = data.templates?.find((x) => x.id === id);
     return [{ label: tx.templates, icon: 'template', href: '/templates' }, { label: tpl?.name ?? '…', type: 'template' }];
   }
-  return [describe(path, search, data, tx)];
+  // breadcrumb: without the history addition (the path shows only "Übersicht")
+  const { sub: _sub, ...d } = describe(path, search, data, tx);
+  return [d];
 }
 
 /** One line of the history menu: name and type icon / page icon. */
@@ -121,9 +127,9 @@ export function describe(path: string, search: string, data: NavData, tx: NavTex
     return { label: last.label, type: last.type };
   }
   if (path === '/') {
-    const v = new URLSearchParams(search).get('view');
-    const name = v ? tx.view(v) : null;
-    return { label: name ? `${tx.overview} · ${name}` : tx.overview, icon: 'home' };
+    const v = new URLSearchParams(search).get('view') ?? 'cards';
+    const name = tx.view(v);
+    return { label: tx.overview, icon: VIEW_ICON[v] ?? 'grid', ...(name ? { sub: name } : {}) };
   }
   if (path.startsWith('/tasks')) return { label: tx.myTasks, icon: 'tasks' };
   if (path.startsWith('/customers')) return { label: tx.customers, icon: 'building2' };

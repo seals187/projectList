@@ -276,7 +276,7 @@
               </button>
             </span>
 
-            <p class="flex items-start gap-1.5 leading-snug font-semibold break-words {filter.compact ? 'mt-1 text-[14px]' : 'mt-1.5 text-[15px]'}" title={p.name}><EntityIcon type="project" size="xs" class="mt-px" /><span class="line-clamp-2 min-w-0">{p.name}</span></p>
+            <p class="flex items-start gap-1.5 leading-snug font-semibold break-words {filter.compact ? 'mt-1 text-[13px]' : 'mt-1.5 text-[13px]'}" title={p.name}><EntityIcon type="project" size="xs" class="mt-px" /><span class="line-clamp-2 min-w-0">{p.name}</span></p>
 
             {#if !filter.compact && display.tags && tags.length}
               <!-- labels as small dots, max. two, then "+N" -->

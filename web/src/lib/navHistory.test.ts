@@ -60,11 +60,11 @@ describe('breadcrumb and history labels', () => {
   const data = { customers, templates };
   const tx: NavTexts = {
     overview: 'Übersicht',
+    view: (v) => ({ list: 'Liste', timeline: 'Zeitachse', cards: 'Karten' })[v] ?? null,
     myTasks: 'Meine Aufgaben',
     customers: 'Kunden',
     templates: 'Templates',
     settings: 'Einstellungen',
-    view: (v) => ({ list: 'Liste' })[v] ?? null,
     settingsPage: (s) => ({ appearance: 'Darstellung' })[s] ?? null
   };
 
@@ -94,7 +94,7 @@ describe('breadcrumb and history labels', () => {
 
   it('list pages and templates', () => {
     expect(crumbsFor('/customers', '', data, tx)).toEqual([home, { label: 'Kunden', icon: 'building2' }]);
-    expect(crumbsFor('/', '?view=list', data, tx)).toEqual([{ label: 'Übersicht · Liste', icon: 'home' }]); // no double "overview"
+    expect(crumbsFor('/', '?view=list', data, tx)).toEqual([{ label: 'Übersicht', icon: 'list' }]); // no double "overview"
     expect(crumbsFor('/templates/4', '', data, tx)).toEqual([
       home,
       { label: 'Templates', icon: 'template', href: '/templates' },
@@ -104,7 +104,9 @@ describe('breadcrumb and history labels', () => {
 
   it('history entries: object name with type, pages with view / sub page', () => {
     expect(describeEntry('/projects/2', '', data, tx)).toEqual({ label: 'New OBP SRV', type: 'project' });
-    expect(describeEntry('/', '?view=list', data, tx)).toEqual({ label: 'Übersicht · Liste', icon: 'home' });
+    expect(describeEntry('/', '?view=list', data, tx)).toEqual({ label: 'Übersicht', icon: 'list', sub: 'Liste' });
+    expect(describeEntry('/', '?view=timeline&q=x', data, tx)).toEqual({ label: 'Übersicht', icon: 'timeline', sub: 'Zeitachse' });
+    expect(describeEntry('/', '', data, tx)).toEqual({ label: 'Übersicht', icon: 'grid', sub: 'Karten' }); // cards = default
     expect(describeEntry('/settings/appearance', '', data, tx)).toEqual({ label: 'Einstellungen · Darstellung', icon: 'settings' });
     expect(describeEntry('/tasks', '', data, tx)).toEqual({ label: 'Meine Aufgaben', icon: 'tasks' });
   });
