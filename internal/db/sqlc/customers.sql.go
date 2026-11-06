@@ -7,18 +7,21 @@ package sqlc
 
 import (
 	"context"
+
+	"github.com/seals187/projectList/internal/dbtypes"
 )
 
 const createCustomer = `-- name: CreateCustomer :one
-INSERT INTO customers (name, notes, location, contact_name, contact_email) VALUES (?, ?, ?, ?, ?) RETURNING id, name, notes, created_at, location, contact_name, contact_email, background
+INSERT INTO customers (name, notes, location, contact_name, contact_email, phones) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, name, notes, created_at, location, contact_name, contact_email, background, phones
 `
 
 type CreateCustomerParams struct {
-	Name         string `json:"name"`
-	Notes        string `json:"notes"`
-	Location     string `json:"location"`
-	ContactName  string `json:"contact_name"`
-	ContactEmail string `json:"contact_email"`
+	Name         string           `json:"name"`
+	Notes        string           `json:"notes"`
+	Location     string           `json:"location"`
+	ContactName  string           `json:"contact_name"`
+	ContactEmail string           `json:"contact_email"`
+	Phones       dbtypes.JSONText `json:"phones"`
 }
 
 func (q *Queries) CreateCustomer(ctx context.Context, arg CreateCustomerParams) (Customer, error) {
@@ -28,6 +31,7 @@ func (q *Queries) CreateCustomer(ctx context.Context, arg CreateCustomerParams) 
 		arg.Location,
 		arg.ContactName,
 		arg.ContactEmail,
+		arg.Phones,
 	)
 	var i Customer
 	err := row.Scan(
@@ -39,6 +43,7 @@ func (q *Queries) CreateCustomer(ctx context.Context, arg CreateCustomerParams) 
 		&i.ContactName,
 		&i.ContactEmail,
 		&i.Background,
+		&i.Phones,
 	)
 	return i, err
 }
@@ -53,7 +58,7 @@ func (q *Queries) DeleteCustomer(ctx context.Context, id int64) error {
 }
 
 const getCustomer = `-- name: GetCustomer :one
-SELECT id, name, notes, created_at, location, contact_name, contact_email, background FROM customers WHERE id = ?
+SELECT id, name, notes, created_at, location, contact_name, contact_email, background, phones FROM customers WHERE id = ?
 `
 
 func (q *Queries) GetCustomer(ctx context.Context, id int64) (Customer, error) {
@@ -68,6 +73,7 @@ func (q *Queries) GetCustomer(ctx context.Context, id int64) (Customer, error) {
 		&i.ContactName,
 		&i.ContactEmail,
 		&i.Background,
+		&i.Phones,
 	)
 	return i, err
 }
@@ -117,7 +123,7 @@ func (q *Queries) ListCustomerActivity(ctx context.Context, userID interface{}) 
 
 const listCustomers = `-- name: ListCustomers :many
 
-SELECT id, name, notes, created_at, location, contact_name, contact_email, background FROM customers c
+SELECT id, name, notes, created_at, location, contact_name, contact_email, background, phones FROM customers c
 WHERE (?1 IS NULL
        OR c.id IN (SELECT m.customer_id FROM memberships m WHERE m.user_id = ?1))
 ORDER BY c.name COLLATE NOCASE, c.id
@@ -142,6 +148,7 @@ func (q *Queries) ListCustomers(ctx context.Context, userID interface{}) ([]Cust
 			&i.ContactName,
 			&i.ContactEmail,
 			&i.Background,
+			&i.Phones,
 		); err != nil {
 			return nil, err
 		}
@@ -199,16 +206,17 @@ func (q *Queries) SearchCustomers(ctx context.Context, arg SearchCustomersParams
 }
 
 const updateCustomer = `-- name: UpdateCustomer :one
-UPDATE customers SET name = ?, notes = ?, location = ?, contact_name = ?, contact_email = ? WHERE id = ? RETURNING id, name, notes, created_at, location, contact_name, contact_email, background
+UPDATE customers SET name = ?, notes = ?, location = ?, contact_name = ?, contact_email = ?, phones = ? WHERE id = ? RETURNING id, name, notes, created_at, location, contact_name, contact_email, background, phones
 `
 
 type UpdateCustomerParams struct {
-	Name         string `json:"name"`
-	Notes        string `json:"notes"`
-	Location     string `json:"location"`
-	ContactName  string `json:"contact_name"`
-	ContactEmail string `json:"contact_email"`
-	ID           int64  `json:"id"`
+	Name         string           `json:"name"`
+	Notes        string           `json:"notes"`
+	Location     string           `json:"location"`
+	ContactName  string           `json:"contact_name"`
+	ContactEmail string           `json:"contact_email"`
+	Phones       dbtypes.JSONText `json:"phones"`
+	ID           int64            `json:"id"`
 }
 
 func (q *Queries) UpdateCustomer(ctx context.Context, arg UpdateCustomerParams) (Customer, error) {
@@ -218,6 +226,7 @@ func (q *Queries) UpdateCustomer(ctx context.Context, arg UpdateCustomerParams) 
 		arg.Location,
 		arg.ContactName,
 		arg.ContactEmail,
+		arg.Phones,
 		arg.ID,
 	)
 	var i Customer
@@ -230,6 +239,7 @@ func (q *Queries) UpdateCustomer(ctx context.Context, arg UpdateCustomerParams) 
 		&i.ContactName,
 		&i.ContactEmail,
 		&i.Background,
+		&i.Phones,
 	)
 	return i, err
 }

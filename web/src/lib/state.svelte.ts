@@ -1,16 +1,17 @@
-import type { Favorite, ProjectStatus, SidebarCustomer, Tag, User } from './types';
+import type { Favorite, FavoriteGroup, ProjectStatus, SidebarCustomer, Tag, User } from './types';
 import { applyFonts, DEFAULT_FONT, FONT_IDS, type FontId, type HeadingFont } from './fonts';
 import { CUSTOMER_SORTS, type CustomerSort } from './customers';
 import { applyAppearance, parseTheme, readAppearance, UI_PREF_KEYS, type Accent, type Density, type ThemeChoice, type UiPrefKey } from './appearance';
 
 // Global state (Svelte 5 runes).
 
-export const session = $state<{ user: User | null; ready: boolean; subtitle: string }>({ user: null, ready: false, subtitle: '' });
+export const session = $state<{ user: User | null; ready: boolean; subtitle: string; version: string }>({ user: null, ready: false, subtitle: '', version: '' });
 
 export const sidebar = $state<{
   customers: SidebarCustomer[];
   myTasks: number;
-  favorites: Favorite[]; // customers, projects, checklists (DB, per user, in the order added)
+  favorites: Favorite[]; // customers, projects, checklists, templates (DB, per user)
+  favoriteGroups: FavoriteGroup[]; // user-defined favorites groups (DB, per user)
   tags: Tag[]; // tag catalog (global)
   statusLabels: Partial<Record<ProjectStatus, string>>; // custom status names (global, set by admins)
   statusColors: Partial<Record<ProjectStatus, string>>; // custom status colors #rrggbb (global, set by admins)
@@ -24,6 +25,7 @@ export const sidebar = $state<{
   customers: [],
   myTasks: 0,
   favorites: [],
+  favoriteGroups: [],
   tags: [],
   statusLabels: {},
   statusColors: {},
@@ -125,6 +127,7 @@ export function refreshSidebar(delay = 400) {
         customers: SidebarCustomer[];
         my_tasks: number;
         favorites: Favorite[];
+        favorite_groups?: FavoriteGroup[];
         tags: Tag[];
         status_labels: Partial<Record<ProjectStatus, string>>;
         status_colors?: Partial<Record<ProjectStatus, string>>;
@@ -135,6 +138,7 @@ export function refreshSidebar(delay = 400) {
       sidebar.customers = r.customers;
       sidebar.myTasks = r.my_tasks;
       sidebar.favorites = r.favorites ?? [];
+      sidebar.favoriteGroups = r.favorite_groups ?? [];
       sidebar.tags = r.tags ?? [];
       sidebar.statusLabels = r.status_labels ?? {};
       sidebar.statusColors = r.status_colors ?? {};

@@ -4,7 +4,7 @@
     id: FilterId;
     label: string;
     color?: string; // colored dot (labels)
-    code?: { text: string; cls: string }; // customer code
+    entity?: import('$lib/entityTypes').EntityType; // type icon (e.g. customers)
     avatar?: boolean; // person: avatar from label + id
   }
 

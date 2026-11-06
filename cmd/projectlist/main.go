@@ -114,7 +114,7 @@ func serve(cfg config.Config, log *slog.Logger) error {
 	srv := &http.Server{
 		Addr: cfg.ListenAddr,
 		Handler: httpapi.New(httpapi.Options{
-			DB: database, DBPath: cfg.DBPath, Sessions: sessions, Logger: log, Static: staticHandler, Subtitle: cfg.AppSubtitle,
+			DB: database, DBPath: cfg.DBPath, Sessions: sessions, Logger: log, Static: staticHandler, Subtitle: cfg.AppSubtitle, Version: version,
 			Mailer: &mail.SMTP{Cfg: cfg.SMTP}, AppURL: cfg.AppURL,
 		}),
 		ReadHeaderTimeout: 5 * time.Second,

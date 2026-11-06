@@ -1,7 +1,8 @@
 <script lang="ts">
   // Activity log of a project (newest first): avatar, person, what, when.
   import { fmtDateTime, shortName, t } from '$lib/i18n.svelte';
-  import { activityText, groupActivity, relativeTime } from '$lib/activity';
+  import { activityText, activityType, groupActivity, relativeTime } from '$lib/activity';
+  import EntityIcon from './EntityIcon.svelte';
   import type { ActivityEntry } from '$lib/types';
   import Avatar from './Avatar.svelte';
 
@@ -26,6 +27,7 @@
         {:else}
           <span class="flex shrink-0 items-center justify-center rounded-full bg-zinc-200 text-[10px] text-zinc-500 dark:bg-zinc-800" style:width="{compact ? 20 : 24}px" style:height="{compact ? 20 : 24}px">?</span>
         {/if}
+        <EntityIcon type={activityType(a.kind)} size="xs" class="mt-0.5" />
         <p class="min-w-0 flex-1 text-sm leading-snug {compact ? 'text-[13px]' : ''}">
           <span class="font-semibold">{a.user_id ? shortName(a.user_name) : t('activity.deletedUser')}</span>
           <span class="text-zinc-600 dark:text-zinc-300">{activityText(a)}</span>

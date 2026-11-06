@@ -5,10 +5,11 @@
 export interface SettingsNavItem {
   id: string;
   href: string; // path, optionally with #anchor
-  icon: 'user' | 'palette' | 'type' | 'clipboard' | 'home' | 'tag' | 'users' | 'database';
+  icon: 'user' | 'palette' | 'type' | 'clipboard' | 'home' | 'tag' | 'users' | 'database' | 'info';
   label: string; // i18n key
   keys: string[]; // i18n keys of further search terms
   admin?: boolean;
+  bottom?: boolean; // shown at the very bottom (About)
 }
 
 export const SETTINGS_NAV: readonly SettingsNavItem[] = [
@@ -19,7 +20,8 @@ export const SETTINGS_NAV: readonly SettingsNavItem[] = [
   { id: 'overview', href: '/settings/overview', icon: 'home', label: 'set.nav.overview', keys: ['settings.defaultView'] },
   { id: 'tags', href: '/settings/tags', icon: 'tag', label: 'set.nav.tags', keys: ['tags.title', 'tags.color'], admin: true },
   { id: 'users', href: '/settings/users', icon: 'users', label: 'set.nav.users', keys: ['common.role', 'set.users.invite', 'set.users.access', 'set.users.resetPassword'], admin: true },
-  { id: 'backup', href: '/settings/backup', icon: 'database', label: 'set.nav.backup', keys: ['settings.backupDownload', 'set.restore.title'], admin: true }
+  { id: 'backup', href: '/settings/backup', icon: 'database', label: 'set.nav.backup', keys: ['settings.backupDownload', 'set.restore.title'], admin: true },
+  { id: 'about', href: '/settings/about', icon: 'info', label: 'set.nav.about', keys: ['set.about.version', 'set.about.source'], bottom: true }
 ];
 
 const norm = (s: string) =>

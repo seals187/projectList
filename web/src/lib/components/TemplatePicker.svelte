@@ -5,6 +5,7 @@
   import { t } from '$lib/i18n.svelte';
   import { htmlToText } from '$lib/rich';
   import type { Checklist, Template, TemplateItem, TemplateSummary } from '$lib/types';
+  import EntityIcon from './EntityIcon.svelte';
 
   let { projectId, oncreated, oncancel }: { projectId: number; oncreated: (c: Checklist) => void; oncancel: () => void } =
     $props();
@@ -70,7 +71,7 @@
               class="flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-left text-sm {selected === tpl.id
                 ? 'bg-accent-50 text-accent-700 dark:bg-accent-950/60 dark:text-accent-400'
                 : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'}">
-              <span class="truncate">{tpl.name}</span>
+              <span class="flex min-w-0 items-center gap-2"><EntityIcon type="template" size="xs" /><span class="truncate">{tpl.name}</span></span>
               <span class="text-xs text-zinc-400 tabular-nums">{tpl.item_count}</span>
             </button>
           </li>

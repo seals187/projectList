@@ -8,6 +8,79 @@ die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
 
 ## [Unveröffentlicht]
 
+## [0.1.1] – 2026-11-07
+
+### Hinzugefügt
+
+- Einheitliche Typ-Icons und -Farben für Kunden (grün, Gebäude), Projekte (blau, Ordner), Checklisten (violett,
+  Liste) und Templates (orange, Dokument) – in Seitenleiste, Suche (Ctrl K), Breadcrumbs, Kopfbereich der
+  Seiten, Übersicht (Karten, Liste, Board), Kundenliste, Meine Aufgaben, Aktivitätslog, Template-Bibliothek und
+  Template-Auswahl; im dunklen Design eigene Farben
+- Favoriten neu: zweizeilige Einträge mit Typ-Icon, Name und „Typ · Kontext“ (Projekt → Kunde, Checkliste →
+  Projekt, Kunde → Anzahl Projekte, Template → Anzahl Einträge); eigene Gruppen mit Lesezeichen-Icon und Anzahl,
+  einklappbar (pro Benutzer gespeichert); Rechtsklick bzw. langes Drücken: Öffnen, In neuem Tab öffnen, In
+  Gruppe verschieben (auch in eine neue Gruppe), Aus Favoriten entfernen; Gruppen umbenennen und löschen
+  (Einträge wandern nach „Ohne Gruppe“); Drag & Drop innerhalb und zwischen Gruppen
+- Templates lassen sich als Favorit speichern (Stern im Kopf der Template-Seite)
+- Zurück-Leiste über jeder Seite: Zurück und Vorwärts sowie der Pfad der aktuellen Seite mit Typ-Icons (z. B.
+  Übersicht / Kunden / Kunde / Projekt / Checkliste, jeweils anklickbar; die Übersicht als Startseite steht immer
+  vorne). Langes Drücken auf ← oder Alt+← zeigt den Verlauf
+  („Zurück zu“ mit Typ bzw. „Seite“), bedienbar auch mit Pfeiltasten und Enter, mit Papierkorb zum Löschen des
+  Verlaufs; der Verlauf zeigt alle besuchten Seiten, auch die Hauptseiten und die Einstellungen mit Unterseite
+  (z. B. „Einstellungen · Darstellung“); er bleibt beim Neuladen
+  des Tabs erhalten. Die bisherigen Pfadangaben in den Seitenköpfen entfallen
+- Checklisten als Tabs: Jede geöffnete Checkliste erscheint als Tab über der Checkliste (Typ-Icon, Name,
+  Fortschritt, roter Punkt bei überfälligen Einträgen). Klick wechselt, ✕ oder mittlere Maustaste schliesst
+  (danach der Nachbar-Tab), „+“ sucht und öffnet eine weitere Checkliste, Tabs lassen sich per Drag & Drop
+  umsortieren; die Tabs bleiben pro Benutzer im Browser gespeichert (max. 12)
+- Kunden: Telefonnummern (mehrere, jeweils mit Bezeichnung wie „Zentrale“ oder „Mobil“) auf der Kundenseite;
+  im Bearbeiten-Modus hinzufügen, ändern und entfernen, sonst als anklickbare Telefon-Links (Migration 00023)
+- Einstellungen → „Über“ (ganz unten in der Navigation): aktuelle Version, Link zum GitHub-Repository und zu
+  den Release-Notizen
+
+### Geändert
+
+- Favoriten werden nur noch über den Stern im Kopfbereich von Kunde, Projekt, Checkliste und Template gesetzt
+  (nicht mehr auf Board-Karten und in den Kontextmenüs); in der Favoritenliste gibt es keinen Stern mehr
+- „Kunden“ in der Seitenleiste und im Kopf der Kundenliste: Gebäude-Icon (ohne Farbe) wie das Kunden-Typ-Icon
+- Kunden zeigen überall das Kunden-Icon statt des Kürzels („AB“): Kopf der Kundenseite, Übersicht (Karten,
+  Liste, Board, Kalender, Zeitachse), Meine Aufgaben, Kundenliste (Liste und Karten), Kundenfilter,
+  Kontextmenüs, Projektseite und Benutzerverwaltung
+- Checklisten: Trennlinien deutlich dunkler (wie Rahmenlinien in Excel), auch zur Notizen-Spalte
+- Ein zweiter Klick auf den eigenen Namen unten links schliesst die Einstellungen wieder und führt zurück zur
+  vorher geöffneten Seite
+- Übersicht „Zeitachse“: Ansichten „Diese Woche“ (Mo–So), „14 Tage“ und „30 Tage“ (ab heute) sowie „Monate“;
+  die Tage nutzen die ganze Breite, die Pfeile springen um eine Ansichtslänge, die gewählte Ansicht bleibt
+  gespeichert (pro Browser). Balken, die vor dem sichtbaren Bereich beginnen, zeigen ihren Namen am linken Rand
+- Projektseite: „Letzte Aktivität“ zeigt nur den neuesten Eintrag und lässt sich aufklappen (dann die letzten
+  fünf); das Feld „Easy Redmine“ ist aus den Eigenschaften entfernt (eine gespeicherte Ticket-Nummer bleibt in
+  der Datenbank erhalten)
+
+### Behoben
+
+- Übersicht: Die Kästen (Karten, Liste, Board-Spalten) waren runder als auf Meine Aufgaben, Kunden und Templates;
+  jetzt haben alle dieselben Ecken
+- Mit Hintergrundbild und Glas-Effekt waren die farbigen Typ-Icons in Seitenleiste und Leisten zu kräftig; sie
+  sind dort jetzt dezent getönt
+- Dunkles Design mit Hintergrundbild: Checklisten, Template-Editor und Einstellungen waren leicht
+  durchscheinend; ihr Inhaltsbereich ist jetzt deckend
+- Eingabefelder in Menüs (z. B. „Neue Gruppe …“ bei den Favoriten) bekamen beim Öffnen keinen Fokus
+- Hintergrundbild mit ausgeschaltetem Glas-Effekt: Seitenleiste, Zurück-Leiste und Kopfband von Kunden- und
+  Projektseiten waren auch im hellen Design dunkel; sie sehen jetzt aus wie ohne Hintergrundbild (hell bzw. dunkel)
+- Kopfband (Übersicht, Meine Aufgaben, Kunden, Templates): Bei einer Schriftgrösse ungleich 100 % waren die
+  Bänder mit Schnellfilter-Chips (Meine Aufgaben, Kunden) etwas höher als die anderen; jetzt sind alle gleich hoch
+- Übersicht (und Meine Aufgaben, Kunden, Templates): Nach dem Wechsel zurück auf eine Standardeinstellung (z. B.
+  von „Zeitachse“ zurück auf „Karten“) blieb die alte Einstellung in der Adresse stehen; ein Neuladen der Seite
+  sprang deshalb wieder auf die vorherige Ansicht
+- Checklisten mit Trennlinien: Die senkrechte Linie zur Notizen-Spalte lag bei Überschriften (H1–H4) 1 px weiter
+  rechts als bei Zeilen mit Checkbox
+- Gruppen und Reihenfolge der Favoriten liegen jetzt in der Datenbank (Migration 00022); bestehende Ordner
+  werden automatisch übernommen
+
+- Checklisten und Templates: Die Bedienelemente einer Zeile (links „+“ und Verschiebe-Griff, rechts Status,
+  Person, Fälligkeit, Farbe) haben im hellen und dunklen Design deutlich mehr Kontrast; der Griff ist etwas
+  grösser
+
 ## [0.1.0] – 2026-11-06
 
 ### Hinzugefügt
@@ -368,7 +441,8 @@ Erste Version.
   Code in JetBrains Mono; keine externen Anfragen
 - Checkbox links oder rechts, eckig oder rund; Codeblock-Hintergrund Hellgrau, Dunkelgrau oder Schwarz
 
-[Unveröffentlicht]: https://github.com/seals187/projectList/compare/v0.1.0...HEAD
+[Unveröffentlicht]: https://github.com/seals187/projectList/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/seals187/projectList/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/seals187/projectList/compare/v0.0.9...v0.1.0
 [0.0.9]: https://github.com/seals187/projectList/compare/v0.0.8...v0.0.9
 [0.0.8]: https://github.com/seals187/projectList/compare/v0.0.7...v0.0.8

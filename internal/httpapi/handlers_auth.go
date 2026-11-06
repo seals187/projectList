@@ -15,6 +15,7 @@ type sessionResp struct {
 	User      authz.User `json:"user"`
 	CSRFToken string     `json:"csrf_token"`
 	Subtitle  string     `json:"app_subtitle"`
+	Version   string     `json:"version"`
 }
 
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
@@ -70,6 +71,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		User:      authz.User{ID: user.ID, Email: user.Email, Name: user.Name, Role: user.Role},
 		CSRFToken: csrf,
 		Subtitle:  s.subtitle,
+		Version:   s.version,
 	})
 }
 
@@ -83,7 +85,7 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request, _ authz.User) er
 }
 
 func (s *Server) me(w http.ResponseWriter, r *http.Request, u authz.User) error {
-	writeJSON(w, http.StatusOK, sessionResp{User: u, CSRFToken: identityFrom(r.Context()).CSRFToken, Subtitle: s.subtitle})
+	writeJSON(w, http.StatusOK, sessionResp{User: u, CSRFToken: identityFrom(r.Context()).CSRFToken, Subtitle: s.subtitle, Version: s.version})
 	return nil
 }
 

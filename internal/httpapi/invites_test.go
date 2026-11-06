@@ -302,12 +302,8 @@ func TestAppSettingsMailAndRedmineTest(t *testing.T) {
 	if ui, ok := pr.Prefs["ui"].(map[string]any); !ok || ui["accent"] != "teal" {
 		t.Fatalf("ui pref: %+v", pr.Prefs)
 	}
-	// order and folders of the sidebar favorites
+	// order and folders of the saved views; favorites use their own tables (no pref any more)
 	layout := []any{map[string]any{"t": "f", "id": "x", "name": "Kunden", "open": true, "items": []string{"customer:1"}}}
-	expect(t, "fav_layout pref", member.do("PUT", "/api/prefs/fav_layout", layout, nil), 204)
-	member.do("GET", "/api/sidebar", nil, &pr)
-	if fl, ok := pr.Prefs["fav_layout"].([]any); !ok || len(fl) != 1 {
-		t.Fatalf("fav_layout pref: %+v", pr.Prefs)
-	}
+	expect(t, "fav_layout pref gibt es nicht mehr", member.do("PUT", "/api/prefs/fav_layout", layout, nil), 404)
 	expect(t, "views_layout pref", member.do("PUT", "/api/prefs/views_layout", layout, nil), 204)
 }

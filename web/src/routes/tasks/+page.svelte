@@ -9,7 +9,7 @@
   import { api, errorText } from '$lib/api';
   import { refreshSidebar, session, sidebar, toast } from '$lib/state.svelte';
   import { locale, t, todayISO, withoutText } from '$lib/i18n.svelte';
-  import { barCls, customerCode, customerLabel, customerProgress, customerTone, daysUntil, statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
+  import { barCls, customerLabel, customerProgress, daysUntil, statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
   import { pct } from '$lib/overview';
   import { addPageView } from '$lib/overviewFilter.svelte';
   import { allCollapsed } from '$lib/pageStateCore';
@@ -21,6 +21,7 @@
   import TaskList from '$lib/components/TaskList.svelte';
   import ProgressToggle from '$lib/components/ProgressToggle.svelte';
   import Icon from '$lib/components/Icon.svelte';
+  import EntityIcon from '$lib/components/EntityIcon.svelte';
   import { page } from '$app/state';
 
   type Tab = 'customers' | 'personal';
@@ -159,7 +160,7 @@
       items: (tab === 'personal' ? sidebar.customers.filter((c) => personalSrc.some((x) => x.customer_id === c.id)) : mine.map((g) => g.customer)).map((c) => ({
         id: c.id,
         label: c.name,
-        code: { text: customerCode(c.name), cls: customerTone(c.id) }
+        entity: 'customer' as const
       })),
       value: ps.cust,
       onchange: (v: FilterId[] | null) => (ps.cust = v)
@@ -232,7 +233,7 @@
         {@const open = !closedSet.has(g.customer.id)}
         <section class="rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
           <header class="flex items-center gap-3">
-            <span class="flex size-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold {customerTone(g.customer.id)}">{customerCode(g.customer.name)}</span>
+            <EntityIcon type="customer" size="lg" />
             <div class="min-w-0 flex-1">
               <a href="/customers/{g.customer.id}" class="block truncate text-[15px] font-semibold hover:underline">{customerLabel(g.customer.name)}</a>
               <p class="text-xs text-zinc-500">{t('tasks.counts', { p: g.projects.length, c: g.checklists })}</p>
@@ -275,7 +276,7 @@
                       <Icon name="chevron" size={13} class="transition-transform {pOpen ? 'rotate-90' : ''}" />
                     </span>
                     <span class="flex min-w-0 items-center gap-2">
-                      <Icon name="folder" size={15} class="text-zinc-400" />
+                      <EntityIcon type="project" size="sm" />
                       <span class="truncate font-semibold {muted ? 'text-zinc-400 dark:text-zinc-500' : ''}">{p.name}</span>
                       <span class="badge shrink-0 {statusBadgeCls(p.status)}" style={statusBadgeStyle(p.status)}>{statusLabel(p.status)}</span>
                       {#if isOwner(p)}
@@ -304,7 +305,7 @@
                         {@const due = cl.next_due && clOpen(cl) ? dueLabel(cl.next_due) : null}
                         <li>
                           <a href="/checklists/{cl.id}" class="{rowCols} rounded-lg px-1 py-1.5 text-sm hover:bg-accent-50/60 dark:hover:bg-accent-950/30">
-                            <Icon name="fileText" size={15} class="justify-self-center text-zinc-400" />
+                            <EntityIcon type="checklist" size="xs" class="justify-self-center" />
                             <span class="truncate">{cl.title}</span>
                             <span class="flex items-center gap-2.5">
                               <span class="h-1.5 flex-1 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-800">

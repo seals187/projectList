@@ -82,3 +82,6 @@ export function relativeTime(iso: string): string {
   return then.toLocaleDateString(locale(), { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+
+/** Object type an activity is about (type icon in the log). */
+export const activityType = (kind: string): 'checklist' | 'project' => (kind.startsWith('checklist') || kind === 'item_done' ? 'checklist' : 'project');

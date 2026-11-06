@@ -6,7 +6,7 @@
   // Right click on a project or the customer opens the same menus as on the board.
   import { t } from '$lib/i18n.svelte';
   import { openCustomers, toggleCustomer } from '$lib/overviewOpen.svelte';
-  import { customerCode, customerTone, statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
+  import { statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
   import { dueUrgent, pct, type OvCustomer, type OvProject } from '$lib/overview';
   import { setBoardHidden, sidebar } from '$lib/state.svelte';
   import { tagsByIds } from '$lib/tags';
@@ -16,6 +16,7 @@
   import ProjectMenu from './ProjectMenu.svelte';
   import CustomerMenu from './CustomerMenu.svelte';
   import Icon from './Icon.svelte';
+  import EntityIcon from './EntityIcon.svelte';
   import TagDots from './TagDots.svelte';
   import { dayMonth } from '$lib/listMetrics';
 
@@ -84,7 +85,7 @@
   {#each cards as g (g.customer.id)}
     {@const open = openCustomers.has(g.customer.id)}
     <section
-      class="flex flex-col rounded-2xl border bg-white p-4 shadow-xs dark:bg-zinc-900/40
+      class="flex flex-col rounded-xl border bg-white p-4 shadow-xs dark:bg-zinc-900/40
         {g.overdue ? 'border-red-300 dark:border-red-500/50' : 'border-zinc-200 dark:border-zinc-800'}"
       aria-label={g.customer.name}>
       <!-- customer -->
@@ -98,7 +99,7 @@
           aria-label="{t(open ? 'overview.hideProjects' : 'overview.showProjects')}: {g.customer.name}">
           <Icon name="chevronDown" size={16} class="transition-transform {open ? '' : '-rotate-90'}" />
         </button>
-        <a href="/customers/{g.customer.id}" class="flex size-11 shrink-0 items-center justify-center rounded-xl text-base font-bold {customerTone(g.customer.id)}">{customerCode(g.customer.name)}</a>
+        <a href="/customers/{g.customer.id}" class="shrink-0" aria-label={g.customer.name}><EntityIcon type="customer" size="lg" /></a>
         <div class="min-w-0 flex-1">
           <a href="/customers/{g.customer.id}" class="block truncate text-[15px] font-semibold hover:underline">{g.customer.name}</a>
           <p class="truncate text-xs text-zinc-500">
@@ -118,7 +119,7 @@
               <a href="/projects/{p.id}" class="group relative -mx-2 block rounded-lg px-2 py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/50" oncontextmenu={(e) => projectMenu(e, p)}>
                 <!-- line 1: folder, name … status pill on the right -->
                 <span class="flex items-start gap-2">
-                  <Icon name="folder" size={15} class="mt-0.5 shrink-0 text-zinc-400" />
+                  <EntityIcon type="project" size="xs" class="mt-px" />
                   <span class="line-clamp-2 min-w-0 flex-1 text-sm leading-snug font-bold break-words" title={p.name}>{p.name}</span>
                   <span class="badge shrink-0 rounded-full! px-2.5! whitespace-nowrap {statusBadgeCls(p.status)}" style={statusBadgeStyle(p.status)}>{statusLabel(p.status)}</span>
                 </span>

@@ -6,6 +6,8 @@ package sqlc
 
 import (
 	"time"
+
+	"github.com/seals187/projectList/internal/dbtypes"
 )
 
 type AppSetting struct {
@@ -56,14 +58,24 @@ type ChecklistTemplate struct {
 }
 
 type Customer struct {
-	ID           int64     `json:"id"`
-	Name         string    `json:"name"`
-	Notes        string    `json:"notes"`
-	CreatedAt    time.Time `json:"created_at"`
-	Location     string    `json:"location"`
-	ContactName  string    `json:"contact_name"`
-	ContactEmail string    `json:"contact_email"`
-	Background   string    `json:"background"`
+	ID           int64            `json:"id"`
+	Name         string           `json:"name"`
+	Notes        string           `json:"notes"`
+	CreatedAt    time.Time        `json:"created_at"`
+	Location     string           `json:"location"`
+	ContactName  string           `json:"contact_name"`
+	ContactEmail string           `json:"contact_email"`
+	Background   string           `json:"background"`
+	Phones       dbtypes.JSONText `json:"phones"`
+}
+
+type FavoriteGroup struct {
+	ID        int64     `json:"id"`
+	UserID    int64     `json:"user_id"`
+	Name      string    `json:"name"`
+	Position  int64     `json:"position"`
+	Collapsed bool      `json:"collapsed"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type Membership struct {
@@ -170,6 +182,8 @@ type UserFavorite struct {
 	UserID    int64     `json:"user_id"`
 	Kind      string    `json:"kind"`
 	TargetID  int64     `json:"target_id"`
+	GroupID   *int64    `json:"group_id"`
+	Position  int64     `json:"position"`
 	CreatedAt time.Time `json:"created_at"`
 }
 

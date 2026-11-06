@@ -94,10 +94,10 @@ func TestRestore(t *testing.T) {
 		content []byte
 		code    string
 	}{
-		"keine sqlite-datei":  {[]byte("hello world, no database"), "restore_not_sqlite"},
-		"fremde datenbank":    {tamper(t, backup, "DROP TABLE goose_db_version"), "restore_not_projectlist"},
-		"neuere version":      {tamper(t, backup, "INSERT INTO goose_db_version (version_id, is_applied) VALUES (99999, 1)"), "restore_newer"},
-		"ohne admin":          {tamper(t, backup, "UPDATE users SET role = 'member'"), "restore_no_admin"},
+		"keine sqlite-datei":   {[]byte("hello world, no database"), "restore_not_sqlite"},
+		"fremde datenbank":     {tamper(t, backup, "DROP TABLE goose_db_version"), "restore_not_projectlist"},
+		"neuere version":       {tamper(t, backup, "INSERT INTO goose_db_version (version_id, is_applied) VALUES (99999, 1)"), "restore_newer"},
+		"ohne admin":           {tamper(t, backup, "UPDATE users SET role = 'member'"), "restore_no_admin"},
 		"abgeschnittene datei": {backup[:len(backup)/2], ""},
 	} {
 		st, res := admin.restoreUpload(tc.content)

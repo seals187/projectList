@@ -62,6 +62,33 @@ html[data-accent='pink'] {
   --color-accent-900: oklch(40.8% 0.153 2.432); --color-accent-950: oklch(28.4% 0.109 3.907);
 }
 
+/* Object types (EntityIcon, $lib/entityTypes.ts): box background and icon color.
+   Dark variants also inside a .dark container (e.g. the glass sidebar over an image). */
+:root {
+  --type-customer-bg: #ecfdf5; --type-customer-fg: #047857;
+  --type-project-bg: #eff6ff; --type-project-fg: #1d4ed8;
+  --type-checklist-bg: #f5f3ff; --type-checklist-fg: #6d28d9;
+  --type-template-bg: #fff7ed; --type-template-fg: #c2410c;
+  --type-saved-view-bg: transparent; --type-saved-view-fg: #9ca3af;
+  --type-fav-group-bg: transparent; --type-fav-group-fg: #9ca3af;
+}
+.dark {
+  --type-customer-bg: #0f2e27; --type-customer-fg: #6ee7b7;
+  --type-project-bg: #172340; --type-project-fg: #93c5fd;
+  --type-checklist-bg: #261a45; --type-checklist-fg: #c4b5fd;
+  --type-template-bg: #3a1d0c; --type-template-fg: #fdba74;
+  --type-saved-view-bg: transparent; --type-saved-view-fg: #a1a1aa;
+  --type-fav-group-bg: transparent; --type-fav-group-fg: #a1a1aa;
+}
+/* inside the glass chrome over a background image (sidebar, bars): soft tinted boxes instead
+   of strong colors */
+.glass-bar.dark {
+  --type-customer-bg: rgb(110 231 183 / 0.14); --type-customer-fg: #a7f3d0;
+  --type-project-bg: rgb(147 197 253 / 0.14); --type-project-fg: #bfdbfe;
+  --type-checklist-bg: rgb(196 181 253 / 0.16); --type-checklist-fg: #ddd6fe;
+  --type-template-bg: rgb(253 186 116 / 0.14); --type-template-fg: #fed7aa;
+}
+
 /* Density (Settings → Appearance): --dens scales the row padding of lists,
    --dens-px the vertical padding of checklist rows. */
 :root { --dens: 1; --dens-px: 3px; }
@@ -169,7 +196,7 @@ html[data-heading='sans'] { --font-serif: var(--font-sans); }
   @apply truncate text-[12.5px] text-zinc-500 dark:text-zinc-400;
 }
 @utility ph-strip {
-  @apply mt-3.5 flex items-center overflow-x-auto rounded-[11px] bg-white px-2 py-[7px] whitespace-nowrap dark:bg-zinc-900;
+  @apply mt-3.5 flex items-center overflow-x-auto rounded-[11px] bg-white px-2 py-[0.4375rem] whitespace-nowrap dark:bg-zinc-900;
 }
 @utility ph-ctl {
   @apply inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[9px] border border-[#e3e6eb] px-2.5 text-[12.5px] whitespace-nowrap text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-zinc-600 dark:hover:bg-zinc-800;
@@ -178,19 +205,19 @@ html[data-heading='sans'] { --font-serif: var(--font-sans); }
   @apply border-accent-400/60 bg-accent-50 text-accent-800 dark:border-accent-500/40 dark:bg-accent-950/40 dark:text-accent-300;
 }
 @utility ph-primary {
-  @apply inline-flex h-[34px] shrink-0 items-center gap-1.5 rounded-[9px] bg-[var(--accent-primary)] px-3.5 text-[13px] font-semibold whitespace-nowrap text-white shadow-xs hover:bg-[var(--accent-primary-hover)];
+  @apply inline-flex h-[2.125rem] shrink-0 items-center gap-1.5 rounded-[9px] bg-[var(--accent-primary)] px-3.5 text-[13px] font-semibold whitespace-nowrap text-white shadow-xs hover:bg-[var(--accent-primary-hover)];
 }
 @utility ph-seg {
   @apply inline-flex shrink-0 gap-0.5 rounded-[10px] bg-[#f1f2f5] p-1 dark:bg-zinc-900;
 }
 @utility ph-seg-btn {
-  @apply inline-flex h-[30px] items-center gap-1.5 rounded-[7px] px-2.5 text-[12.5px] font-medium whitespace-nowrap text-[#6b7280] transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100;
+  @apply inline-flex h-[1.875rem] items-center gap-1.5 rounded-[7px] px-2.5 text-[12.5px] font-medium whitespace-nowrap text-[#6b7280] transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100;
 }
 @utility ph-seg-on {
   @apply bg-white font-semibold text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white;
 }
 @utility ph-chip {
-  @apply inline-flex h-[30px] shrink-0 items-center gap-1 rounded-full px-3 text-[12.5px] font-medium whitespace-nowrap transition-colors;
+  @apply inline-flex h-[1.875rem] shrink-0 items-center gap-1 rounded-full px-3 text-[12.5px] font-medium whitespace-nowrap transition-colors;
 }
 @utility ph-chip-on {
   @apply bg-zinc-900 text-white dark:bg-white dark:text-zinc-900;
@@ -204,7 +231,7 @@ html[data-heading='sans'] { --font-serif: var(--font-sans); }
 
 /* ---- Overview list (OverviewList.svelte) ---- */
 @utility ol-card {
-  @apply rounded-[14px] bg-white px-[18px] py-3.5 shadow-[0_4px_18px_rgba(40,20,90,0.12)] dark:bg-zinc-900 dark:shadow-[0_4px_18px_rgba(0,0,0,0.35)];
+  @apply rounded-xl bg-white px-[18px] py-3.5 shadow-[0_4px_18px_rgba(40,20,90,0.12)] dark:bg-zinc-900 dark:shadow-[0_4px_18px_rgba(0,0,0,0.35)];
 }
 @utility ol-head {
   @apply grid items-center gap-x-4 border-b border-[#f1f2f4] px-2 pb-2 text-[11px] font-semibold tracking-wider whitespace-nowrap text-zinc-400 uppercase dark:border-zinc-800;
@@ -332,7 +359,9 @@ html[data-heading='sans'] { --font-serif: var(--font-sans); }
    the light theme; in the dark theme nearly opaque, so the app chrome is dark.
    The content panel of editor/settings pages uses the same shade in the dark
    theme (no backdrop blur there: it would trap fixed dialogs inside the panel). */
-html.dark .glass-bar { background-color: rgb(9 9 11 / 0.88); }
+/* only the app chrome (.glass-bar.dark: sidebar, bars); the content panel of editor and
+   settings pages stays opaque, the background must not shine through a checklist */
+html.dark .glass-bar.dark { background-color: rgb(9 9 11 / 0.88); }
 html.dark main.has-bg .band.glass-bar { background-color: rgb(24 24 27 / 0.88); }
 main.has-bg :is(.surface, .card) {
   background-color: #fff;
@@ -346,9 +375,8 @@ main.has-bg .ph-card { background-color: rgb(247 247 250 / 0.8); }
 /* Glass effect off (Settings → Appearance): sidebar, header bands, page header
    card and the editor/settings panel are opaque. */
 html.no-glass .glass-bar { backdrop-filter: none; }
-html.no-glass .glass-bar.dark,
-html.no-glass.dark .glass-bar,
-html.no-glass main.has-bg .band.glass-bar { background-color: var(--color-zinc-900); }
+/* (sidebar, bars and header band then use their normal theme colors, see +layout/HeaderBand) */
+html.no-glass.dark .glass-bar { background-color: var(--color-zinc-900); }
 html.no-glass main.has-bg .ph-card { background-color: #f7f7fa; }
 html.no-glass.dark main.has-bg .ph-card { background-color: var(--color-zinc-800); }
 /* Content is opaque (white / dark gray), only the page background shows the image.

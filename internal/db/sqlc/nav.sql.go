@@ -10,7 +10,9 @@ import (
 )
 
 const addFavorite = `-- name: AddFavorite :exec
-INSERT INTO user_favorites (user_id, kind, target_id) VALUES (?, ?, ?)
+INSERT INTO user_favorites (user_id, kind, target_id, position)
+VALUES (?1, ?2, ?3,
+        (SELECT COALESCE(MAX(u2.position), -1) + 1 FROM user_favorites u2 WHERE u2.user_id = ?1 AND u2.group_id IS NULL))
 ON CONFLICT (user_id, kind, target_id) DO NOTHING
 `
 
@@ -20,9 +22,83 @@ type AddFavoriteParams struct {
 	TargetID int64  `json:"target_id"`
 }
 
+// New favorites go to the end of the ungrouped list.
 func (q *Queries) AddFavorite(ctx context.Context, arg AddFavoriteParams) error {
 	_, err := q.db.ExecContext(ctx, addFavorite, arg.UserID, arg.Kind, arg.TargetID)
 	return err
+}
+
+const createFavoriteGroup = `-- name: CreateFavoriteGroup :one
+INSERT INTO favorite_groups (user_id, name, position)
+VALUES (?1, ?2,
+        (SELECT COALESCE(MAX(g2.position), -1) + 1 FROM favorite_groups g2 WHERE g2.user_id = ?1))
+RETURNING id, name, position, collapsed
+`
+
+type CreateFavoriteGroupParams struct {
+	UserID int64  `json:"user_id"`
+	Name   string `json:"name"`
+}
+
+type CreateFavoriteGroupRow struct {
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	Position  int64  `json:"position"`
+	Collapsed bool   `json:"collapsed"`
+}
+
+func (q *Queries) CreateFavoriteGroup(ctx context.Context, arg CreateFavoriteGroupParams) (CreateFavoriteGroupRow, error) {
+	row := q.db.QueryRowContext(ctx, createFavoriteGroup, arg.UserID, arg.Name)
+	var i CreateFavoriteGroupRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Position,
+		&i.Collapsed,
+	)
+	return i, err
+}
+
+const deleteFavoriteGroup = `-- name: DeleteFavoriteGroup :exec
+DELETE FROM favorite_groups WHERE id = ? AND user_id = ?
+`
+
+type DeleteFavoriteGroupParams struct {
+	ID     int64 `json:"id"`
+	UserID int64 `json:"user_id"`
+}
+
+func (q *Queries) DeleteFavoriteGroup(ctx context.Context, arg DeleteFavoriteGroupParams) error {
+	_, err := q.db.ExecContext(ctx, deleteFavoriteGroup, arg.ID, arg.UserID)
+	return err
+}
+
+const getFavoriteGroup = `-- name: GetFavoriteGroup :one
+SELECT id, name, position, collapsed FROM favorite_groups WHERE id = ? AND user_id = ?
+`
+
+type GetFavoriteGroupParams struct {
+	ID     int64 `json:"id"`
+	UserID int64 `json:"user_id"`
+}
+
+type GetFavoriteGroupRow struct {
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	Position  int64  `json:"position"`
+	Collapsed bool   `json:"collapsed"`
+}
+
+func (q *Queries) GetFavoriteGroup(ctx context.Context, arg GetFavoriteGroupParams) (GetFavoriteGroupRow, error) {
+	row := q.db.QueryRowContext(ctx, getFavoriteGroup, arg.ID, arg.UserID)
+	var i GetFavoriteGroupRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Position,
+		&i.Collapsed,
+	)
+	return i, err
 }
 
 const getUserPref = `-- name: GetUserPref :one
@@ -41,31 +117,49 @@ func (q *Queries) GetUserPref(ctx context.Context, arg GetUserPrefParams) (strin
 	return value, err
 }
 
-const listFavorites = `-- name: ListFavorites :many
-SELECT f.kind, f.target_id FROM user_favorites f
-WHERE f.user_id = ?
-  AND ((f.kind = 'customer' AND EXISTS (SELECT 1 FROM customers c WHERE c.id = f.target_id))
-    OR (f.kind = 'project' AND EXISTS (SELECT 1 FROM projects p WHERE p.id = f.target_id))
-    OR (f.kind = 'checklist' AND EXISTS (SELECT 1 FROM checklists cl WHERE cl.id = f.target_id)))
-ORDER BY f.created_at, f.kind, f.target_id
+const isFavorite = `-- name: IsFavorite :one
+SELECT EXISTS (SELECT 1 FROM user_favorites WHERE user_id = ? AND kind = ? AND target_id = ?)
 `
 
-type ListFavoritesRow struct {
+type IsFavoriteParams struct {
+	UserID   int64  `json:"user_id"`
 	Kind     string `json:"kind"`
 	TargetID int64  `json:"target_id"`
 }
 
-// Only existing targets (the triggers of migration 00021 also clean up).
-func (q *Queries) ListFavorites(ctx context.Context, userID int64) ([]ListFavoritesRow, error) {
-	rows, err := q.db.QueryContext(ctx, listFavorites, userID)
+func (q *Queries) IsFavorite(ctx context.Context, arg IsFavoriteParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, isFavorite, arg.UserID, arg.Kind, arg.TargetID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const listFavoriteGroups = `-- name: ListFavoriteGroups :many
+SELECT id, name, position, collapsed FROM favorite_groups WHERE user_id = ? ORDER BY position, id
+`
+
+type ListFavoriteGroupsRow struct {
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	Position  int64  `json:"position"`
+	Collapsed bool   `json:"collapsed"`
+}
+
+func (q *Queries) ListFavoriteGroups(ctx context.Context, userID int64) ([]ListFavoriteGroupsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listFavoriteGroups, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ListFavoritesRow{}
+	items := []ListFavoriteGroupsRow{}
 	for rows.Next() {
-		var i ListFavoritesRow
-		if err := rows.Scan(&i.Kind, &i.TargetID); err != nil {
+		var i ListFavoriteGroupsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Position,
+			&i.Collapsed,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, i)
@@ -77,6 +171,64 @@ func (q *Queries) ListFavorites(ctx context.Context, userID int64) ([]ListFavori
 		return nil, err
 	}
 	return items, nil
+}
+
+const listFavorites = `-- name: ListFavorites :many
+SELECT f.kind, f.target_id, f.group_id, f.position FROM user_favorites f
+WHERE f.user_id = ?
+  AND ((f.kind = 'customer' AND EXISTS (SELECT 1 FROM customers c WHERE c.id = f.target_id))
+    OR (f.kind = 'project' AND EXISTS (SELECT 1 FROM projects p WHERE p.id = f.target_id))
+    OR (f.kind = 'checklist' AND EXISTS (SELECT 1 FROM checklists cl WHERE cl.id = f.target_id))
+    OR (f.kind = 'template' AND EXISTS (SELECT 1 FROM checklist_templates t WHERE t.id = f.target_id)))
+ORDER BY f.position, f.created_at, f.kind, f.target_id
+`
+
+type ListFavoritesRow struct {
+	Kind     string `json:"kind"`
+	TargetID int64  `json:"target_id"`
+	GroupID  *int64 `json:"group_id"`
+	Position int64  `json:"position"`
+}
+
+// Only existing targets (the cleanup triggers also remove deleted ones).
+// Order: position, then the time added (group order: ListFavoriteGroups).
+func (q *Queries) ListFavorites(ctx context.Context, userID int64) ([]ListFavoritesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listFavorites, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListFavoritesRow{}
+	for rows.Next() {
+		var i ListFavoritesRow
+		if err := rows.Scan(
+			&i.Kind,
+			&i.TargetID,
+			&i.GroupID,
+			&i.Position,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const nextUngroupedPosition = `-- name: NextUngroupedPosition :one
+SELECT CAST(COALESCE(MAX(position), -1) + 1 AS INTEGER) FROM user_favorites WHERE user_id = ? AND group_id IS NULL
+`
+
+func (q *Queries) NextUngroupedPosition(ctx context.Context, userID int64) (int64, error) {
+	row := q.db.QueryRowContext(ctx, nextUngroupedPosition, userID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const removeFavorite = `-- name: RemoveFavorite :exec
@@ -94,6 +246,45 @@ func (q *Queries) RemoveFavorite(ctx context.Context, arg RemoveFavoriteParams) 
 	return err
 }
 
+const setFavoriteGroupPosition = `-- name: SetFavoriteGroupPosition :exec
+UPDATE favorite_groups SET position = ? WHERE id = ? AND user_id = ?
+`
+
+type SetFavoriteGroupPositionParams struct {
+	Position int64 `json:"position"`
+	ID       int64 `json:"id"`
+	UserID   int64 `json:"user_id"`
+}
+
+func (q *Queries) SetFavoriteGroupPosition(ctx context.Context, arg SetFavoriteGroupPositionParams) error {
+	_, err := q.db.ExecContext(ctx, setFavoriteGroupPosition, arg.Position, arg.ID, arg.UserID)
+	return err
+}
+
+const setFavoritePlacement = `-- name: SetFavoritePlacement :exec
+UPDATE user_favorites SET group_id = ?, position = ?
+WHERE user_id = ? AND kind = ? AND target_id = ?
+`
+
+type SetFavoritePlacementParams struct {
+	GroupID  *int64 `json:"group_id"`
+	Position int64  `json:"position"`
+	UserID   int64  `json:"user_id"`
+	Kind     string `json:"kind"`
+	TargetID int64  `json:"target_id"`
+}
+
+func (q *Queries) SetFavoritePlacement(ctx context.Context, arg SetFavoritePlacementParams) error {
+	_, err := q.db.ExecContext(ctx, setFavoritePlacement,
+		arg.GroupID,
+		arg.Position,
+		arg.UserID,
+		arg.Kind,
+		arg.TargetID,
+	)
+	return err
+}
+
 const setUserPref = `-- name: SetUserPref :exec
 INSERT INTO user_prefs (user_id, key, value) VALUES (?, ?, ?)
 ON CONFLICT (user_id, key) DO UPDATE SET value = excluded.value
@@ -108,4 +299,57 @@ type SetUserPrefParams struct {
 func (q *Queries) SetUserPref(ctx context.Context, arg SetUserPrefParams) error {
 	_, err := q.db.ExecContext(ctx, setUserPref, arg.UserID, arg.Key, arg.Value)
 	return err
+}
+
+const ungroupFavorites = `-- name: UngroupFavorites :exec
+UPDATE user_favorites SET position = position + ?1, group_id = NULL
+WHERE user_id = ?2 AND group_id = ?3
+`
+
+type UngroupFavoritesParams struct {
+	Offset  int64  `json:"offset"`
+	UserID  int64  `json:"user_id"`
+	GroupID *int64 `json:"group_id"`
+}
+
+// Favorites of a group move to the ungrouped list, starting at @offset (relative order kept).
+func (q *Queries) UngroupFavorites(ctx context.Context, arg UngroupFavoritesParams) error {
+	_, err := q.db.ExecContext(ctx, ungroupFavorites, arg.Offset, arg.UserID, arg.GroupID)
+	return err
+}
+
+const updateFavoriteGroup = `-- name: UpdateFavoriteGroup :one
+UPDATE favorite_groups SET name = ?, collapsed = ? WHERE id = ? AND user_id = ?
+RETURNING id, name, position, collapsed
+`
+
+type UpdateFavoriteGroupParams struct {
+	Name      string `json:"name"`
+	Collapsed bool   `json:"collapsed"`
+	ID        int64  `json:"id"`
+	UserID    int64  `json:"user_id"`
+}
+
+type UpdateFavoriteGroupRow struct {
+	ID        int64  `json:"id"`
+	Name      string `json:"name"`
+	Position  int64  `json:"position"`
+	Collapsed bool   `json:"collapsed"`
+}
+
+func (q *Queries) UpdateFavoriteGroup(ctx context.Context, arg UpdateFavoriteGroupParams) (UpdateFavoriteGroupRow, error) {
+	row := q.db.QueryRowContext(ctx, updateFavoriteGroup,
+		arg.Name,
+		arg.Collapsed,
+		arg.ID,
+		arg.UserID,
+	)
+	var i UpdateFavoriteGroupRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Position,
+		&i.Collapsed,
+	)
+	return i, err
 }

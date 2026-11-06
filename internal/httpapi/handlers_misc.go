@@ -136,8 +136,13 @@ func (s *Server) sidebar(w http.ResponseWriter, r *http.Request, u authz.User) e
 	if err != nil {
 		return err
 	}
+	groups, err := s.q.ListFavoriteGroups(ctx, u.ID)
+	if err != nil {
+		return err
+	}
 	writeJSON(w, http.StatusOK, map[string]any{"customers": out, "my_tasks": myTasks, "favorites": toFavoriteDTOs(favorites),
-		"tags": tags, "status_labels": statuses.Labels, "status_colors": statuses.Colors, "status_wip": statuses.WIP,
+		"favorite_groups": toFavoriteGroupDTOs(groups),
+		"tags":            tags, "status_labels": statuses.Labels, "status_colors": statuses.Colors, "status_wip": statuses.WIP,
 		"board_hidden": boardHidden, "prefs": prefs,
 	})
 	return nil

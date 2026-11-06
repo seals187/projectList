@@ -24,7 +24,7 @@
   import { allCollapsed } from '$lib/pageStateCore';
   import { pageState } from '$lib/pageState.svelte';
   import { displayLabel, displayOf, setDisplay } from '$lib/display.svelte';
-  import { customerCode, customerTone, statusLabel } from '$lib/projectStatus';
+  import { statusLabel } from '$lib/projectStatus';
   import type { OverviewExtra, ProjectStatus } from '$lib/types';
   import OverviewCards from '$lib/components/OverviewCards.svelte';
   import OverviewList from '$lib/components/OverviewList.svelte';
@@ -92,7 +92,7 @@
   );
 
   const customerItems = $derived<FilterItem[]>(
-    groups.map((g) => ({ id: g.customer.id, label: g.customer.name, code: { text: customerCode(g.customer.name), cls: customerTone(g.customer.id) } }))
+    groups.map((g) => ({ id: g.customer.id, label: g.customer.name, entity: 'customer' as const }))
   );
   const tagItems = $derived<FilterItem[]>(sidebar.tags.map((tag) => ({ id: tag.id, label: tag.name, color: tag.color })));
   // people who are responsible for at least one project, plus "nobody"

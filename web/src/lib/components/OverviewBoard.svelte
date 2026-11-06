@@ -5,10 +5,9 @@
   // name, color and WIP limit via the column title. Filters come from the page.
   import { isAdmin, setBoardHidden, sidebar } from '$lib/state.svelte';
   import { fmtDate, t } from '$lib/i18n.svelte';
-  import { barCls, BOARD_STATUSES, customerCode, customerTone, statusDotCls, statusDotStyle, statusLabel } from '$lib/projectStatus';
+  import { barCls, BOARD_STATUSES, statusDotCls, statusDotStyle, statusLabel } from '$lib/projectStatus';
   import { dueUrgent, pct, type OvCustomer, type OvProject } from '$lib/overview';
   import { filter, NO_OWNER } from '$lib/overviewFilter.svelte';
-  import { isFavorite, toggleFavorite } from '$lib/navMemory.svelte';
   import { tagsByIds } from '$lib/tags';
   import type { ProjectStatus, SidebarCustomer } from '$lib/types';
   import TeamAvatars from './TeamAvatars.svelte';
@@ -17,6 +16,7 @@
   import StatusMenu from './StatusMenu.svelte';
   import Avatar from './Avatar.svelte';
   import Icon from './Icon.svelte';
+  import EntityIcon from './EntityIcon.svelte';
 
   let {
     all,
@@ -109,11 +109,6 @@
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     menu = { kind: 'project', project, x: r.right - 288, y: r.bottom + 4, section };
   }
-  function favorite(e: MouseEvent, id: number) {
-    e.preventDefault();
-    e.stopPropagation();
-    toggleFavorite('project', id);
-  }
   function statusMenu(e: MouseEvent, status: ProjectStatus) {
     e.preventDefault();
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
@@ -177,7 +172,7 @@
     {@const limit = wip(col)}
     {@const full = limit > 0 && col.items.length >= limit}
     <section
-      class="surface flex w-72 shrink-0 flex-col rounded-2xl bg-zinc-100/70 p-2.5 transition-colors dark:bg-zinc-900/60
+      class="surface flex w-72 shrink-0 flex-col rounded-xl bg-zinc-100/70 p-2.5 transition-colors dark:bg-zinc-900/60
         {byStatusGroup ? 'xl:w-auto xl:min-w-0' : ''}
         {col.status && over?.status === col.status ? 'ring-2 ring-accent-400/60' : ''}"
       aria-label={col.title}
@@ -213,7 +208,7 @@
           {@const c = col.customer}
           <h3 class="min-w-0 flex-1">
             <a href="/customers/{c.id}" class="flex items-start gap-2 py-0.5 font-semibold hover:underline" oncontextmenu={(e) => customerMenu(e, c)}>
-              <span class="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded text-[8px] font-bold {customerTone(c.id)}">{customerCode(c.name)}</span>
+              <EntityIcon type="customer" size="xs" class="mt-0.5" />
               <span class="min-w-0 break-words">{c.name}{@render count()}</span>
             </a>
           </h3>
@@ -233,7 +228,6 @@
       <div class="flex flex-1 flex-col {filter.compact ? 'gap-1.5' : 'gap-2.5'}">
         {#each col.items as p (p.id)}
           {@const tags = tagsByIds(p.tag_ids)}
-          {@const fav = isFavorite('project', p.id)}
           {#if col.status && over?.status === col.status && over.before === p.id}<div class="-my-1.5 h-1 shrink-0 rounded-full bg-accent-500"></div>{/if}
           <a
             href="/projects/{p.id}"
@@ -261,7 +255,7 @@
               </p>
             {:else}
               <p class="flex items-center gap-1.5 pr-6 text-xs text-zinc-500" oncontextmenu={(e) => customerMenu(e, p.customer)}>
-                <span class="flex size-[18px] shrink-0 items-center justify-center rounded text-[7px] font-bold {customerTone(p.customer.id)}">{customerCode(p.customer.name)}</span>
+                <EntityIcon type="customer" size="xs" />
                 <span class="truncate">{p.customer.name}</span>
               </p>
             {/if}
@@ -277,20 +271,12 @@
                   <Icon name="calendar" size={13} />
                 </button>
               {/if}
-              <button
-                type="button"
-                class="{quickCls} hidden [@media(hover:hover)]:block"
-                onclick={(e) => favorite(e, p.id)}
-                title={t(fav ? 'nav.removeFavorite' : 'nav.addFavorite')}
-                aria-label="{t(fav ? 'nav.removeFavorite' : 'nav.addFavorite')}: {p.name}">
-                <Icon name="star" size={13} class={fav ? 'fill-amber-400 text-amber-500' : ''} />
-              </button>
               <button type="button" class={quickCls} onclick={(e) => quick(e, p, null)} title={t('menu.actions')} aria-label="{t('menu.actions')}: {p.name}">
                 <Icon name="dots" size={13} />
               </button>
             </span>
 
-            <p class="line-clamp-2 leading-snug font-semibold break-words {filter.compact ? 'mt-1 text-[14px]' : 'mt-1.5 text-[15px]'}" title={p.name}>{p.name}</p>
+            <p class="flex items-start gap-1.5 leading-snug font-semibold break-words {filter.compact ? 'mt-1 text-[14px]' : 'mt-1.5 text-[15px]'}" title={p.name}><EntityIcon type="project" size="xs" class="mt-px" /><span class="line-clamp-2 min-w-0">{p.name}</span></p>
 
             {#if !filter.compact && display.tags && tags.length}
               <!-- labels as small dots, max. two, then "+N" -->

@@ -11,13 +11,14 @@
   // Below 900 px window width, due date and responsible move into a second line.
   import { openCustomers, toggleCustomer } from '$lib/overviewOpen.svelte';
   import { t } from '$lib/i18n.svelte';
-  import { customerTone, customerCode, statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
+  import { statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
   import { dueUrgent, type OvCustomer } from '$lib/overview';
   import { customerSummary, dayMonth, percent } from '$lib/listMetrics';
   import type { DisplayValues } from '$lib/displayCore';
   import { tagsByIds } from '$lib/tags';
   import Avatar from './Avatar.svelte';
   import Icon from './Icon.svelte';
+  import EntityIcon from './EntityIcon.svelte';
   import ProgressRing from './ProgressRing.svelte';
   import TagDots from './TagDots.svelte';
 
@@ -65,7 +66,7 @@
     {#if g.projects.length === 0}
       <!-- customer without projects: slim card -->
       <section class="surface ol-card flex items-center gap-3" aria-label={g.customer.name}>
-        <span class="flex size-9 shrink-0 items-center justify-center rounded-[10px] text-xs font-bold {customerTone(g.customer.id)}">{customerCode(g.customer.name)}</span>
+        <EntityIcon type="customer" size="lg" />
         <div class="min-w-0 flex-1">
           <a href="/customers/{g.customer.id}" class="block truncate text-[15px] font-bold hover:underline">{g.customer.name}</a>
           <p class="text-xs text-zinc-500">{t('overview.nProjects', { n: 0 })}</p>
@@ -86,7 +87,7 @@
             onclick={() => toggleCustomer(g.customer.id)}
             aria-expanded={open}
             aria-label="{t(open ? 'overview.hideProjects' : 'overview.showProjects')}: {g.customer.name}">
-            <span class="flex size-9 shrink-0 items-center justify-center rounded-[10px] text-xs font-bold {customerTone(g.customer.id)}">{customerCode(g.customer.name)}</span>
+            <EntityIcon type="customer" size="lg" />
             <span class="min-w-0 flex-1">
               <span class="block truncate text-[15px] font-bold">{g.customer.name}</span>
               <span class="block truncate text-xs text-zinc-500" data-testid="customer-summary">
@@ -119,13 +120,13 @@
               <!-- project: name + tags (C2: same line, C1: own line + checklists) -->
               {#if wide}
                 <span class="flex min-w-0 items-center gap-3">
-                  <span class="max-w-[70%] shrink-0 truncate text-[13.5px] font-bold" title={p.name}>{p.name}</span>
+                  <EntityIcon type="project" size="xs" /><span class="max-w-[70%] shrink-0 truncate text-[13.5px] font-bold" title={p.name}>{p.name}</span>
                   <TagDots {tags} wrap={display.allTags} class="flex-1" />
                 </span>
               {:else}
                 <span class="min-w-0">
-                  <span class="block truncate text-[13.5px] font-bold" title={p.name}>{p.name}</span>
-                  <span class="mt-0.5 flex min-w-0 items-center gap-2.5">
+                  <span class="flex min-w-0 items-center gap-2"><EntityIcon type="project" size="xs" /><span class="truncate text-[13.5px] font-bold" title={p.name}>{p.name}</span></span>
+                  <span class="mt-0.5 flex min-w-0 items-center gap-2.5 pl-[26px]">
                     <TagDots {tags} wrap={display.allTags} class="max-w-full" />
                     <span class="shrink-0 text-xs text-zinc-400">· {t('list.nChecklists', { n: p.checklists.length })}</span>
                   </span>

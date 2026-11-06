@@ -13,6 +13,7 @@
   import type { Template, TemplateSummary } from '$lib/types';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Icon from '$lib/components/Icon.svelte';
+  import EntityIcon from '$lib/components/EntityIcon.svelte';
 
   type Sort = 'name' | 'items' | 'newest';
   const SORTS: Sort[] = ['name', 'items', 'newest'];
@@ -97,7 +98,7 @@
     {#each shown as tpl (tpl.id)}
       <li>
         <a href="/templates/{tpl.id}" class="row-link">
-          <Icon name="template" class="text-zinc-400" />
+          <EntityIcon type="template" size="md" />
           <div class="min-w-0 flex-1">
             <p class="truncate font-medium">{tpl.name}</p>
             {#if tpl.description && disp.description && !ps.collapsed}<p class="truncate text-xs text-zinc-400">{tpl.description}</p>{/if}

@@ -9,9 +9,10 @@
   import { fmtDate, t, todayISO } from '$lib/i18n.svelte';
   import { reorder, sortable } from '$lib/sortable';
   import type { ActivityEntry, Checklist, ChecklistSummary, Project, ProjectDetail, ProjectStatus } from '$lib/types';
-  import { ALL_STATUSES, barCls, customerCode, customerTone, statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
+  import { ALL_STATUSES, barCls, statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
   import { pct } from '$lib/overview';
   import { toDay } from '$lib/dates';
+  import EntityIcon from '$lib/components/EntityIcon.svelte';
   import FavoriteStar from '$lib/components/FavoriteStar.svelte';
   import Editable from '$lib/components/Editable.svelte';
   import ConfirmButton from '$lib/components/ConfirmButton.svelte';
@@ -40,8 +41,7 @@
   let activity = $state<ActivityEntry[] | null>(null);
   let more = $state<{ x: number; y: number } | null>(null);
   let dates = $state<{ x: number; y: number } | null>(null);
-  let editTicket = $state(false);
-  let ticket = $state('');
+  let activityOpen = $state(false); // latest activity: collapsed = only the newest entry
 
   const id = $derived(Number(page.params.id));
   const editable = $derived(canWrite());
@@ -227,24 +227,6 @@
     }
   }
 
-  // Easy Redmine: full URL as is, otherwise base URL + /issues/<number>
-  const ticketHref = $derived.by(() => {
-    const tk = data?.project.redmine_ticket.trim() ?? '';
-    if (!tk) return '';
-    if (/^https?:\/\//i.test(tk)) return tk;
-    return data?.redmine_url ? `${data.redmine_url}/issues/${encodeURIComponent(tk.replace(/^#/, ''))}` : '';
-  });
-  const ticketLabel = $derived.by(() => {
-    const tk = data?.project.redmine_ticket.trim() ?? '';
-    const m = tk.match(/\/issues\/(\d+)/);
-    return m ? `#${m[1]}` : /^\d+$/.test(tk) ? `#${tk}` : tk;
-  });
-  function saveTicket(e?: Event) {
-    e?.preventDefault();
-    editTicket = false;
-    if (data && ticket.trim() !== data.project.redmine_ticket) save({ redmine_ticket: ticket.trim() });
-  }
-
   const tabCls = (on: boolean) =>
     `-mb-px border-b-2 px-1 pb-2.5 text-sm in-[.band]:pb-1.5 transition-colors ${on ? 'border-accent-600 font-semibold text-accent-700 dark:border-accent-400 dark:text-accent-400' : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'}`;
   const iconBtn =
@@ -271,14 +253,9 @@
   {/snippet}
   <!-- Header: breadcrumb, title with status and favorite, actions -->
   <HeaderBand>
-    <nav class="mb-2 flex in-[.band]:mb-0.5 items-center gap-1.5 text-[13px] text-zinc-400" aria-label="Breadcrumb">
-      <span class="flex size-5 items-center justify-center rounded text-[8px] font-bold {customerTone(d.customer.id)}">{customerCode(d.customer.name)}</span>
-      <a href="/customers/{d.customer.id}" class="truncate hover:text-zinc-700 dark:hover:text-zinc-200">{d.customer.name}</a>
-      <span aria-hidden="true">›</span>
-      <span class="truncate text-zinc-600 dark:text-zinc-300">{d.project.name}</span>
-    </nav>
     <header class="flex flex-wrap items-start justify-between gap-4">
       <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+        <EntityIcon type="project" size="lg" />
         <h1 class="min-w-0 font-serif text-[28px] in-[.band]:text-xl leading-tight font-bold tracking-tight">
           <Editable value={d.project.name} required disabled={!editable} onsave={(name) => save({ name })} inputClass="font-serif text-2xl! font-bold" />
         </h1>
@@ -335,12 +312,12 @@
               {@const complete = cl.total > 0 && cl.done === cl.total}
               <li data-id={cl.id} class="group relative flex items-center bg-white dark:bg-zinc-900 [&.dragging]:shadow-lg">
                 {#if editable}
-                  <button type="button" data-handle class="cursor-grab touch-none py-3 pr-1 pl-2.5 text-zinc-300 hover:text-zinc-500 dark:text-zinc-600" aria-label={t('checklist.drag')}>
+                  <button type="button" data-handle class="cursor-grab touch-none py-3 pr-1 pl-2.5 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100" aria-label={t('checklist.drag')}>
                     <Icon name="grip" size={14} />
                   </button>
                 {/if}
                 <a href="/checklists/{cl.id}" class="flex min-w-0 flex-1 items-center gap-3 py-3 pr-4 {editable ? 'pl-1' : 'pl-4'} hover:bg-zinc-50 dark:hover:bg-zinc-900/60">
-                  <Icon name="fileText" size={16} class="shrink-0 text-zinc-400" />
+                  <EntityIcon type="checklist" size="sm" />
                   <span class="min-w-0 flex-1 truncate font-medium">{cl.title}</span>
                   {#if cl.due_date && !complete}
                     <span class="hidden text-xs tabular-nums sm:inline {cl.due_date < today ? 'text-red-600' : 'text-zinc-400'}">{t('checklist.due', { date: fmtDate(cl.due_date) })}</span>
@@ -442,7 +419,7 @@
 
           <dt class={propLabel}><Icon name="users" size={14} />{t('project.customer')}</dt>
           <dd class="flex min-w-0 items-center gap-1.5">
-            <span class="flex size-5 shrink-0 items-center justify-center rounded text-[8px] font-bold {customerTone(d.customer.id)}">{customerCode(d.customer.name)}</span>
+            <EntityIcon type="customer" size="xs" />
             <a href="/customers/{d.customer.id}" class="truncate hover:underline">{d.customer.name}</a>
           </dd>
 
@@ -485,56 +462,26 @@
           <dt class={propLabel}><Icon name="eye" size={14} />{t('watchers.title')}</dt>
           <dd class="min-w-0"><WatcherPicker people={d.assignees} value={d.watchers} disabled={!editable} onchange={setWatchers} /></dd>
 
-          <dt class={propLabel}><Icon name="link" size={14} />Easy Redmine</dt>
-          <dd class="min-w-0">
-            {#if editTicket}
-              <form onsubmit={saveTicket}>
-                <!-- svelte-ignore a11y_autofocus -->
-                <input
-                  class="input py-0.5! text-[13px]!"
-                  bind:value={ticket}
-                  autofocus
-                  placeholder={t('redmine.placeholder')}
-                  onblur={() => saveTicket()}
-                  onkeydown={(e) => e.key === 'Escape' && (editTicket = false)}
-                  aria-label={t('redmine.ticket')} />
-              </form>
-            {:else}
-              <span class="group/tk flex min-w-0 items-center gap-1.5">
-                {#if ticketHref}
-                  <a href={ticketHref} target="_blank" rel="noopener noreferrer" class="truncate font-medium text-accent-600 hover:underline dark:text-accent-400">{ticketLabel} ↗</a>
-                {:else if ticketLabel}
-                  <span class="truncate" title={t('redmine.noUrl')}>{ticketLabel}</span>
-                {:else}
-                  <span class="text-zinc-400">–</span>
-                {/if}
-                {#if editable}
-                  <button
-                    type="button"
-                    class="rounded p-0.5 text-zinc-400 opacity-0 group-hover/tk:opacity-100 hover:text-zinc-700 focus:opacity-100 dark:hover:text-zinc-200"
-                    onclick={() => {
-                      ticket = d.project.redmine_ticket;
-                      editTicket = true;
-                    }}
-                    title={t('redmine.edit')}
-                    aria-label={t('redmine.edit')}>
-                    <Icon name="pencil" size={13} />
-                  </button>
-                {/if}
-              </span>
-            {/if}
-          </dd>
         </dl>
       </section>
 
+      <!-- latest activity: only the newest entry, more when expanded -->
       <section class="surface rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
-        <div class="mb-3 flex items-center justify-between">
-          <h2 class="text-sm font-semibold">{t('activity.latest')}</h2>
+        <div class="mb-3 flex items-center justify-between gap-2">
+          <button
+            type="button"
+            class="-ml-1 flex items-center gap-1 rounded px-1 text-sm font-semibold hover:text-zinc-600 dark:hover:text-zinc-300"
+            onclick={() => (activityOpen = !activityOpen)}
+            aria-expanded={activityOpen}
+            data-testid="activity-toggle">
+            <Icon name="chevronDown" size={14} class="text-zinc-400 transition-transform {activityOpen ? '' : '-rotate-90'}" />
+            {t('activity.latest')}
+          </button>
           {#if activity?.length}
             <button type="button" class="text-xs text-accent-600 hover:underline dark:text-accent-400" onclick={() => setTab('activity')}>{t('nav.all')}</button>
           {/if}
         </div>
-        <ActivityFeed entries={activity} limit={5} compact />
+        <ActivityFeed entries={activity} limit={activityOpen ? 5 : 1} compact />
       </section>
     </aside>
   </div>

@@ -1,20 +1,20 @@
 <script lang="ts">
   // Context menu of a project (overview board): open, checklists, rename, status,
-  // due date, person responsible, tags, favorite. Sections expand inline.
+  // due date, person responsible, tags. Sections expand inline.
   import type { ComponentProps } from 'svelte';
   import { goto } from '$app/navigation';
   import { api, errorText } from '$lib/api';
   import { fmtDate, t } from '$lib/i18n.svelte';
   import { canWrite, refreshSidebar, toast } from '$lib/state.svelte';
-  import { ALL_STATUSES, customerCode, customerTone, statusBadgeCls, statusBadgeStyle, statusDotCls, statusDotStyle, statusLabel } from '$lib/projectStatus';
+  import { ALL_STATUSES, statusBadgeCls, statusBadgeStyle, statusDotCls, statusDotStyle, statusLabel } from '$lib/projectStatus';
   import { customerAssignees, patchProject, setProjectTags, storeProject } from '$lib/projectActions';
-  import { isFavorite, toggleFavorite } from '$lib/navMemory.svelte';
   import { tagsByIds } from '$lib/tags';
   import type { Assignee, Checklist, ProjectStatus, SidebarCustomer, SidebarProject } from '$lib/types';
   import ContextMenu from './ContextMenu.svelte';
   import TagMenu from './TagMenu.svelte';
   import Avatar from './Avatar.svelte';
   import Icon from './Icon.svelte';
+  import EntityIcon from './EntityIcon.svelte';
 
   let {
     project,
@@ -34,7 +34,6 @@
   // always show the current state from the store (the overview passes a copy)
   const p = $derived(storeProject(project.id) ?? project);
   const editable = canWrite();
-  const fav = $derived(isFavorite('project', project.id));
 
   let name = $state('');
   let newChecklist = $state('');
@@ -90,7 +89,7 @@
 
 <ContextMenu {x} {y} {onclose} label={p.name}>
   <div class="mb-1 flex items-start gap-2.5 border-b border-zinc-100 px-2 pt-1 pb-2.5 dark:border-zinc-800">
-    <span class="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded text-[9px] font-bold {customerTone(customer.id)}">{customerCode(customer.name)}</span>
+    <EntityIcon type="customer" size="sm" class="mt-0.5" />
     <div class="min-w-0 flex-1">
       <p class="truncate font-semibold">{p.name}</p>
       <p class="truncate text-xs text-zinc-500">{customer.name}</p>
@@ -190,7 +189,4 @@
     {/if}
   {/if}
 
-  <button type="button" class={itemCls} role="menuitem" onclick={() => toggleFavorite('project', p.id)}>
-    <Icon name="star" size={15} class={fav ? 'fill-amber-400 text-amber-500' : 'text-zinc-400'} />{t(fav ? 'nav.removeFavorite' : 'nav.addFavorite')}
-  </button>
 </ContextMenu>

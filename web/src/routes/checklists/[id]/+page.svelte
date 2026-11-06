@@ -115,7 +115,7 @@
 {#if notFound}
   <p class="text-zinc-500">{t('common.notFound')}</p>
 {:else if data}
-  <DetailHeader crumbs={[{ label: data.customer.name, href: `/customers/${data.customer.id}` }, { label: data.project.name, href: `/projects/${data.project.id}` }]}>
+  <DetailHeader type="checklist">
     {#snippet actions()}
       <SaveStatus />
       {#if editable}

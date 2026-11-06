@@ -17,7 +17,7 @@ docker compose up -d        # pulls the published image ghcr.io/seals187/project
 ```
 
 Version via `PROJECTLIST_VERSION` in `.env`: `latest` = newest release (default), `edge` =
-current development state (every push to `main`), or a fixed version such as `0.1.0`.
+current development state (every push to `main`), or a fixed version such as `0.1.1`.
 Update: `docker compose pull && docker compose up -d`.
 
 Then sign in at <http://localhost:8080> with the admin credentials from `.env`.
@@ -36,7 +36,7 @@ docker compose logs -f projectlist    # structured JSON logs
 Every release has an image for **linux/amd64** and **linux/arm64** (e.g. Raspberry Pi):
 
 ```bash
-docker pull ghcr.io/seals187/projectlist:latest   # or a fixed version, e.g. :0.1.0
+docker pull ghcr.io/seals187/projectlist:latest   # or a fixed version, e.g. :0.1.1
 ```
 
 `docker-compose.yml` already uses this image. Without Compose:
@@ -62,7 +62,7 @@ For every version tag, the workflow `release.yml` creates the GitHub release wit
 | `ADMIN_NAME`          | `Admin`                | Display name of the first admin |
 | `APP_SUBTITLE`        | –                      | Optional subtitle below "ProjectList" in the sidebar (e.g. company or department name) |
 | `PORT`                | `8080`                 | Host port (docker compose only) |
-| `PROJECTLIST_VERSION` | `latest`               | Image version for docker compose: `latest`, `edge` or e.g. `0.1.0` |
+| `PROJECTLIST_VERSION` | `latest`               | Image version for docker compose: `latest`, `edge` or e.g. `0.1.1` |
 | `LISTEN_ADDR`         | `:8080`                | Listen address inside the container |
 | `DB_PATH`             | `/data/projectlist.db` | Path of the SQLite file |
 | `COOKIE_SECURE`       | `true`                 | Send the session cookie over HTTPS only. On `http://localhost` this works in Chrome/Edge/Firefox; set `false` for plain HTTP access via an IP or hostname |
@@ -135,7 +135,7 @@ the user interface translates them.
 - **Customers** overview as a list (expandable with projects, checklist progress, due date) or cards; search,
   filters (all, with active projects, critical, without project), sorting (last activity, name, progress, due date,
   open tasks); status per customer: *New* (no projects), *Critical* (project blocked or due/overdue within 3 days),
-  *Completed*, otherwise *On track*. Location, contact person and email can be edited on the customer page
+  *Completed*, otherwise *On track*. Location, contact person, email and phone numbers (several, with a label; clickable) can be edited on the customer page
 - **Project page**: breadcrumb, status, favorite star and actions (duplicate, archive, delete, "+ Checklist"),
   progress in plain words ("37% · 19 of 31 items · 50 days left"), tabs *Checklists · Activity · Files · Notes* and a
   properties panel (status, customer, person responsible, start/end, labels, watchers, Easy Redmine ticket) that is
@@ -353,7 +353,7 @@ All endpoints under `/api`, JSON. Writing requests need the header `X-CSRF-Token
 | Checklists  | `GET/POST /projects/{id}/checklists`, `POST /projects/{id}/checklists/from-template`, `PUT /projects/{id}/checklists/order`, `GET/PATCH/DELETE /checklists/{id}`, `POST /checklists/{id}/save-as-template` |
 | Items       | `POST /checklists/{id}/items`, `PUT /checklists/{id}/items/order`, `PATCH/DELETE /items/{id}`, `POST /items/{id}/done` |
 | Templates   | `GET/POST /templates`, `GET/PATCH/DELETE /templates/{id}`, `POST /templates/{id}/items`, `PUT /templates/{id}/items/order`, `PATCH/DELETE /template-items/{id}` |
-| Sidebar     | `PUT/DELETE /favorites/{kind}/{id}` (`kind` = customer, project or checklist), `PUT /board/order` (`status`, `ids`), `PUT /prefs/board-hidden` (`customer_ids`), `PUT /prefs/{overview,saved_views}` (any JSON, per user); favorites and settings come with `GET /sidebar` |
+| Sidebar     | `PUT/DELETE /favorites/{kind}/{id}` (`kind` = customer, project, checklist or template), `PUT /favorites/order` (`groups`, `items` with `kind`, `id`, `group_id`), `POST /favorite-groups` (`name`), `PATCH/DELETE /favorite-groups/{id}` (`name`, `collapsed`), `PUT /board/order` (`status`, `ids`), `PUT /prefs/board-hidden` (`customer_ids`), `PUT /prefs/{overview,saved_views}` (any JSON, per user); favorites (`kind`, `id`, `group_id`, `position`), `favorite_groups` and settings come with `GET /sidebar` |
 | Other       | `GET /sidebar`, `GET /overview`, `GET /my-tasks`, `GET /my-checklists`, `GET /search?q=`, `GET /admin/backup`, `GET /healthz` |
 
 ## License

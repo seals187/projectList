@@ -12,9 +12,17 @@ sql:
         emit_empty_slices: true
         emit_interface: false
         overrides:
+          - column: "customers.phones"
+            go_type:
+              import: "github.com/seals187/projectList/internal/dbtypes"
+              type: "JSONText"
           - column: "checklist_items.due_date"
             go_type:
               type: "string"
+              pointer: true
+          - column: "user_favorites.group_id"
+            go_type:
+              type: "int64"
               pointer: true
           - column: "checklist_items.assignee_id"
             go_type:

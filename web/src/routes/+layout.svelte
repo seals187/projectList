@@ -27,6 +27,9 @@
   import CommandPalette from '$lib/components/CommandPalette.svelte';
   import NewProjectDialog from '$lib/components/NewProjectDialog.svelte';
   import Toasts from '$lib/components/Toasts.svelte';
+  import BackBar from '$lib/components/BackBar.svelte';
+  import ChecklistTabs from '$lib/components/ChecklistTabs.svelte';
+  import { recordNav } from '$lib/navHistory.svelte';
   import Icon from '$lib/components/Icon.svelte';
 
   let { children } = $props();
@@ -45,6 +48,9 @@
     }
     return backgroundCss(userBackground());
   });
+  // Sidebar and bars over a background image: dark glass (glass effect on); with the
+  // glass effect off they look exactly as without a background image
+  const glassChrome = $derived(!!bgCss && prefs.glass);
   // "Darken image" (Settings → Appearance): a dark veil over the background
   const bgImage = $derived(bgCss && prefs.dimBg ? `linear-gradient(rgb(0 0 0 / 0.35), rgb(0 0 0 / 0.35)), ${bgCss}` : bgCss);
   // pages with free-flowing content (checklist/template editor, settings) on one panel
@@ -53,6 +59,8 @@
   const settingsPage = $derived(page.url.pathname.startsWith('/settings'));
   // reachable without a session: sign-in and invitation / password links
   const publicPage = $derived(page.url.pathname === '/login' || page.url.pathname === '/invite');
+  // checklist page: tabs of the open checklists above the content
+  const checklistId = $derived(Number(page.url.pathname.match(/^\/checklists\/(\d+)/)?.[1] ?? 0) || null);
   $effect(() => {
     pageBg.active = !!bgCss && !panelPage;
     pageBg.panel = !!bgCss && panelPage;
@@ -60,9 +68,10 @@
 
   onMount(async () => {
     try {
-      const me = await api.get<{ user: User; csrf_token: string; app_subtitle?: string }>('/auth/me');
+      const me = await api.get<{ user: User; csrf_token: string; app_subtitle?: string; version?: string }>('/auth/me');
       session.user = me.user;
       session.subtitle = me.app_subtitle ?? '';
+      session.version = me.version ?? '';
       setCsrf(me.csrf_token);
       refreshSidebar(0);
     } catch {
@@ -126,8 +135,9 @@
     }
   }
 
-  // After navigation: close the mobile sidebar, reset the save indicator.
-  afterNavigate(() => {
+  // After navigation: history of the back bar, close the mobile sidebar, reset the save indicator.
+  afterNavigate((nav) => {
+    if (nav.to) recordNav(nav.type, nav.delta, nav.to.url);
     sidebar.open = false;
     saveState.saved = false;
     saveState.error = false;
@@ -155,7 +165,7 @@
     {/if}
     <aside
       class="fixed inset-y-0 left-0 z-30 w-64 overflow-hidden md:relative md:translate-x-0
-        {bgCss ? 'glass-bar dark border-white/10 bg-zinc-950/45 text-zinc-100 backdrop-blur-lg' : 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900'}
+        {glassChrome ? 'glass-bar dark border-white/10 bg-zinc-950/45 text-zinc-100 backdrop-blur-lg' : 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900'}
         {resizing ? '' : 'transition-[translate,width] duration-200'}
         {sidebar.open ? 'translate-x-0' : '-translate-x-full'}
         {sidebar.collapsed ? 'border-r md:w-0 md:border-r-0' : 'border-r md:w-(--sb-w)'}"
@@ -201,26 +211,33 @@
     {/if}
 
     <div class="flex min-w-0 flex-1 flex-col">
-      <header class="flex items-center gap-2 border-b px-3 py-2 md:hidden {bgCss ? 'glass-bar dark border-white/10 bg-zinc-950/45 text-zinc-100 backdrop-blur-lg' : 'border-zinc-200 dark:border-zinc-800'}">
+      <header class="flex items-center gap-2 border-b px-3 py-2 md:hidden {glassChrome ? 'glass-bar dark border-white/10 bg-zinc-950/45 text-zinc-100 backdrop-blur-lg' : 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900'}">
         <button type="button" class="btn-ghost px-2!" onclick={() => (sidebar.open = true)} aria-label={t('nav.openMenu')}>
           <Icon name="menu" size={18} />
         </button>
         <img src="/favicon.svg" alt="" width="20" height="20" />
         <span class="font-semibold">ProjectList</span>
       </header>
+      <BackBar glass={glassChrome} />
       <!-- Background (project → customer → own) lies behind the whole app; sidebar and
            header bands are dark glass, content surfaces light glass (app.css, main.has-bg).
            Editor and settings pages keep their content on one opaque panel instead.
            No backdrop-filter inside main: it would make fixed menus/dialogs position wrongly. -->
       <main class="flex-1 overflow-y-auto {bgCss && !panelPage ? 'has-bg' : ''}">
+        {#if checklistId}
+          <!-- open checklists as tabs -->
+          <div class={bgCss ? 'px-2 pt-2 sm:px-4 sm:pt-3' : 'px-4 pt-3 sm:px-10'}>
+            <ChecklistTabs activeId={checklistId} onImage={!!bgCss} />
+          </div>
+        {/if}
         <div
           class={settingsPage
             ? bgCss
               ? 'glass-bar m-2 h-[calc(100%-1rem)] overflow-hidden rounded-2xl bg-white shadow-lg sm:m-4 sm:h-[calc(100%-2rem)] dark:bg-zinc-900'
               : 'h-full'
             : bgCss && panelPage
-              ? 'glass-bar m-2 min-h-[calc(100%-1rem)] rounded-2xl bg-white px-4 py-5 shadow-lg sm:m-4 sm:min-h-[calc(100%-2rem)] sm:px-8 sm:py-6 dark:bg-zinc-900'
-              : 'px-4 py-5 sm:px-10 sm:py-7'}>
+              ? `glass-bar m-2 min-h-[calc(100%-1rem)] rounded-2xl bg-white px-4 py-5 shadow-lg sm:m-4 sm:min-h-[calc(100%-2rem)] sm:px-8 sm:py-6 dark:bg-zinc-900 ${checklistId ? 'mt-1! sm:mt-1.5!' : ''}`
+              : `px-4 py-5 sm:px-10 sm:py-7 ${checklistId ? 'pt-3! sm:pt-4!' : ''}`}>
           {@render children()}
         </div>
       </main>

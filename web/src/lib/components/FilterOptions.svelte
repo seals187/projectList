@@ -6,6 +6,7 @@
   import type { FilterId, FilterItem } from './FilterDropdown.svelte';
   import Avatar from './Avatar.svelte';
   import Icon from './Icon.svelte';
+  import EntityIcon from './EntityIcon.svelte';
 
   let {
     items,
@@ -56,7 +57,7 @@
         <span class="flex size-4 shrink-0 items-center justify-center rounded border {checked(i.id) ? 'border-accent-600 bg-accent-600 text-white' : 'border-zinc-300 dark:border-zinc-600'}">
           {#if checked(i.id)}<Icon name="check" size={11} />{/if}
         </span>
-        {#if i.code}<span class="flex size-5 shrink-0 items-center justify-center rounded text-[8px] font-bold {i.code.cls}">{i.code.text}</span>{/if}
+        {#if i.entity}<EntityIcon type={i.entity} size="xs" />{/if}
         {#if i.avatar}<Avatar name={i.label} id={Number(i.id)} size={18} />{/if}
         {#if i.color}<span class="size-2.5 shrink-0 rounded-full" style:background-color={i.color}></span>{/if}
         <span class="min-w-0 flex-1 truncate">{i.label}</span>

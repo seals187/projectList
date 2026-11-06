@@ -25,6 +25,7 @@ type Server struct {
 	log           *slog.Logger
 	dbPath        string
 	subtitle      string
+	version       string
 	mailer        mail.Sender
 	appURL        string
 	now           func() time.Time
@@ -38,6 +39,7 @@ type Options struct {
 	Logger   *slog.Logger
 	Static   http.Handler     // SPA; nil = no static files
 	Subtitle string           // APP_SUBTITLE, included in /api/auth/me
+	Version  string           // build version (ldflags), included in /api/auth/me
 	Mailer   mail.Sender      // nil = e-mail disabled (links are shown to the admin)
 	AppURL   string           // APP_URL: base for links in e-mails; "" = from the request
 	Now      func() time.Time // nil = time.Now (tests)
@@ -62,6 +64,7 @@ func New(o Options) http.Handler {
 		log:      o.Logger,
 		dbPath:   o.DBPath,
 		subtitle: o.Subtitle,
+		version:  o.Version,
 		mailer:   o.Mailer,
 		appURL:   o.AppURL,
 		now:      o.Now,
@@ -170,6 +173,10 @@ func New(o Options) http.Handler {
 	mux.Handle("PUT /api/prefs/{key}", s.authed(s.setClientPref))
 	mux.Handle("PUT /api/favorites/{kind}/{id}", s.authed(s.addFavorite))
 	mux.Handle("DELETE /api/favorites/{kind}/{id}", s.authed(s.removeFavorite))
+	mux.Handle("PUT /api/favorites/order", s.authed(s.orderFavorites))
+	mux.Handle("POST /api/favorite-groups", s.authed(s.createFavoriteGroup))
+	mux.Handle("PATCH /api/favorite-groups/{id}", s.authed(s.updateFavoriteGroup))
+	mux.Handle("DELETE /api/favorite-groups/{id}", s.authed(s.deleteFavoriteGroup))
 	mux.Handle("GET /api/admin/backup", s.admin(s.backup))
 	mux.Handle("POST /api/admin/restore", s.admin(s.restore))
 

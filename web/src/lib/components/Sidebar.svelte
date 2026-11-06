@@ -7,31 +7,25 @@
   import { api } from '$lib/api';
   import { canWrite, openNewProject, overviewView, palette, session, setTheme, sidebar, theme, toggleSidebar } from '$lib/state.svelte';
   import { t } from '$lib/i18n.svelte';
-  import { migrateLocalFavorites, toggleFavorite } from '$lib/navMemory.svelte';
+  import { migrateLocalFavorites } from '$lib/navMemory.svelte';
   import { applySavedView, isActivePageView, isActiveView, removeSavedView, renameSavedView, resetFilters, savedViews } from '$lib/overviewFilter.svelte';
   import type { SidebarCustomer, SidebarProject } from '$lib/types';
-  import type { FavEntry } from '$lib/favLayout';
+  import FavoritesSection from './FavoritesSection.svelte';
+  import EntityIcon from './EntityIcon.svelte';
   import SidebarTree from './SidebarTree.svelte';
   import Icon from './Icon.svelte';
   import Avatar from './Avatar.svelte';
 
-  // Customers, projects and checklists by ID (favorites, active project)
+  // Projects by ID and checklist → project (active project)
   const lookup = $derived.by(() => {
-    const customers = new Map<number, SidebarCustomer>();
     const projects = new Map<number, { p: SidebarProject; c: SidebarCustomer }>();
-    const checklists = new Map<number, number>(); // checklist → project
-    const checklistTitles = new Map<number, string>();
-    for (const c of sidebar.customers) {
-      customers.set(c.id, c);
+    const checklists = new Map<number, number>();
+    for (const c of sidebar.customers)
       for (const p of c.projects) {
         projects.set(p.id, { p, c });
-        for (const cl of p.checklists) {
-          checklists.set(cl.id, p.id);
-          checklistTitles.set(cl.id, cl.title);
-        }
+        for (const cl of p.checklists) checklists.set(cl.id, p.id);
       }
-    }
-    return { customers, projects, checklists, checklistTitles };
+    return { projects, checklists };
   });
 
   // Active customer/project from the URL ("+" preselects the customer, favorite highlighted)
@@ -54,25 +48,7 @@
   $effect(() => {
     if (sidebar.customers.length) untrack(migrateLocalFavorites); // migrate old browser favorites once
   });
-  // resolved favorites (targets that are gone or no longer visible are skipped)
-  const favorites = $derived(
-    sidebar.favorites.flatMap((f): FavEntry[] => {
-      const key = `${f.kind}:${f.id}`;
-      if (f.kind === 'customer') {
-        const c = lookup.customers.get(f.id);
-        return c ? [{ key, ...f, href: `/customers/${c.id}`, label: c.name, hint: '', on: page.url.pathname === `/customers/${c.id}` }] : [];
-      }
-      if (f.kind === 'project') {
-        const x = lookup.projects.get(f.id);
-        return x ? [{ key, ...f, href: `/projects/${x.p.id}`, label: x.p.name, hint: '', on: active.projectId === x.p.id && !active.checklistId }] : [];
-      }
-      const pid = lookup.checklists.get(f.id);
-      const x = pid ? lookup.projects.get(pid) : undefined;
-      return x ? [{ key, ...f, href: `/checklists/${f.id}`, label: lookup.checklistTitles.get(f.id) ?? '', hint: x.p.name, on: active.checklistId === f.id }] : [];
-    })
-  );
 
-  const favByKey = $derived(new Map(favorites.map((f) => [f.key, f])));
   const viewById = $derived(new Map(savedViews.list.map((v) => [v.id, v])));
   const menuItemCls = 'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800';
 
@@ -124,10 +100,16 @@
   }
 
   const path = $derived(page.url.pathname);
+  // Settings open and close with the user entry: a second click returns to the page before
+  const inSettings = $derived(path.startsWith('/settings'));
+  let lastPage = $state('/');
+  $effect(() => {
+    if (!page.url.pathname.startsWith('/settings')) lastPage = page.url.pathname + page.url.search;
+  });
   const nav = $derived([
     { href: '/', icon: 'home' as const, label: t('nav.overview'), on: path === '/' },
     { href: '/tasks', icon: 'tasks' as const, label: t('nav.myTasks'), on: path === '/tasks', badge: sidebar.myTasks },
-    { href: '/customers', icon: 'users' as const, label: t('nav.customers'), on: /^\/(customers|projects|checklists)(\/|$)/.test(path) },
+    { href: '/customers', icon: 'building2' as const, label: t('nav.customers'), on: /^\/(customers|projects|checklists)(\/|$)/.test(path) },
     { href: '/templates', icon: 'template' as const, label: t('nav.templates'), on: path.startsWith('/templates') }
   ]);
 
@@ -208,41 +190,7 @@
 
     <!-- Favorites: own order and folders (pref "fav_layout") -->
     {#snippet favHead()}{@render sectionHead('favorites', t('nav.favorites'))}{/snippet}
-    {#snippet favItem(key: string, nested: boolean)}
-      {@const f = favByKey.get(key)}
-      {#if f}
-        <a href={f.href} class="{navCls(f.on)} pr-8 font-normal! {nested ? 'pl-7!' : ''}" title={f.hint ? `${f.label} · ${f.hint}` : f.label} draggable="false">
-          <Icon name="star" size={15} class="fill-amber-400 text-amber-500" />
-          <span class="min-w-0 flex-1 truncate">{f.label}</span>
-        </a>
-        <button
-          type="button"
-          class="absolute top-1/2 right-1.5 hidden -translate-y-1/2 rounded p-1 text-zinc-400 group-hover:block hover:text-zinc-700 dark:hover:text-zinc-200 [@media(hover:none)]:block"
-          onclick={() => toggleFavorite(f.kind, f.id)}
-          title={t('nav.removeFavorite')}
-          aria-label="{t('nav.removeFavorite')}: {f.label}">
-          <Icon name="x" size={13} />
-        </button>
-      {/if}
-    {/snippet}
-    {#snippet favMenu(key: string, close: () => void)}
-      {@const f = favByKey.get(key)}
-      {#if f}
-        <button type="button" class="{menuItemCls} text-red-600 dark:text-red-400" role="menuitem" onclick={() => (toggleFavorite(f.kind, f.id), close())}>
-          <Icon name="star" size={15} />{t('nav.removeFavorite')}
-        </button>
-      {/if}
-    {/snippet}
-    <SidebarTree
-      keys={favorites.map((f) => f.key)}
-      prefKey="fav_layout"
-      label={t('nav.favorites')}
-      closed={!!closedSections.favorites}
-      head={favHead}
-      {navCls}
-      item={favItem}
-      itemMenu={favMenu}
-      testid="fav" />
+    <FavoritesSection closed={!!closedSections.favorites} head={favHead} activePath={page.url.pathname} />
 
     <!-- Saved views: own order and folders (pref "views_layout") -->
     {#snippet viewsHead()}{@render sectionHead('views', t('views.title'))}{/snippet}
@@ -266,7 +214,7 @@
             onblur={() => finishRename(v.id)} />
         {:else}
           <button type="button" class="{navCls(on)} w-full pr-14 text-left font-normal! {nested ? 'pl-7!' : ''}" onclick={() => applySavedView(v)} ondblclick={() => startRename(v.id, v.name)} title={v.name}>
-            <Icon name="filter" size={15} class={on ? '' : 'opacity-70'} />
+            <EntityIcon type="savedView" size="sm" class="-mx-1" />
             <span class="min-w-0 flex-1 truncate">{v.name}</span>
           </button>
           <span class="absolute top-1/2 right-1.5 hidden -translate-y-1/2 items-center group-hover:flex [@media(hover:none)]:flex">
@@ -316,9 +264,9 @@
   <!-- Footer: user (→ settings), theme, logout -->
   <div class="flex items-center gap-1 border-t border-zinc-200 px-3 py-2.5 dark:border-zinc-800">
     <a
-      href="/settings"
-      class="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-1.5 py-1 {path.startsWith('/settings') ? 'sel-on' : 'sel-off'}"
-      title={t('nav.settings')}>
+      href={inSettings ? lastPage : '/settings'}
+      class="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-1.5 py-1 {inSettings ? 'sel-on' : 'sel-off'}"
+      title={inSettings ? t('nav.closeSettings') : t('nav.settings')}>
       <Avatar name={session.user?.name ?? ''} id={session.user?.id ?? 0} size={30} />
       <span class="truncate font-semibold">{session.user?.name}</span>
     </a>

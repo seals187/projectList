@@ -9,6 +9,7 @@
   import BlockEditor from '$lib/components/BlockEditor.svelte';
   import Editable from '$lib/components/Editable.svelte';
   import ConfirmButton from '$lib/components/ConfirmButton.svelte';
+  import FavoriteStar from '$lib/components/FavoriteStar.svelte';
   import SaveStatus from '$lib/components/SaveStatus.svelte';
 
   let template = $state<Template | null>(null);
@@ -59,8 +60,9 @@
 {#if notFound}
   <p class="text-zinc-500">{t('common.notFound')}</p>
 {:else if template}
-  <DetailHeader crumbs={[{ label: t('nav.templates'), href: '/templates' }]}>
+  <DetailHeader type="template">
     {#snippet actions()}<SaveStatus />{/snippet}
+    {#snippet meta()}<FavoriteStar kind="template" id={template!.id} />{/snippet}
     {#snippet title()}
       <Editable value={template!.name} required disabled={!editable} onsave={(name) => save({ name })} inputClass="font-serif text-2xl! font-bold" />
     {/snippet}

@@ -5,10 +5,13 @@
   import { palette } from '$lib/state.svelte';
   import { t } from '$lib/i18n.svelte';
   import type { SearchResult } from '$lib/types';
+  import { entitySubtitle, type EntityType } from '$lib/entityTypes';
+  import EntityIcon from './EntityIcon.svelte';
 
   interface Entry {
     label: string;
     hint: string;
+    type?: EntityType; // object type (search results): type icon
     href: string;
     group: string;
   }
@@ -57,9 +60,9 @@
         const r = await api.get<SearchResult>('/search?q=' + encodeURIComponent(q));
         if (my !== seq) return; // stale response
         results = [
-          ...r.customers.map((c) => ({ label: c.name, hint: t('search.customer'), href: `/customers/${c.id}`, group: t('search.customers') })),
-          ...r.projects.map((p) => ({ label: p.name, hint: p.customer_name, href: `/projects/${p.id}`, group: t('search.projects') })),
-          ...r.checklists.map((c) => ({ label: c.title, hint: c.project_name, href: `/checklists/${c.id}`, group: t('search.checklists') }))
+          ...r.customers.map((c) => ({ label: c.name, hint: t('entity.customer'), type: 'customer' as const, href: `/customers/${c.id}`, group: t('search.customers') })),
+          ...r.projects.map((p) => ({ label: p.name, hint: entitySubtitle(t('entity.project'), p.customer_name), type: 'project' as const, href: `/projects/${p.id}`, group: t('search.projects') })),
+          ...r.checklists.map((c) => ({ label: c.title, hint: entitySubtitle(t('entity.checklist'), c.project_name), type: 'checklist' as const, href: `/checklists/${c.id}`, group: t('search.checklists') }))
         ];
       } catch {
         results = [];
@@ -119,7 +122,7 @@
               class="flex w-full items-center justify-between gap-3 rounded-md px-2.5 py-2 text-left text-sm {i === active
                 ? 'bg-accent-50 text-accent-700 dark:bg-accent-950/60 dark:text-accent-400'
                 : ''}">
-              <span class="truncate">{e.label}</span>
+              <span class="flex min-w-0 items-center gap-2.5">{#if e.type}<EntityIcon type={e.type} size="sm" />{/if}<span class="truncate">{e.label}</span></span>
               {#if e.hint}<span class="shrink-0 text-xs text-zinc-400">{e.hint}</span>{/if}
             </button>
           </li>

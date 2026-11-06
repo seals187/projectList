@@ -3,12 +3,13 @@
   // Writers move a project to another day via drag & drop (changes the due date).
   import { canWrite } from '$lib/state.svelte';
   import { locale, t } from '$lib/i18n.svelte';
-  import { customerCode, customerTone, statusDotCls, statusDotStyle } from '$lib/projectStatus';
+  import { statusDotCls, statusDotStyle } from '$lib/projectStatus';
   import { dueUrgent, type OvCustomer, type OvProject } from '$lib/overview';
   import { patchProject } from '$lib/projectActions';
   import { addMonths, dayOfMonth, fromDay, mondayOf, monthLabel, monthStart, toDay, weekday, weekdayNames } from '$lib/dates';
   import ProjectMenu from './ProjectMenu.svelte';
   import Icon from './Icon.svelte';
+  import EntityIcon from './EntityIcon.svelte';
 
   let { groups, today }: { groups: OvCustomer[]; today: string } = $props();
 
@@ -126,7 +127,7 @@
                 {dueUrgent(p, today) ? 'border-red-300 dark:border-red-500/50' : 'border-zinc-200 dark:border-zinc-800'}
                 {dragId === p.id ? 'opacity-50' : ''}">
               <span class="size-2 shrink-0 rounded-full {statusDotCls(p.status)}" style={statusDotStyle(p.status)}></span>
-              <span class="flex h-4 shrink-0 items-center rounded px-1 text-[8px] font-bold {customerTone(p.customer.id)}">{customerCode(p.customer.name)}</span>
+              <EntityIcon type="customer" size="xxs" />
               <span class="min-w-0 flex-1 truncate font-medium">{p.name}</span>
             </a>
           {/each}
@@ -155,7 +156,7 @@
           oncontextmenu={(e) => projectMenu(e, p)}
           class="flex items-center gap-1.5 rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs hover:shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
           <span class="size-2 shrink-0 rounded-full {statusDotCls(p.status)}" style={statusDotStyle(p.status)}></span>
-          <span class="text-zinc-500">{customerCode(p.customer.name)}</span>
+          <EntityIcon type="customer" size="xxs" />
           <span class="font-medium">{p.name}</span>
         </a>
       {/each}

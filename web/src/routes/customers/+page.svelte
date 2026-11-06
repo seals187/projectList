@@ -6,7 +6,7 @@
   import { api } from '$lib/api';
   import { canWrite, isAdmin, openNewProject, prefs, refreshSidebar, sidebar } from '$lib/state.svelte';
   import { fmtDate, t, todayISO, withoutText } from '$lib/i18n.svelte';
-  import { barCls, customerCode, customerTone, statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
+  import { barCls, statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
   import { dueUrgent, pct, segGrow } from '$lib/overview';
   import {
     buildCustomerRows,
@@ -30,6 +30,7 @@
   import NewCustomerDialog from '$lib/components/NewCustomerDialog.svelte';
   import ProgressToggle from '$lib/components/ProgressToggle.svelte';
   import Icon from '$lib/components/Icon.svelte';
+  import EntityIcon from '$lib/components/EntityIcon.svelte';
 
   const today = todayISO();
   // view and sorting start from the former per-browser settings
@@ -93,7 +94,7 @@
 <svelte:head><title>{t('nav.customers')} · ProjectList</title></svelte:head>
 
 <PageHeader
-  icon="users"
+  icon="building2"
   title={t('nav.customers')}
   subtitle="{t('overview.nCustomers', { n: totals.customers })} · {t('overview.nProjects', { n: totals.projects })} · {t('customers.nOpen', { n: totals.open })}"
   views={[
@@ -192,7 +193,7 @@
     {#each visible as r (r.customer.id)}
       <a href="/customers/{r.customer.id}" class="card block p-4 transition-shadow hover:shadow-md">
         <div class="flex items-start gap-3">
-          <span class="flex size-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold {customerTone(r.customer.id)}">{customerCode(r.customer.name)}</span>
+          <EntityIcon type="customer" size="lg" />
           <div class="min-w-0 flex-1">
             <p class="line-clamp-2 leading-snug font-semibold break-words" title={r.customer.name}>{r.customer.name}</p>
             <p class="truncate text-xs text-zinc-500">{r.info?.location || '–'}</p>
@@ -245,7 +246,7 @@
                 aria-label="{t(open ? 'overview.hideProjects' : 'overview.showProjects')}: {r.customer.name}">
                 <Icon name="chevron" size={14} class="transition-transform {open ? 'rotate-90' : ''}" />
               </button>
-              <span class="flex size-8 shrink-0 items-center justify-center rounded-lg text-[11px] font-bold {customerTone(r.customer.id)}">{customerCode(r.customer.name)}</span>
+              <EntityIcon type="customer" size="lg" />
               <a href="/customers/{r.customer.id}" class="min-w-0">
                 <span class="block truncate font-semibold hover:underline">{r.customer.name}</span>
                 <span class="block truncate text-xs text-zinc-500">{r.info?.location || ''}</span>
@@ -276,7 +277,7 @@
               {#each r.projects as p (p.id)}
                 <a href="/projects/{p.id}" style:grid-template-columns={tpl} class="{cols} px-4 py-1.5 text-sm hover:bg-zinc-100/70 dark:hover:bg-zinc-800/50">
                   <span class="flex min-w-0 items-center gap-2 pl-[3.25rem]">
-                    <Icon name="folder" size={14} class="text-zinc-400" />
+                    <EntityIcon type="project" size="xs" />
                     <span class="truncate font-medium {p.include_in_customer_progress ? '' : 'text-zinc-400 dark:text-zinc-500'}">{p.name}</span>
                   </span>
                   <!-- columns as in the customer row: checklists under "projects", status under "status" -->

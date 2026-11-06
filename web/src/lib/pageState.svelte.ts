@@ -50,9 +50,13 @@ export function pageState<S extends Spec>(name: string, spec: S, ext: Record<str
     }
     const q = toQuery({ ...snap, ...extVals } as Values<Spec>, urlSpec);
     untrack(() => {
-      if (normQuery(page.url.search) === q) return;
+      // compare with the real address: page.url is not updated by replaceState
+      // (shallow routing), so after one rewrite it would be stale and a later
+      // change back to the defaults (e.g. view "cards" = no ?view) never written
+      const current = typeof location === 'undefined' ? page.url.search : location.search;
+      if (normQuery(current) === q) return;
       written = q;
-      const url = new URL(page.url);
+      const url = new URL(typeof location === 'undefined' ? page.url : location.href);
       url.search = q;
       try {
         replaceState(url, page.state);
@@ -65,7 +69,9 @@ export function pageState<S extends Spec>(name: string, spec: S, ext: Record<str
   // URL changed from outside (saved view, link, nav click on the same page):
   // fields missing in the URL go back to their defaults
   $effect(() => {
-    const q = normQuery(page.url.search);
+    const search = page.url.search; // dependency: runs on every real navigation
+    // value from the real address (page.url may be stale after our own replaceState)
+    const q = normQuery(typeof location === 'undefined' ? search : location.search);
     untrack(() => {
       if (q === written) return;
       written = q;

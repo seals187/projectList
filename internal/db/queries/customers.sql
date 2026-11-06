@@ -10,10 +10,10 @@ ORDER BY c.name COLLATE NOCASE, c.id;
 SELECT * FROM customers WHERE id = ?;
 
 -- name: CreateCustomer :one
-INSERT INTO customers (name, notes, location, contact_name, contact_email) VALUES (?, ?, ?, ?, ?) RETURNING *;
+INSERT INTO customers (name, notes, location, contact_name, contact_email, phones) VALUES (?, ?, ?, ?, ?, ?) RETURNING *;
 
 -- name: UpdateCustomer :one
-UPDATE customers SET name = ?, notes = ?, location = ?, contact_name = ?, contact_email = ? WHERE id = ? RETURNING *;
+UPDATE customers SET name = ?, notes = ?, location = ?, contact_name = ?, contact_email = ?, phones = ? WHERE id = ? RETURNING *;
 
 -- name: DeleteCustomer :exec
 DELETE FROM customers WHERE id = ?;

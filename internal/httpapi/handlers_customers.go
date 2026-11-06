@@ -1,11 +1,15 @@
 package httpapi
 
 import (
+	"encoding/json"
 	"net/http"
+	"regexp"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/seals187/projectList/internal/authz"
 	"github.com/seals187/projectList/internal/db/sqlc"
+	"github.com/seals187/projectList/internal/dbtypes"
 )
 
 // customerListItem: customer with latest activity (customer overview, sorting).
@@ -37,11 +41,47 @@ func (s *Server) listCustomers(w http.ResponseWriter, r *http.Request, u authz.U
 }
 
 type customerReq struct {
-	Name         *string `json:"name"`
-	Notes        *string `json:"notes"`
-	Location     *string `json:"location"`
-	ContactName  *string `json:"contact_name"`
-	ContactEmail *string `json:"contact_email"`
+	Name         *string          `json:"name"`
+	Notes        *string          `json:"notes"`
+	Location     *string          `json:"location"`
+	ContactName  *string          `json:"contact_name"`
+	ContactEmail *string          `json:"contact_email"`
+	Phones       *[]customerPhone `json:"phones"`
+}
+
+// customerPhone is one phone number of a customer ("Zentrale", "+41 41 123 45 67").
+type customerPhone struct {
+	Label  string `json:"label"`
+	Number string `json:"number"`
+}
+
+var phoneRe = regexp.MustCompile(`^[0-9+()/. -]{3,40}$`)
+
+// phonesField validates the phone list (max. 10) and returns it as JSON.
+func (v validator) phonesField(list []customerPhone) dbtypes.JSONText {
+	if len(list) > 10 {
+		v["phones"] = "too_many"
+		return nil
+	}
+	out := make([]customerPhone, 0, len(list))
+	for _, p := range list {
+		n := strings.TrimSpace(p.Number)
+		l := strings.TrimSpace(p.Label)
+		if n == "" && l == "" {
+			continue // empty row of the form
+		}
+		if !phoneRe.MatchString(n) {
+			v["phones"] = "invalid_phone"
+			return nil
+		}
+		if utf8.RuneCountInString(l) > 40 {
+			v["phones"] = "length:0:40"
+			return nil
+		}
+		out = append(out, customerPhone{Label: l, Number: n})
+	}
+	b, _ := json.Marshal(out)
+	return b
 }
 
 // contactFields checks location and contact person; an empty email is allowed.
@@ -70,6 +110,10 @@ func (s *Server) createCustomer(w http.ResponseWriter, r *http.Request, _ authz.
 	p.Name = v.text("name", deref(req.Name), 1, 200)
 	p.Notes = v.text("notes", deref(req.Notes), 0, 10000)
 	v.contactFields(req, &p.Location, &p.ContactName, &p.ContactEmail)
+	p.Phones = dbtypes.JSONText(`[]`)
+	if req.Phones != nil {
+		p.Phones = v.phonesField(*req.Phones)
+	}
 	if err := v.err(); err != nil {
 		return err
 	}
@@ -118,7 +162,7 @@ func (s *Server) updateCustomer(w http.ResponseWriter, r *http.Request, u authz.
 		return err
 	}
 	v := validator{}
-	p := sqlc.UpdateCustomerParams{ID: id, Name: c.Name, Notes: c.Notes, Location: c.Location, ContactName: c.ContactName, ContactEmail: c.ContactEmail}
+	p := sqlc.UpdateCustomerParams{ID: id, Name: c.Name, Notes: c.Notes, Location: c.Location, ContactName: c.ContactName, ContactEmail: c.ContactEmail, Phones: c.Phones}
 	if req.Name != nil {
 		p.Name = v.text("name", *req.Name, 1, 200)
 	}
@@ -126,6 +170,9 @@ func (s *Server) updateCustomer(w http.ResponseWriter, r *http.Request, u authz.
 		p.Notes = v.text("notes", *req.Notes, 0, 10000)
 	}
 	v.contactFields(req, &p.Location, &p.ContactName, &p.ContactEmail)
+	if req.Phones != nil {
+		p.Phones = v.phonesField(*req.Phones)
+	}
 	if err := v.err(); err != nil {
 		return err
 	}

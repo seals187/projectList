@@ -25,6 +25,7 @@
   } from '$lib/favLayout';
   import ContextMenu from './ContextMenu.svelte';
   import Icon from './Icon.svelte';
+  import EntityIcon from './EntityIcon.svelte';
 
   let {
     keys,
@@ -191,7 +192,7 @@
               ondblclick={() => ((renaming = n.id), (renameText = n.name))}
               aria-expanded={n.open}>
               <Icon name="chevronDown" size={13} class="-ml-0.5 shrink-0 text-zinc-400 transition-transform {n.open ? '' : '-rotate-90'}" />
-              <Icon name="folder" size={15} class="-ml-1 shrink-0 text-zinc-500 dark:text-zinc-400" />
+              <EntityIcon type="savedView" size="sm" class="-mx-1" />
               <span class="min-w-0 flex-1 truncate text-left">{n.name}</span>
               <span class="text-xs text-zinc-400 tabular-nums">{n.items.length}</span>
             </button>

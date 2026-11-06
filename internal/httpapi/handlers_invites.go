@@ -289,5 +289,6 @@ func (s *Server) acceptToken(w http.ResponseWriter, r *http.Request) {
 		User:      authz.User{ID: user.ID, Email: user.Email, Name: user.Name, Role: user.Role},
 		CSRFToken: csrf,
 		Subtitle:  s.subtitle,
+		Version:   s.version,
 	})
 }

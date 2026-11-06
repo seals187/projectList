@@ -8,7 +8,6 @@
   import { api, errorText } from '$lib/api';
   import { i18n, locale, t } from '$lib/i18n.svelte';
   import { isAdmin, session, sidebar, toast } from '$lib/state.svelte';
-  import { customerCode, customerTone } from '$lib/projectStatus';
   import { relTime } from '$lib/relTime';
   import type { AdminUser, Role } from '$lib/types';
   import SettingsShell from '$lib/components/SettingsShell.svelte';
@@ -16,6 +15,7 @@
   import ConfirmButton from '$lib/components/ConfirmButton.svelte';
   import Avatar from '$lib/components/Avatar.svelte';
   import Icon from '$lib/components/Icon.svelte';
+  import EntityIcon from '$lib/components/EntityIcon.svelte';
   import InviteUserDialog from '$lib/components/InviteUserDialog.svelte';
   import LinkBox from '$lib/components/LinkBox.svelte';
 
@@ -247,7 +247,7 @@
               <li>
                 <label class="flex cursor-pointer items-center gap-3 py-2.5">
                   <input type="checkbox" class="size-[18px] accent-[var(--accent-primary)]" checked={has} onchange={() => toggleCustomer(u, c.id)} />
-                  <span class="flex size-7 shrink-0 items-center justify-center rounded-md text-[10.5px] font-bold {customerTone(c.id)}">{customerCode(c.name)}</span>
+                  <EntityIcon type="customer" size="sm" />
                   <span class="truncate text-[14.5px]">{c.name.replace(/^\s*\([^)]{1,4}\)\s*/, '')}</span>
                 </label>
               </li>

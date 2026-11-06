@@ -13,10 +13,19 @@ export interface User {
 }
 
 /** Favorite in the sidebar (per user). */
-export type FavoriteKind = 'customer' | 'project' | 'checklist';
+export type FavoriteKind = 'customer' | 'project' | 'checklist' | 'template';
 export interface Favorite {
   kind: FavoriteKind;
   id: number;
+  group_id: number | null; // favorites group (null = without group)
+  position: number; // order within the group / the ungrouped favorites
+}
+/** User-defined group of favorites (sidebar). */
+export interface FavoriteGroup {
+  id: number;
+  name: string;
+  position: number;
+  collapsed: boolean;
 }
 
 export interface AdminUser extends User {
@@ -26,6 +35,12 @@ export interface AdminUser extends User {
   invited: boolean; // invitation not accepted yet
 }
 
+/** Phone number of a customer ("Zentrale", "+41 41 123 45 67"). */
+export interface CustomerPhone {
+  label: string;
+  number: string;
+}
+
 export interface Customer {
   id: number;
   name: string;
@@ -33,6 +48,7 @@ export interface Customer {
   location: string;
   contact_name: string;
   contact_email: string;
+  phones: CustomerPhone[]; // phone numbers (label optional)
   created_at: string;
 }
 

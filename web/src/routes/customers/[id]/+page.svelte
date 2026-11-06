@@ -7,16 +7,17 @@
   import { api, errorText } from '$lib/api';
   import { canWrite, isAdmin, openNewProject, refreshSidebar, sidebar, toast } from '$lib/state.svelte';
   import { fmtDate, shortName, t, todayISO } from '$lib/i18n.svelte';
-  import type { Customer, Project, ProjectWithProgress } from '$lib/types';
+  import type { Customer, CustomerPhone, Project, ProjectWithProgress } from '$lib/types';
   import Editable from '$lib/components/Editable.svelte';
   import ConfirmButton from '$lib/components/ConfirmButton.svelte';
+  import EntityIcon from '$lib/components/EntityIcon.svelte';
   import FavoriteStar from '$lib/components/FavoriteStar.svelte';
   import SaveStatus from '$lib/components/SaveStatus.svelte';
   import Avatar from '$lib/components/Avatar.svelte';
   import Icon from '$lib/components/Icon.svelte';
   import BackgroundPicker from '$lib/components/BackgroundPicker.svelte';
   import HeaderBand from '$lib/components/HeaderBand.svelte';
-  import { barCls, customerCode, customerTone, statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
+  import { barCls, statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
   import { dueUrgent, pct } from '$lib/overview';
   import { tagsByIds } from '$lib/tags';
 
@@ -56,6 +57,23 @@
     customer = await api.patch<Customer>(`/customers/${id}`, { [field]: value });
     if (field === 'name' || field === 'location') refreshSidebar(0);
   }
+
+  // phone numbers: edited as a list (label + number) while "Edit" is on, saved on leaving a field
+  let phones = $state<CustomerPhone[]>([]);
+  $effect(() => {
+    if (editing && customer) phones = (customer.phones ?? []).map((p) => ({ ...p }));
+  });
+  async function savePhones() {
+    if (!customer) return;
+    const list = phones.filter((p) => p.number.trim() || p.label.trim());
+    if (JSON.stringify(list) === JSON.stringify(customer.phones ?? [])) return;
+    try {
+      customer = await api.patch<Customer>(`/customers/${id}`, { phones: list });
+    } catch (err) {
+      toast(errorText(err));
+    }
+  }
+  const telHref = (n: string) => `tel:${n.replace(/[^0-9+]/g, '')}`;
 
   async function addProject(e: SubmitEvent) {
     e.preventDefault();
@@ -115,16 +133,10 @@
 {:else if customer}
   {@const c = customer}
   <HeaderBand>
-    <nav class="mb-2 flex in-[.band]:mb-1 items-center gap-1.5 text-[13px] text-zinc-400" aria-label="Breadcrumb">
-      <a href="/customers" class="hover:text-zinc-700 dark:hover:text-zinc-200">{t('nav.customers')}</a>
-      <span aria-hidden="true">›</span>
-      <span class="truncate text-zinc-600 dark:text-zinc-300">{c.name}</span>
-    </nav>
-
     <!-- Header -->
     <header class="flex flex-wrap items-center justify-between gap-4">
       <div class="flex min-w-0 items-center gap-3">
-        <span class="flex size-12 shrink-0 items-center justify-center rounded-xl text-lg in-[.band]:size-8 in-[.band]:rounded-lg in-[.band]:text-xs font-bold {customerTone(c.id)}">{customerCode(c.name)}</span>
+        <EntityIcon type="customer" size="lg" />
         <h1 class="min-w-0 font-serif text-[28px] in-[.band]:text-xl leading-tight font-bold tracking-tight">
           {#if editing}
             <Editable value={c.name} required onsave={(v) => save('name', v)} inputClass="font-serif text-2xl! font-bold" />
@@ -164,6 +176,46 @@
           </div>
         {/if}
       {/each}
+      <!-- phone numbers -->
+      {#if editing || c.phones?.length}
+        <div class="min-w-0" data-testid="customer-phones">
+          <dt class="text-[11px] font-semibold tracking-wider text-zinc-400 uppercase">{t('customers.phone')}</dt>
+          <dd class="mt-0.5 min-w-0">
+            {#if editing}
+              <div class="space-y-1.5">
+                {#each phones as p, i (i)}
+                  <div class="flex items-center gap-1.5">
+                    <input class="input w-28! py-0.5! text-[13px]!" maxlength="40" placeholder={t('customers.phoneLabel')} bind:value={p.label} onblur={savePhones} aria-label={t('customers.phoneLabel')} />
+                    <input class="input w-44! py-0.5! text-[13px]! tabular-nums" type="tel" maxlength="40" placeholder="+41 41 123 45 67" bind:value={p.number} onblur={savePhones} aria-label={t('customers.phone')} />
+                    <button
+                      type="button"
+                      class="rounded p-1 text-zinc-400 hover:text-red-600"
+                      onclick={() => ((phones = phones.filter((_, j) => j !== i)), savePhones())}
+                      title={t('customers.phoneRemove')}
+                      aria-label={t('customers.phoneRemove')}>
+                      <Icon name="x" size={13} />
+                    </button>
+                  </div>
+                {/each}
+                {#if phones.length < 10}
+                  <button type="button" class="text-[13px] font-medium text-accent-600 hover:underline dark:text-accent-400" onclick={() => (phones = [...phones, { label: '', number: '' }])}>
+                    + {t('customers.phoneAdd')}
+                  </button>
+                {/if}
+              </div>
+            {:else}
+              <ul class="space-y-0.5">
+                {#each c.phones as p, i (i)}
+                  <li class="flex items-baseline gap-2">
+                    {#if p.label}<span class="text-zinc-500 dark:text-zinc-400">{p.label}</span>{/if}
+                    <a href={telHref(p.number)} class="text-accent-600 tabular-nums hover:underline dark:text-accent-400">{p.number}</a>
+                  </li>
+                {/each}
+              </ul>
+            {/if}
+          </dd>
+        </div>
+      {/if}
     </dl>
 
     <!-- Notes (always editable inline) -->
@@ -205,7 +257,7 @@
             class="{cols} border-b border-zinc-100 px-4 py-3 text-sm hover:bg-zinc-50 dark:border-zinc-800/70 dark:hover:bg-zinc-800/40
               {p.status === 'blocked' ? 'bg-red-50/50 dark:bg-red-950/15' : ''}">
             <span class="flex min-w-0 items-center gap-2.5">
-              <Icon name="folder" size={16} class="shrink-0 text-zinc-400" />
+              <EntityIcon type="project" size="sm" />
               <span class="truncate font-semibold {p.status === 'archived' ? 'text-zinc-400 line-through' : ''}" title={p.name}>{p.name}</span>
             </span>
             <span class="min-w-0"><span class="badge inline-block max-w-full truncate {statusBadgeCls(p.status)}" style={statusBadgeStyle(p.status)} title={statusLabel(p.status)}>{statusLabel(p.status)}</span></span>

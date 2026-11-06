@@ -5,32 +5,59 @@
   import { goto } from '$app/navigation';
   import { canWrite } from '$lib/state.svelte';
   import { fmtDate, locale, t } from '$lib/i18n.svelte';
-  import { customerCode, customerTone, statusColor, statusDotCls, statusDotStyle, statusLabel } from '$lib/projectStatus';
+  import { statusColor, statusDotCls, statusDotStyle, statusLabel } from '$lib/projectStatus';
   import { pct, type OvCustomer, type OvProject } from '$lib/overview';
   import { patchProject } from '$lib/projectActions';
   import { addMonths, dayOfMonth, fromDay, isoWeek, mondayOf, monthLabel, monthStart, toDay, weekday, weekdayNames } from '$lib/dates';
   import ProjectMenu from './ProjectMenu.svelte';
   import Icon from './Icon.svelte';
+  import EntityIcon from './EntityIcon.svelte';
 
   let { groups, today }: { groups: OvCustomer[]; today: string } = $props();
 
-  type Zoom = 'weeks' | 'months';
-  const ZOOM = { weeks: { dayW: 30, days: 63 }, months: { dayW: 8, days: 196 } } as const;
-  let zoom = $state<Zoom>('weeks');
-  const dayW = $derived(ZOOM[zoom].dayW);
-  const span = $derived(ZOOM[zoom].days);
+  // Zoom: this week (Mon–Sun), the next 14 / 30 days from today (days fill the
+  // available width, min. width per day), or months (fixed scale, scrolls).
+  type Zoom = 'week' | '14d' | '30d' | 'months';
+  const ZOOMS: readonly Zoom[] = ['week', '14d', '30d', 'months'];
+  const ZOOM: Record<Zoom, { days: number; minDayW: number }> = {
+    week: { days: 7, minDayW: 60 },
+    '14d': { days: 14, minDayW: 36 },
+    '30d': { days: 30, minDayW: 24 },
+    months: { days: 196, minDayW: 8 }
+  };
+  const ZOOM_KEY = 'timeline-zoom';
+  function loadZoom(): Zoom {
+    try {
+      const v = localStorage.getItem(ZOOM_KEY) as Zoom | null;
+      return v && ZOOMS.includes(v) ? v : '30d';
+    } catch {
+      return '30d';
+    }
+  }
+  let zoom = $state<Zoom>(loadZoom());
   const NAME_W = 240; // px, left column
+  let boxW = $state(0); // width of the scroll container
+  const span = $derived(ZOOM[zoom].days);
+  // day views fill the width; months keep their fixed scale
+  const dayW = $derived(zoom === 'months' ? 8 : Math.max(ZOOM[zoom].minDayW, Math.floor((boxW - NAME_W - 2) / span)));
+  const dayView = $derived(zoom !== 'months');
 
   const todayDay = $derived(toDay(today));
-  const startFor = (z: Zoom, around: number) => (z === 'weeks' ? mondayOf(around) - 14 : addMonths(monthStart(around), -1));
+  const startFor = (z: Zoom, around: number) => (z === 'week' ? mondayOf(around) : z === 'months' ? addMonths(monthStart(around), -1) : around);
   // svelte-ignore state_referenced_locally
-  let from = $state(startFor('weeks', toDay(today)));
+  let from = $state(startFor(zoom, toDay(today)));
   const to = $derived(from + span); // exclusive
   function setZoom(z: Zoom) {
     zoom = z;
     from = startFor(z, todayDay);
+    try {
+      localStorage.setItem(ZOOM_KEY, z);
+    } catch {
+      /* ignore */
+    }
   }
-  const shift = (dir: -1 | 1) => (from = zoom === 'weeks' ? from + dir * 28 : addMonths(from, dir * 2));
+  // arrows: one view length (months: two months)
+  const shift = (dir: -1 | 1) => (from = zoom === 'months' ? addMonths(from, dir * 2) : from + dir * span);
 
   // ---- Bars ------------------------------------------------------------------------
   const startOf = (p: OvProject) => toDay(p.start_date ?? p.created_at);
@@ -106,19 +133,21 @@
 
   const width = $derived(NAME_W + span * dayW);
   const x = (day: number) => (day - from) * dayW;
-  // weekends shaded (weeks view; "from" is always a Monday there)
+  // weekends shaded in the day views (pattern aligned to the Monday before "from")
   const weekendBg = $derived(
-    zoom === 'weeks'
-      ? `background-image:repeating-linear-gradient(90deg,transparent 0 ${5 * dayW}px,var(--weekend) ${5 * dayW}px ${7 * dayW}px);background-position-x:${NAME_W}px`
+    dayView
+      ? `background-image:repeating-linear-gradient(90deg,transparent 0 ${5 * dayW}px,var(--weekend) ${5 * dayW}px ${7 * dayW}px);background-position-x:${NAME_W - weekday(from) * dayW}px`
       : ''
   );
+  // title: month, or the date range of the day views
+  const title = $derived(dayView ? `${fmtDate(fromDay(from))} – ${fmtDate(fromDay(to - 1))}` : monthLabel(from, locale()));
   const barColor = (p: OvProject) => statusColor(p.status);
 </script>
 
 <svelte:window onpointermove={move} />
 
 <div class="mb-3 flex flex-wrap items-center gap-2">
-  <h2 class="min-w-44 text-lg font-semibold capitalize">{monthLabel(from, locale())}</h2>
+  <h2 class="min-w-44 text-lg font-semibold capitalize tabular-nums" data-testid="timeline-title">{title}</h2>
   <button type="button" class="btn-ghost px-1.5!" onclick={() => shift(-1)} aria-label={t('calendar.prev')} title={t('calendar.prev')}>
     <Icon name="chevron" size={16} class="rotate-180" />
   </button>
@@ -127,7 +156,7 @@
   </button>
   <button type="button" class="btn-outline py-1!" onclick={() => (from = startFor(zoom, todayDay))}>{t('calendar.today')}</button>
   <div class="ml-auto inline-flex gap-0.5 rounded-lg bg-zinc-100 p-0.5 text-sm dark:bg-zinc-800/70" role="group" aria-label={t('timeline.zoom')}>
-    {#each ['weeks', 'months'] as const as z (z)}
+    {#each ZOOMS as z (z)}
       <button
         type="button"
         class="rounded-md px-2.5 py-0.5 {zoom === z ? 'seg-on' : 'sel-off font-medium'}"
@@ -139,7 +168,7 @@
   </div>
 </div>
 
-<div class="surface overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800 [--weekend:rgb(0_0_0/0.035)] dark:[--weekend:rgb(255_255_255/0.035)]">
+<div bind:clientWidth={boxW} class="surface overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800 [--weekend:rgb(0_0_0/0.035)] dark:[--weekend:rgb(255_255_255/0.035)]">
   <div class="relative text-sm" style:width="{width}px" style={weekendBg}>
     <!-- header -->
     <div class="sticky top-0 z-20 border-b border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
@@ -158,7 +187,7 @@
           {t('overview.project')}
         </div>
         <div class="relative flex-1">
-          {#if zoom === 'weeks'}
+          {#if dayView}
             {#each days as d (d)}
               <span class="absolute top-0 flex h-full flex-col items-center justify-center leading-none tabular-nums {d === todayDay ? 'font-bold text-accent-600 dark:text-accent-400' : ''}" style:left="{x(d)}px" style:width="{dayW}px" title={fmtDate(fromDay(d))}>
                 {dayOfMonth(d)}<span class="text-[8px] opacity-70">{wd[weekday(d)].slice(0, 2)}</span>
@@ -184,7 +213,7 @@
           href="/customers/{r.customer.id}"
           class="sticky left-0 z-10 flex h-full shrink-0 items-center gap-2 border-r border-zinc-200 bg-zinc-50 px-3 font-semibold hover:underline dark:border-zinc-800 dark:bg-zinc-900"
           style:width="{NAME_W}px">
-          <span class="flex size-5 shrink-0 items-center justify-center rounded text-[8px] font-bold {customerTone(r.customer.id)}">{customerCode(r.customer.name)}</span>
+          <EntityIcon type="customer" size="xs" />
           <span class="truncate">{r.customer.name}</span>
         </a>
       </div>
@@ -222,7 +251,8 @@
                 oncontextmenu={(ev) => projectMenu(ev, p)}>
                 <span class="absolute inset-0 bg-white/55 dark:bg-zinc-900/55"></span>
                 <span class="absolute inset-y-0 left-0 opacity-90 {c ? '' : statusDotCls(p.status)}" style:background-color={c || undefined} style:width="{pct(p.done, p.total)}%"></span>
-                <span class="relative truncate px-2 text-zinc-900 dark:text-zinc-50">{p.name}</span>
+                <!-- bar starts before the shown range: keep the name at the visible edge -->
+                <span class="relative truncate px-2 text-zinc-900 dark:text-zinc-50" style:margin-left={left < 0 ? `${-left}px` : undefined}>{p.name}</span>
                 {#if editable}
                   <span class="absolute inset-y-0 left-0 w-2 cursor-ew-resize opacity-0 group-hover/bar:opacity-100 group-hover/bar:bg-black/10" onpointerdown={(ev) => down(ev, p, 'start')} onpointerup={() => up(p)} role="presentation"></span>
                   <span class="absolute inset-y-0 right-0 w-2 cursor-ew-resize opacity-0 group-hover/bar:opacity-100 group-hover/bar:bg-black/10" onpointerdown={(ev) => down(ev, p, 'end')} onpointerup={() => up(p)} role="presentation"></span>

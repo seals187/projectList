@@ -102,15 +102,18 @@
     const g = grid.get(key);
     // Grid rows: square corners, spacing at section end outside instead of inside (otherwise the cell gets taller)
     if (g) return `${bg} ${gridCls} ${g.joinPrev ? '-mt-px' : ''} ${e?.last ? 'mb-1.5' : ''}`;
-    if (!e) return `${bg} rounded-md`;
+    // rows without a frame (headings, dividers) get an invisible one of the same width,
+    // so the note column lines up with the framed rows
+    const pad = prefs.gridLines ? 'border-x border-transparent' : '';
+    if (!e) return `${bg} ${pad} rounded-md`;
     const radius = e.first && e.last ? 'rounded-md' : e.first ? 'rounded-t-md' : e.last ? 'rounded-b-md' : '';
-    return `${bg} ${radius} ${e.first ? 'mt-1' : ''} ${e.last ? 'mb-1 pb-1.5' : ''}`;
+    return `${bg} ${pad} ${radius} ${e.first ? 'mt-1' : ''} ${e.last ? 'mb-1 pb-1.5' : ''}`;
   }
 
   // ---- Grid lines ---------------------------------------------------------------
   // With prefs.gridLines every content row (not headings/dividers) gets
   // a border; consecutive rows share the line (-mt-px).
-  const gridCls = 'border border-zinc-300 dark:border-zinc-700';
+  const gridCls = 'border border-zinc-500 dark:border-zinc-500'; // dark lines like in Excel
   const isCell = (b: Blk) => !isHeading(b.kind) && b.kind !== 'divider';
   const grid = $derived.by(() => {
     const out = new Map<number, { joinPrev: boolean }>();
@@ -1022,7 +1025,7 @@
     isHeading(b.kind) ? t(`blocks.${b.kind as 'h1' | 'h2' | 'h3' | 'h4'}`) : t('editor.placeholder');
 
   const gutterBtn =
-    'flex size-5 items-center justify-center rounded text-zinc-300 hover:bg-zinc-100 hover:text-zinc-600 md:opacity-0 md:group-hover/row:opacity-100 dark:text-zinc-600 dark:hover:bg-zinc-800';
+    'flex size-5 items-center justify-center rounded text-zinc-500 hover:bg-black/5 hover:text-zinc-900 md:opacity-0 md:group-hover/row:opacity-100 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-zinc-100';
 </script>
 
 <svelte:window
@@ -1100,7 +1103,7 @@
   <div class="relative shrink-0 {cls}" data-bgmenu>
     <button
       type="button"
-      class="flex size-5 items-center justify-center rounded text-zinc-400 hover:bg-black/5 hover:text-zinc-700 dark:hover:bg-white/10 dark:hover:text-zinc-200
+      class="flex size-5 items-center justify-center rounded text-zinc-500 hover:bg-black/5 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-white/10 dark:hover:text-zinc-100
         {bgMenu === b.id ? 'opacity-100' : `opacity-0 group-hover/row:opacity-100 focus:opacity-100 ${hide}`}"
       onmousedown={(e) => e.preventDefault()}
       onclick={() => (bgMenu = bgMenu === b.id ? null : b.id)}
@@ -1175,8 +1178,8 @@
       <input
         type="text"
         class="{cls} w-20 shrink-0 rounded border border-transparent bg-transparent px-1.5 py-0 text-xs leading-5 text-zinc-700 outline-none md:w-28
-          placeholder:text-zinc-300 hover:border-zinc-200 focus:border-accent-400 focus:bg-white focus:placeholder:text-zinc-400
-          dark:text-zinc-200 dark:placeholder:text-zinc-600 dark:hover:border-zinc-700 dark:focus:bg-zinc-900"
+          placeholder:text-zinc-400 hover:border-zinc-300 focus:border-accent-400 focus:bg-white focus:placeholder:text-zinc-400
+          dark:text-zinc-200 dark:placeholder:text-zinc-500 dark:hover:border-zinc-600 dark:focus:bg-zinc-900"
         value={b.status ?? ''}
         placeholder={t('checklist.status')}
         aria-label={t('checklist.status')}
@@ -1274,7 +1277,7 @@
                 <Icon name="plus" size={13} />
               </button>
               <button type="button" data-handle class="{gutterBtn} cursor-grab touch-none" title={t('checklist.drag')} aria-label={t('checklist.drag')}>
-                <Icon name="grip" size={12} />
+                <Icon name="grip" size={14} />
               </button>
             </div>
           {/if}
@@ -1418,7 +1421,7 @@
               {:else if editable}
                 <button
                   type="button"
-                  class="mt-[3px] shrink-0 text-zinc-300 opacity-0 group-hover/row:opacity-100 hover:text-zinc-600 focus:opacity-100 max-md:hidden dark:text-zinc-600"
+                  class="mt-[3px] shrink-0 text-zinc-500 opacity-0 group-hover/row:opacity-100 hover:text-zinc-900 focus:opacity-100 max-md:hidden dark:text-zinc-400 dark:hover:text-zinc-100"
                   title={t('checklist.assign')}
                   onclick={() => (editField = { key: b.id, field: 'assignee' })}><Icon name="user" size={14} /></button>
               {/if}
@@ -1446,7 +1449,7 @@
               {:else if editable}
                 <button
                   type="button"
-                  class="mt-[3px] shrink-0 text-zinc-300 opacity-0 group-hover/row:opacity-100 hover:text-zinc-600 focus:opacity-100 max-md:hidden dark:text-zinc-600"
+                  class="mt-[3px] shrink-0 text-zinc-500 opacity-0 group-hover/row:opacity-100 hover:text-zinc-900 focus:opacity-100 max-md:hidden dark:text-zinc-400 dark:hover:text-zinc-100"
                   title={t('checklist.setDue')}
                   onclick={() => (editField = { key: b.id, field: 'due' })}><Icon name="calendar" size={14} /></button>
               {/if}
@@ -1490,7 +1493,7 @@
 
         <!-- Note -->
         <div
-          class="min-w-0 items-start gap-2.5 pb-1 pl-8 bg-white md:border-l md:border-zinc-300 md:py-(--dens-px) md:pl-4 dark:bg-zinc-900 dark:md:border-zinc-700 {i > 0 ? (noteSpacing[b.kind] ?? "") : ""}
+          class="min-w-0 items-start gap-2.5 pb-1 pl-8 bg-white md:border-l md:border-zinc-500 md:py-(--dens-px) md:pl-4 dark:bg-zinc-900 dark:md:border-zinc-500 {i > 0 ? (noteSpacing[b.kind] ?? "") : ""}
             {b.description ? "flex" : "hidden group-focus-within/row:flex md:flex"}">
           {#if b.kind !== 'divider'}
             {#if b.description}

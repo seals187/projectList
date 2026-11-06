@@ -26,8 +26,9 @@
 
   let query = $state('');
   const items = $derived(filterNav(SETTINGS_NAV, query, isAdmin(), tr));
+  const bottom = $derived(items.filter((i) => i.bottom));
   const groups = $derived([
-    { label: t('set.group.personal'), items: items.filter((i) => !i.admin) },
+    { label: t('set.group.personal'), items: items.filter((i) => !i.admin && !i.bottom) },
     { label: t('set.group.workspace'), items: items.filter((i) => i.admin) }
   ]);
   const active = $derived(activeNav(SETTINGS_NAV, page.url.pathname, page.url.hash));
@@ -44,7 +45,7 @@
 
 <div class="flex h-full flex-col md:flex-row">
   <!-- settings navigation -->
-  <nav class="shrink-0 border-b border-zinc-200/80 bg-[#f9f9fb] px-4 pt-6 pb-4 md:w-60 md:overflow-y-auto md:border-r md:border-b-0 dark:border-zinc-800 dark:bg-zinc-950/30" aria-label={t('nav.settings')}>
+  <nav class="flex shrink-0 flex-col border-b border-zinc-200/80 bg-[#f9f9fb] px-4 pt-6 pb-4 md:w-60 md:overflow-y-auto md:border-r md:border-b-0 dark:border-zinc-800 dark:bg-zinc-950/30" aria-label={t('nav.settings')}>
     <h1 class="px-2 text-[22px] font-bold tracking-tight">{t('nav.settings')}</h1>
     <label class="mt-4 flex h-9 items-center gap-2 rounded-[10px] border border-zinc-200 bg-white px-3 text-zinc-400 focus-within:border-accent-400 focus-within:ring-2 focus-within:ring-accent-500/15 dark:border-zinc-700 dark:bg-zinc-900">
       <Icon name="search" size={14} />
@@ -71,6 +72,24 @@
       {/if}
     {/each}
     {#if !items.length}<p class="mt-6 px-2 text-sm text-zinc-400">{t('set.noMatch')}</p>{/if}
+    <!-- at the very bottom: About -->
+    {#if bottom.length}
+      <ul class="mt-6 border-t border-zinc-200/80 pt-3 md:mt-auto dark:border-zinc-800">
+        {#each bottom as it (it.id)}
+          <li>
+            <a
+              href={it.href}
+              class="flex h-[34px] items-center gap-2.5 rounded-lg px-2.5 text-[14px] transition-colors {active === it.id
+                ? 'bg-accent-500/12 font-semibold text-accent-700 dark:bg-accent-400/20 dark:text-accent-200'
+                : 'text-zinc-700 hover:bg-zinc-200/50 dark:text-zinc-300 dark:hover:bg-zinc-800'}"
+              aria-current={active === it.id ? 'page' : undefined}>
+              <Icon name={it.icon} size={16} class={active === it.id ? '' : 'text-zinc-500 dark:text-zinc-400'} />
+              {tr(it.label)}
+            </a>
+          </li>
+        {/each}
+      </ul>
+    {/if}
   </nav>
 
   <!-- page -->
