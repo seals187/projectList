@@ -1,473 +1,465 @@
 # Changelog
 
-Alle nennenswerten Änderungen an ProjectList werden in dieser Datei festgehalten.
+All notable changes to ProjectList are documented in this file.
 
-Das Format basiert auf [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
-die Versionsnummern folgen [Semantic Versioning](https://semver.org/lang/de/).
-Änderungen bis zum nächsten Release sammeln sich unter **Unveröffentlicht**.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+Changes until the next release are collected under **Unreleased**.
 
-## [Unveröffentlicht]
+## [Unreleased]
+
+## [0.1.4] – 2026-11-07
+
+### Added
+
+- Overview "Timeline": new "60 days" view (starting today) between "30 days" and "Months"
 
 ## [0.1.3] – 2026-11-07
 
-### Hinzugefügt
+### Added
 
-- Darstellung → Hintergrund: „Inhalt abdunkeln“ mit den Stufen Aus / Leicht / Mittel / Stark. Macht alles im
-  Hauptfenster (Übersicht, Meine Aufgaben, Kunden, Templates, Checklisten, Einstellungen …) dunkler – mit oder ohne
-  Hintergrundbild; Seitenleiste und Zurück-Leiste bleiben unverändert, Menüs und Dialoge liegen darüber. Gilt auf
-  allen Geräten des Benutzers
+- Appearance → Background: "Darken content" with the levels Off / Light / Medium / Strong. Darkens everything in
+  the main area (Overview, My tasks, Customers, Templates, checklists, settings …) – with or without a background
+  image; the sidebar and the back bar stay unchanged, menus and dialogs are shown above it. Applies to all devices
+  of the user
 
 ## [0.1.2] – 2026-11-07
 
-### Hinzugefügt
+### Added
 
-- Übersicht „Kalender“: Kalenderwochen (ISO) in einer schmalen ersten Spalte „KW“
+- Overview "Calendar": calendar weeks (ISO) in a narrow first column "CW"
 
-### Geändert
+### Changed
 
-- Übersicht „Kalender“: Der aktuelle Monat hebt sich deutlicher ab – die Tage der Nachbarmonate sind im hellen
-  Design grauer, im dunklen Design dunkler, die Tage des Monats im dunklen Design etwas heller; Tageszahlen des
-  Monats kräftiger. Gilt auch mit Hintergrundbild
-- Übersicht „Board“: Projektnamen auf den Karten etwas kleiner (13 px), zugeklappt und aufgeklappt gleich gross
-- Übersicht „Kalender“: passt mit Zurück-Leiste und Kalenderwochen wieder ganz ins Fenster (kein Scrollen)
-- Zurück-Leiste: Die Übersicht zeigt im Verlauf das Icon und den Namen der damaligen Ansicht (z. B.
-  „Übersicht · Kalender“), im Pfad nur „Übersicht“ mit dem Ansichts-Icon; ein Ansichtswechsel aktualisiert den
-  Eintrag
+- Overview "Calendar": the current month stands out more clearly – days of the neighboring months are greyer in
+  the light theme and darker in the dark theme, days of the month slightly lighter in the dark theme; day numbers
+  of the month bolder. Also applies with a background image
+- Overview "Board": project names on the cards slightly smaller (13 px), the same size collapsed and expanded
+- Overview "Calendar": fits completely into the window again with the back bar and calendar weeks (no scrolling)
+- Back bar: the history shows the icon and name of the overview view that was open (e.g. "Overview · Calendar"),
+  the path only shows "Overview" with the view icon; switching the view updates the entry
 
 ## [0.1.1] – 2026-11-07
 
-### Hinzugefügt
+### Added
 
-- Einheitliche Typ-Icons und -Farben für Kunden (grün, Gebäude), Projekte (blau, Ordner), Checklisten (violett,
-  Liste) und Templates (orange, Dokument) – in Seitenleiste, Suche (Ctrl K), Breadcrumbs, Kopfbereich der
-  Seiten, Übersicht (Karten, Liste, Board), Kundenliste, Meine Aufgaben, Aktivitätslog, Template-Bibliothek und
-  Template-Auswahl; im dunklen Design eigene Farben
-- Favoriten neu: zweizeilige Einträge mit Typ-Icon, Name und „Typ · Kontext“ (Projekt → Kunde, Checkliste →
-  Projekt, Kunde → Anzahl Projekte, Template → Anzahl Einträge); eigene Gruppen mit Lesezeichen-Icon und Anzahl,
-  einklappbar (pro Benutzer gespeichert); Rechtsklick bzw. langes Drücken: Öffnen, In neuem Tab öffnen, In
-  Gruppe verschieben (auch in eine neue Gruppe), Aus Favoriten entfernen; Gruppen umbenennen und löschen
-  (Einträge wandern nach „Ohne Gruppe“); Drag & Drop innerhalb und zwischen Gruppen
-- Templates lassen sich als Favorit speichern (Stern im Kopf der Template-Seite)
-- Zurück-Leiste über jeder Seite: Zurück und Vorwärts sowie der Pfad der aktuellen Seite mit Typ-Icons (z. B.
-  Übersicht / Kunden / Kunde / Projekt / Checkliste, jeweils anklickbar; die Übersicht als Startseite steht immer
-  vorne). Langes Drücken auf ← oder Alt+← zeigt den Verlauf
-  („Zurück zu“ mit Typ bzw. „Seite“), bedienbar auch mit Pfeiltasten und Enter, mit Papierkorb zum Löschen des
-  Verlaufs; der Verlauf zeigt alle besuchten Seiten, auch die Hauptseiten und die Einstellungen mit Unterseite
-  (z. B. „Einstellungen · Darstellung“); er bleibt beim Neuladen
-  des Tabs erhalten. Die bisherigen Pfadangaben in den Seitenköpfen entfallen
-- Checklisten als Tabs: Jede geöffnete Checkliste erscheint als Tab über der Checkliste (Typ-Icon, Name,
-  Fortschritt, roter Punkt bei überfälligen Einträgen). Klick wechselt, ✕ oder mittlere Maustaste schliesst
-  (danach der Nachbar-Tab), „+“ sucht und öffnet eine weitere Checkliste, Tabs lassen sich per Drag & Drop
-  umsortieren; die Tabs bleiben pro Benutzer im Browser gespeichert (max. 12)
-- Kunden: Telefonnummern (mehrere, jeweils mit Bezeichnung wie „Zentrale“ oder „Mobil“) auf der Kundenseite;
-  im Bearbeiten-Modus hinzufügen, ändern und entfernen, sonst als anklickbare Telefon-Links (Migration 00023)
-- Einstellungen → „Über“ (ganz unten in der Navigation): aktuelle Version, Link zum GitHub-Repository und zu
-  den Release-Notizen
+- Consistent type icons and colors for customers (green, building), projects (blue, folder), checklists (violet,
+  list) and templates (orange, document) – in the sidebar, search (Ctrl K), breadcrumbs, page headers, overview
+  (cards, list, board), customer list, My tasks, activity log, template library and template picker; separate
+  colors in the dark theme
+- Favorites redesigned: two-line entries with type icon, name and "type · context" (project → customer,
+  checklist → project, customer → number of projects, template → number of items); custom groups with bookmark
+  icon and count, collapsible (saved per user); right-click or long press: Open, Open in new tab, Move to group
+  (also to a new group), Remove from favorites; rename and delete groups (entries move to "No group"); drag & drop
+  within and between groups
+- Templates can be saved as favorites (star in the header of the template page)
+- Back bar above every page: back and forward plus the path of the current page with type icons (e.g. Overview /
+  Customers / Customer / Project / Checklist, each clickable; the overview as start page always comes first).
+  A long press on ← or Alt+← shows the history ("Back to" with type or "page"), also usable with the arrow keys
+  and Enter, with a trash button to clear the history; the history shows all visited pages, including the main
+  pages and the settings with their sub page (e.g. "Settings · Appearance"); it survives reloading the tab.
+  The previous path information in the page headers is gone
+- Checklists as tabs: every opened checklist appears as a tab above the checklist (type icon, name, progress, red
+  dot for overdue items). Click switches, ✕ or the middle mouse button closes (then the neighboring tab), "+"
+  searches and opens another checklist, tabs can be reordered via drag & drop; the tabs are stored per user in the
+  browser (max. 12)
+- Customers: phone numbers (several, each with a label such as "Main" or "Mobile") on the customer page; add,
+  change and remove them in edit mode, otherwise shown as clickable phone links (migration 00023)
+- Settings → "About" (at the bottom of the navigation): current version, link to the GitHub repository and to the
+  release notes
 
-### Geändert
+### Changed
 
-- Favoriten werden nur noch über den Stern im Kopfbereich von Kunde, Projekt, Checkliste und Template gesetzt
-  (nicht mehr auf Board-Karten und in den Kontextmenüs); in der Favoritenliste gibt es keinen Stern mehr
-- „Kunden“ in der Seitenleiste und im Kopf der Kundenliste: Gebäude-Icon (ohne Farbe) wie das Kunden-Typ-Icon
-- Kunden zeigen überall das Kunden-Icon statt des Kürzels („AB“): Kopf der Kundenseite, Übersicht (Karten,
-  Liste, Board, Kalender, Zeitachse), Meine Aufgaben, Kundenliste (Liste und Karten), Kundenfilter,
-  Kontextmenüs, Projektseite und Benutzerverwaltung
-- Checklisten: Trennlinien deutlich dunkler (wie Rahmenlinien in Excel), auch zur Notizen-Spalte
-- Ein zweiter Klick auf den eigenen Namen unten links schliesst die Einstellungen wieder und führt zurück zur
-  vorher geöffneten Seite
-- Übersicht „Zeitachse“: Ansichten „Diese Woche“ (Mo–So), „14 Tage“ und „30 Tage“ (ab heute) sowie „Monate“;
-  die Tage nutzen die ganze Breite, die Pfeile springen um eine Ansichtslänge, die gewählte Ansicht bleibt
-  gespeichert (pro Browser). Balken, die vor dem sichtbaren Bereich beginnen, zeigen ihren Namen am linken Rand
-- Projektseite: „Letzte Aktivität“ zeigt nur den neuesten Eintrag und lässt sich aufklappen (dann die letzten
-  fünf); das Feld „Easy Redmine“ ist aus den Eigenschaften entfernt (eine gespeicherte Ticket-Nummer bleibt in
-  der Datenbank erhalten)
+- Favorites are only set via the star in the header of customer, project, checklist and template (no longer on
+  board cards and in the context menus); the favorites list no longer shows a star
+- "Customers" in the sidebar and in the header of the customer list: building icon (uncolored) like the customer
+  type icon
+- Customers show the customer icon instead of the short code ("AB") everywhere: customer page header, overview
+  (cards, list, board, calendar, timeline), My tasks, customer list (list and cards), customer filter, context
+  menus, project page and user management
+- Checklists: grid lines considerably darker (like cell borders in Excel), also towards the notes column
+- A second click on your own name at the bottom left closes the settings again and returns to the page that was
+  open before
+- Overview "Timeline": views "This week" (Mon–Sun), "14 days" and "30 days" (starting today) and "Months"; the
+  days use the full width, the arrows move by one view length, the selected view is remembered (per browser).
+  Bars starting before the visible range show their name at the left edge
+- Project page: "Latest activity" only shows the newest entry and can be expanded (then the last five); the
+  "Easy Redmine" field was removed from the properties (a stored ticket number stays in the database)
 
-### Behoben
+### Fixed
 
-- Übersicht: Die Kästen (Karten, Liste, Board-Spalten) waren runder als auf Meine Aufgaben, Kunden und Templates;
-  jetzt haben alle dieselben Ecken
-- Mit Hintergrundbild und Glas-Effekt waren die farbigen Typ-Icons in Seitenleiste und Leisten zu kräftig; sie
-  sind dort jetzt dezent getönt
-- Dunkles Design mit Hintergrundbild: Checklisten, Template-Editor und Einstellungen waren leicht
-  durchscheinend; ihr Inhaltsbereich ist jetzt deckend
-- Eingabefelder in Menüs (z. B. „Neue Gruppe …“ bei den Favoriten) bekamen beim Öffnen keinen Fokus
-- Hintergrundbild mit ausgeschaltetem Glas-Effekt: Seitenleiste, Zurück-Leiste und Kopfband von Kunden- und
-  Projektseiten waren auch im hellen Design dunkel; sie sehen jetzt aus wie ohne Hintergrundbild (hell bzw. dunkel)
-- Kopfband (Übersicht, Meine Aufgaben, Kunden, Templates): Bei einer Schriftgrösse ungleich 100 % waren die
-  Bänder mit Schnellfilter-Chips (Meine Aufgaben, Kunden) etwas höher als die anderen; jetzt sind alle gleich hoch
-- Übersicht (und Meine Aufgaben, Kunden, Templates): Nach dem Wechsel zurück auf eine Standardeinstellung (z. B.
-  von „Zeitachse“ zurück auf „Karten“) blieb die alte Einstellung in der Adresse stehen; ein Neuladen der Seite
-  sprang deshalb wieder auf die vorherige Ansicht
-- Checklisten mit Trennlinien: Die senkrechte Linie zur Notizen-Spalte lag bei Überschriften (H1–H4) 1 px weiter
-  rechts als bei Zeilen mit Checkbox
-- Gruppen und Reihenfolge der Favoriten liegen jetzt in der Datenbank (Migration 00022); bestehende Ordner
-  werden automatisch übernommen
-
-- Checklisten und Templates: Die Bedienelemente einer Zeile (links „+“ und Verschiebe-Griff, rechts Status,
-  Person, Fälligkeit, Farbe) haben im hellen und dunklen Design deutlich mehr Kontrast; der Griff ist etwas
-  grösser
+- Overview: the boxes (cards, list, board columns) were rounder than on My tasks, Customers and Templates; all now
+  have the same corners
+- With a background image and the glass effect, the colored type icons in the sidebar and bars were too strong;
+  they are now softly tinted there
+- Dark theme with a background image: checklists, template editor and settings were slightly translucent; their
+  content area is now opaque
+- Input fields in menus (e.g. "New group …" in the favorites) did not get focus when opened
+- Background image with the glass effect turned off: the sidebar, back bar and header band of customer and project
+  pages were dark even in the light theme; they now look like without a background image (light or dark)
+- Header band (Overview, My tasks, Customers, Templates): with a font size other than 100 %, the bands with quick
+  filter chips (My tasks, Customers) were slightly taller than the others; all now have the same height
+- Overview (and My tasks, Customers, Templates): after switching back to a default setting (e.g. from "Timeline"
+  back to "Cards"), the old setting stayed in the address; reloading the page therefore jumped back to the
+  previous view
+- Checklists with grid lines: the vertical line towards the notes column was 1 px further right on headings
+  (H1–H4) than on rows with a checkbox
+- Groups and order of the favorites are now stored in the database (migration 00022); existing folders are taken
+  over automatically
+- Checklists and templates: the controls of a row (left "+" and drag handle, right status, person, due date,
+  color) have considerably more contrast in the light and dark theme; the handle is slightly larger
 
 ## [0.1.0] – 2026-11-06
 
-### Hinzugefügt
+### Added
 
-- Backup wiederherstellen direkt in der App: *Einstellungen → Backup & Restore → Wiederherstellen*. Die Datei
-  wird zuerst geprüft (SQLite, Integrität, ProjectList-Datenbank, nicht neuer als die laufende Version,
-  mindestens ein Admin); danach legt die App eine Sicherheitskopie des aktuellen Stands im Datenverzeichnis ab
-  (`pre-restore-<Zeit>.db`) und übernimmt das Backup ohne Neustart. Ältere Backups werden automatisch
-  migriert. Der Admin bleibt angemeldet, wenn er im Backup Admin ist, sonst meldet er sich neu an
-- Gespeicherte Ansichten: Ordner und Reihenfolge wie bei den Favoriten – per Drag & Drop verschieben, per
-  Rechtsklick Ordner anlegen, umbenennen, löschen und Ansichten in Ordner verschieben; gilt auf allen Geräten
+- Restore a backup directly in the app: *Settings → Backup & Restore → Restore*. The file is checked first
+  (SQLite, integrity, ProjectList database, not newer than the running version, at least one admin); then the app
+  stores a safety copy of the current state in the data directory (`pre-restore-<time>.db`) and applies the backup
+  without a restart. Older backups are migrated automatically. The admin stays signed in if they are an admin in
+  the backup, otherwise they sign in again
+- Saved views: folders and order like the favorites – move via drag & drop, create, rename and delete folders via
+  right-click and move views into folders; applies to all devices
 
-### Geändert
+### Changed
 
-- Einstellungen: „Backup“ heisst jetzt „Backup & Restore“
+- Settings: "Backup" is now called "Backup & Restore"
 
 ## [0.0.9] – 2026-11-06
 
-### Hinzugefügt
+### Added
 
-- Einstellungen neu aufgebaut: links eine eigene Navigation mit Suche („Einstellung suchen …“) und den Gruppen
-  „Persönlich“ (Profil & Konto, Darstellung, Schrift, Checklisten, Übersicht) und „Arbeitsbereich“ (Tags,
-  Benutzer & Rechte, Backup; nur Admins), rechts die Seite mit Karten und Zeilen
-- Darstellung: Farbschema „System“ (folgt dem Betriebssystem), Akzentfarbe (Violett, Blau, Petrol, Grün, Orange,
-  Rot, Pink), Glas-Effekt ein/aus, Hintergrundbild abdunkeln, Zeilenabstand (Kompakt/Normal/Luftig) und
-  Schriftgrösse der ganzen App (80–120 %). Sprache, Farbschema und Darstellung gelten jetzt auf allen Geräten
-  des Benutzers
-- Schrift & Checklisten mit Live-Vorschau einer Checkliste
-- Favoriten: Neben Projekten lassen sich jetzt auch Kunden und Checklisten als Favorit speichern (Stern neben dem
-  Titel der Kunden-, Projekt- oder Checklisten-Seite, bei Kunden und Projekten auch im Kontextmenü). In der
-  Seitenleiste stehen sie in der Reihenfolge, in der sie hinzugefügt wurden (Checklisten nur mit ihrem Namen).
-  Bestehende Projekt-Favoriten bleiben erhalten
-- Favoriten ordnen: per Drag & Drop nach oben oder unten schieben; per Rechtsklick in der Favoritenliste Ordner
-  anlegen (umbenennen per Rechtsklick oder Doppelklick, auf- und zuklappen, löschen – die Favoriten bleiben dann
-  erhalten). Favoriten lassen sich in Ordner ziehen oder per Rechtsklick „In Ordner verschieben“, Ordner selbst
-  ebenfalls verschieben. Reihenfolge und Ordner gelten auf allen Geräten des Benutzers
-- Tags: Filter, „+ Tag“, Menü „…“ pro Tag mit Bearbeiten (Name und Farbe) und Löschen
-- Benutzer & Rechte: Suche, Rollen-Filter, Spalte „Zuletzt aktiv“, Rolle direkt in der Tabelle änderbar,
-  Detailbereich mit Rolle, Kunden-Zugriff („Alle auswählen“), „Passwort zurücksetzen“ und „Benutzer entfernen“
-- Benutzer einladen: Admins laden per E-Mail ein; der Link (7 Tage gültig) führt auf eine Seite zum Festlegen
-  des Passworts. „Passwort zurücksetzen“ schickt ebenso einen Link (24 Stunden gültig). Ohne eingerichteten
-  Mailversand zeigt die App den Link zum Kopieren an. Neue Umgebungsvariablen `APP_URL` und `SMTP_*`
-  (siehe README)
+- Settings rebuilt: on the left a dedicated navigation with search ("Search settings …") and the groups "Personal"
+  (Profile & account, Appearance, Font, Checklists, Overview) and "Workspace" (Tags, Users & permissions, Backup;
+  admins only), on the right the page with cards and rows
+- Appearance: color scheme "System" (follows the operating system), accent color (violet, blue, teal, green,
+  orange, red, pink), glass effect on/off, darken background image, row spacing (compact/normal/airy) and font
+  size of the whole app (80–120 %). Language, color scheme and appearance now apply to all devices of the user
+- Font & checklists with a live preview of a checklist
+- Favorites: besides projects, customers and checklists can now be saved as favorites too (star next to the title
+  of the customer, project or checklist page, for customers and projects also in the context menu). In the
+  sidebar they are listed in the order they were added (checklists with their name only). Existing project
+  favorites are kept
+- Arrange favorites: move them up or down via drag & drop; create folders via right-click in the favorites list
+  (rename via right-click or double-click, expand and collapse, delete – the favorites are kept). Favorites can be
+  dragged into folders or moved via right-click "Move to folder", folders can be moved as well. Order and folders
+  apply to all devices of the user
+- Tags: filter, "+ Tag", menu "…" per tag with edit (name and color) and delete
+- Users & permissions: search, role filter, column "Last active", role editable directly in the table, detail
+  pane with role, customer access ("Select all"), "Reset password" and "Remove user"
+- Invite users: admins invite by email; the link (valid for 7 days) leads to a page to set the password. "Reset
+  password" also sends a link (valid for 24 hours). Without configured email sending, the app shows the link to
+  copy. New environment variables `APP_URL` and `SMTP_*` (see README)
 
-### Geändert
+### Changed
 
-- Benutzer werden nicht mehr mit einem vom Admin gesetzten Passwort angelegt, sondern eingeladen
-- Übersicht „Board“: Zugeklappte Karten sind kompakter (weniger Abstand zwischen und in den Karten, Projektname
-  etwas kleiner); Aufbau und Design bleiben gleich
-- Checklisten: Das Statusfeld (z. B. „Erledigt“, „Terminée“, „Effectué“) steht direkt rechts neben der Checkbox
-  und ist auch leer als „Status“ sichtbar; vorher war es ohne Inhalt unsichtbar, bis man über die Zeile fuhr.
-  Bei Checkbox links steht es zwischen Checkbox und Text
-- Die Grösse der Checklisten-Ansicht (100 % …) wird nur noch in der Checklisten-Werkzeugleiste eingestellt;
-  in den Einstellungen gibt es dafür die Schriftgrösse der ganzen App
+- Users are no longer created with a password set by the admin, but invited
+- Overview "Board": collapsed cards are more compact (less spacing between and inside the cards, project name
+  slightly smaller); layout and design stay the same
+- Checklists: the status field (e.g. "Done", "Terminée", "Erledigt") is placed directly right of the checkbox and is
+  visible as "Status" even when empty; before, it was invisible without content until hovering the row. With the
+  checkbox on the left, it sits between checkbox and text
+- The size of the checklist view (100 % …) is only set in the checklist toolbar; the settings offer the font size
+  of the whole app instead
 
 ## [0.0.8] – 2026-11-06
 
-### Hinzugefügt
+### Added
 
-- Einheitlicher Kopfbereich für Übersicht, Meine Aufgaben, Kunden und Templates (`PageHeader`): graue Kopf-Karte
-  mit Seiten-Icon, Titel, Untertitel, Ansicht-Umschalter und Hauptaktion; darunter ein Streifen mit Suche,
-  Filtern, Schnellfiltern, „Ansicht speichern“, Sortierung und „Alle einklappen / aufklappen“. Bei wenig Platz
-  werden die Filter zu „Filter (n)“ zusammengefasst, danach zeigt der Ansicht-Umschalter nur noch Icons
-- Neu: Suche in Übersicht, Meine Aufgaben und Templates; Sortierung in Übersicht, Meine Aufgaben und Templates;
-  Filter „Kunde“ und „Fälligkeit“ in Meine Aufgaben, Filter „Status“ bei Kunden
-- Ansicht, Filter und Sortierung stehen in der URL (teilbare Links) und werden pro Seite und Benutzer gespeichert;
-  „Ansicht speichern“ funktioniert jetzt auf allen vier Seiten
-- Frontend-Tests mit Vitest (laufen im Docker-Build mit)
-- Übersicht „Liste“ neu: pro Kunde eine Karte mit Kürzel, Name, Zusammenfassung („3 Projekte · 5/51 Schritte ·
-  46 offen · nächste 13.11.“) und Fortschrittsring; Projektzeilen mit Status, Fortschritt, Schritten, Fälligkeit
-  und Zuständig, ganze Zeile klickbar. Bei breitem Fenster Schritte als eigene Spalte und Tags neben dem Namen,
-  sonst Schritte neben dem Prozentwert und Tags darunter; Tags werden auf die verfügbare Breite gekürzt („+N“)
-- Knopf „Anzeige“ im Kopfbereich aller Seiten: Schalter pro Seite und Ansicht (z. B. Schritte, Fortschritt in %,
-  alle Tags, Fälligkeit, Zuständig), pro Benutzer auf dem Server gespeichert (Ersatz: Browser)
+- Consistent header for Overview, My tasks, Customers and Templates (`PageHeader`): grey header card with page
+  icon, title, subtitle, view switcher and main action; below it a strip with search, filters, quick filters,
+  "Save view", sorting and "Collapse / expand all". With little space, the filters are combined into
+  "Filter (n)", then the view switcher only shows icons
+- New: search in Overview, My tasks and Templates; sorting in Overview, My tasks and Templates; filters
+  "Customer" and "Due date" in My tasks, filter "Status" for customers
+- View, filters and sorting are part of the URL (shareable links) and are stored per page and user; "Save view"
+  now works on all four pages
+- Frontend tests with Vitest (run as part of the Docker build)
+- Overview "List" redesigned: one card per customer with short code, name, summary ("3 projects · 5/51 steps ·
+  46 open · next 13.11.") and progress ring; project rows with status, progress, steps, due date and assignee,
+  whole row clickable. In a wide window steps as a separate column and tags next to the name, otherwise steps next
+  to the percentage and tags below; tags are shortened to the available width ("+N")
+- "Display" button in the header of all pages: toggles per page and view (e.g. steps, progress in %, all tags,
+  due date, assignee), stored per user on the server (fallback: browser)
 
-### Geändert
+### Changed
 
-- Inhalte (Karten, Listen, Kacheln) sind mit Hintergrundbild jetzt deckend weiss bzw. dunkelgrau; nur der
-  Seitenhintergrund und die Kopf-Karte bleiben farbig/durchscheinend
-- Standardfarben der Status (ohne eigene Farbe): In Arbeit grün, Abnahme orange, Erledigt dunkelgrün
-- Deutsch: „Zuständig“ statt „Verantwortlich“ (Filter, Spalten, Projekt)
-- Übersicht „Kalender“: passt samt Liste „Ohne Fälligkeit“ ohne Scrollen ins Fenster (Wochenzeilen teilen sich
-  die Höhe, volle Tage scrollen innerhalb der Zelle); kompaktere Tageszahlen und Einträge
-- Übersicht „Karten“: Projektzeilen neu angeordnet – Name mit Ordner-Icon und Status-Pill rechts, darunter die
-  Labels (so viele wie Platz haben, dann „+N“), darunter Fortschrittsbalken mit Prozent und Fälligkeit (dd.mm.)
-- Ein Klick auf „Übersicht“ in der Seitenleiste setzt die Filter (Kunde, Label, Verantwortlich) auf „Alle“
-  zurück; gespeicherte Ansichten wenden weiterhin ihre eigenen Filter an
-- Übersicht: „Gruppieren nach“ im Board ist jetzt ein Dropdown im selben Stil wie die Filter Kunde, Label und
-  Verantwortlich (gleicher Knopf, gleiches Menü); hervorgehoben nur, wenn nicht nach Status gruppiert wird
-- Status-Badges (Übersicht „Liste“, Kunden, Projekt, Meine Aufgaben) haben für jeden Status denselben Stil:
-  Hintergrund in der Board-Farbe des Status, Schrift immer schwarz (in beiden Designs)
-- Kundenliste: Bei aufgeklappten Projekten steht der Projektstatus in der Spalte „Status“ (statt unter
-  „Projekte“), der Prozentwert neben dem Fortschrittsbalken
-- Nur noch zwei Designs: Hell und Dunkel („Dunkelgrau“ wird zu Dunkel; ohne Auswahl entscheidet einmalig die
-  Systemeinstellung). Der Knopf in der Seitenleiste wechselt direkt zwischen Hell und Dunkel
-- Dropdown- und Kontextmenüs (z. B. Kunde, Label, Verantwortlich, Gruppieren nach) sind mit Hintergrundbild im
-  hellen Design nicht mehr dunkel, sondern folgen dem gewählten Design
-- Mit Hintergrundbild haben die Kacheln in Übersicht und „Meine Aufgaben“ dieselbe Helligkeit wie bei Kunden
-  und Templates
-- Mit Hintergrundbild sind Seitenleiste und Kopfband im dunklen Design jetzt dunkel (fast deckend) statt
-  halbtransparent wie im hellen Design
-- Dropdown- und Kontextmenüs sind im hellen Design nicht mehr reinweiss, sondern leicht durchscheinend
-  (Milchglas wie die Kacheln); im dunklen Design ebenfalls leicht durchscheinend
-- Mit Hintergrundbild hat der Inhaltsblock von Checklisten, Template-Editor und Einstellungen im dunklen Design
-  denselben Farbton wie die Seitenleiste (vorher deckend schwarz)
-- Dunkles Design ohne Hintergrundbild: Der Inhaltsbereich (Übersicht, Meine Aufgaben, Einstellungen usw.) hat
-  dieselbe Farbe wie die Seitenleiste statt fast schwarz
-- Native Auswahllisten sind im aufgeklappten Zustand auch mit Hintergrundbild und im dunklen Design gut lesbar
-- Favoriten in der Seitenleiste zeigen das Kundenkürzel nicht mehr zusätzlich rechts an
+- Content (cards, lists, tiles) is now opaque white or dark grey with a background image; only the page
+  background and the header card stay colored/translucent
+- Default status colors (without a custom color): In progress green, Acceptance orange, Done dark green
+- German: "Zuständig" instead of "Verantwortlich" (filters, columns, project)
+- Overview "Calendar": fits into the window including the list "Without due date" without scrolling (week rows
+  share the height, full days scroll inside the cell); more compact day numbers and entries
+- Overview "Cards": project rows rearranged – name with folder icon and status pill on the right, below it the
+  labels (as many as fit, then "+N"), below that the progress bar with percentage and due date (dd.mm.)
+- Clicking "Overview" in the sidebar resets the filters (customer, label, responsible) to "All"; saved views still
+  apply their own filters
+- Overview: "Group by" in the board is now a dropdown in the same style as the customer, label and responsible
+  filters (same button, same menu); highlighted only when not grouped by status
+- Status badges (Overview "List", Customers, Project, My tasks) have the same style for every status: background in
+  the board color of the status, text always black (in both themes)
+- Customer list: with expanded projects, the project status is shown in the "Status" column (instead of under
+  "Projects"), the percentage next to the progress bar
+- Only two themes left: Light and Dark ("Dark grey" becomes Dark; without a choice, the system setting decides
+  once). The button in the sidebar switches directly between Light and Dark
+- Dropdown and context menus (e.g. Customer, Label, Responsible, Group by) are no longer dark with a background
+  image in the light theme, but follow the selected theme
+- With a background image, the tiles in Overview and "My tasks" have the same brightness as in Customers and
+  Templates
+- With a background image, the sidebar and header band are now dark (almost opaque) in the dark theme instead of
+  semi-transparent as in the light theme
+- Dropdown and context menus are no longer pure white in the light theme, but slightly translucent (frosted glass
+  like the tiles); slightly translucent in the dark theme as well
+- With a background image, the content block of checklists, template editor and settings has the same tint as the
+  sidebar in the dark theme (before: opaque black)
+- Dark theme without a background image: the content area (Overview, My tasks, Settings etc.) has the same color as
+  the sidebar instead of almost black
+- Native select lists are readable when open, also with a background image and in the dark theme
+- Favorites in the sidebar no longer show the customer short code on the right
 
 ## [0.0.7] – 2026-11-05
 
-### Hinzugefügt
+### Added
 
-- Checklisten und Templates: Die Breite der Notizspalte lässt sich an ihrem linken Rand mit der Maus nach links
-  oder rechts ziehen (Doppelklick: Standardbreite, auch per Pfeiltasten); die Breite wird gespeichert
+- Checklists and templates: the width of the notes column can be dragged left or right at its left edge
+  (double-click: default width, also via arrow keys); the width is saved
 
-### Geändert
+### Changed
 
-- Einheitliche Farben für ausgewählt und Maus darüber: Seitenleiste, Ansichts-Umschalter (Karten/Board/Liste/…,
-  Kunden Karten/Liste), Reiter in „Meine Aufgaben“, Zoom der Zeitachse, Einstellungen und Filter-Chips.
-  Ausgewählt ist immer violett hinterlegt mit violetter Schrift, Maus darüber immer eine neutrale graue Fläche;
-  Filter-Chips überall gleich (rund). Suchfeld der Seitenleiste im dunklen Design und auf Hintergründen heller
-- Hintergründe: Filter, Suchfeld, Chips und Knöpfe im Kopfband sind helles Glas statt dunkler Kästen; das
-  Kopfband ist auf Übersicht, Meine Aufgaben, Kunden und Templates immer gleich hoch; „Neues Template“ steht
-  auf einer Glasfläche
-- Hintergründe: Board-Spalten, Listen, Tabellen und Kacheln wieder weniger durchsichtig, damit sie auch auf
-  unruhigen Bildern gut lesbar sind
+- Consistent colors for selected and hover: sidebar, view switcher (Cards/Board/List/…, Customers Cards/List),
+  tabs in "My tasks", timeline zoom, settings and filter chips. Selected is always a violet background with violet
+  text, hover always a neutral grey area; filter chips are the same everywhere (round). Sidebar search field
+  lighter in the dark theme and on backgrounds
+- Backgrounds: filters, search field, chips and buttons in the header band are light glass instead of dark boxes;
+  the header band always has the same height on Overview, My tasks, Customers and Templates; "New template" sits on
+  a glass surface
+- Backgrounds: board columns, lists, tables and tiles less transparent again, so they stay readable on busy images
 
-### Behoben
+### Fixed
 
-- Einige helle Akzentfarben im dunklen Design fehlten (z. B. „Gruppieren“ im Board war kaum lesbar)
+- Some light accent colors were missing in the dark theme (e.g. "Group" in the board was hardly readable)
 
 ## [0.0.6] – 2026-11-05
 
-### Hinzugefügt
+### Added
 
-- Hintergründe: 25 Farbverläufe oder eigene Bilder (JPG, PNG, WebP, GIF; max. 5 MB, grössere Bilder werden vor
-  dem Speichern automatisch verkleinert). Wählbar pro Benutzer für die ganze App (Einstellungen, auf allen
-  Geräten gleich), pro Kunde (Knopf auf der Kundenseite) und pro Projekt („…“-Menü der Projektseite); es gilt
-  der spezifischste: Projekt vor Kunde vor Benutzer. Hochgeladene Bilder stehen allen zur Auswahl; löschen
-  können sie der Hochladende und Admins. Darstellung wie bei Planka: Das Bild liegt hinter der ganzen App,
-  Seitenleiste und schmales Kopfband (Titel, Ansichten, Filter, Reiter) sind durchscheinendes dunkles Glas,
-  Board-Spalten, Listen, Tabellen, Kalender, Zeitachse und die Kacheln darin durchscheinendes helles Glas;
-  dazwischen ist das Bild frei sichtbar. Checklisten-, Template-Editor und Einstellungen stehen auf einer
-  deckenden Fläche. Migration 00019
+- Backgrounds: 25 gradients or custom images (JPG, PNG, WebP, GIF; max. 5 MB, larger images are downscaled
+  automatically before saving). Selectable per user for the whole app (settings, the same on all devices), per
+  customer (button on the customer page) and per project ("…" menu of the project page); the most specific one
+  applies: project before customer before user. Uploaded images are available to everyone; the uploader and admins
+  can delete them. Displayed like in Planka: the image lies behind the whole app, the sidebar and the narrow header
+  band (title, views, filters, tabs) are translucent dark glass, board columns, lists, tables, calendar, timeline
+  and the tiles in them translucent light glass; in between, the image is fully visible. Checklist editor, template
+  editor and settings sit on an opaque surface. Migration 00019
 
-### Geändert
+### Changed
 
-- Meine Aufgaben: Projekte, für die man verantwortlich ist, erscheinen jetzt ebenfalls (mit Markierung
-  „Verantwortlich“), auch wenn einem darin keine Checkliste und kein Eintrag zugewiesen ist
-- Projektseite: Checklisten lassen sich direkt in der Liste zuweisen und löschen (mit Rückfrage), ohne sie
-  zu öffnen
-- Kundenseite neu gestaltet: Kopf mit Kürzel, Name, „Bearbeiten“ und „+ Projekt“, Ort/Ansprechpartner/E-Mail
-  (E-Mail als Link; Bearbeiten über den Knopf), Notizen, Projekte als Tabelle mit Status (eigener Name und Farbe
-  wie im Board), Labels, Fortschritt, Fälligkeit und verantwortlicher Person
-- Übersicht, Liste: Spalte „Zuständig“ statt „Team / Zuständig“; in der Projektzeile steht die verantwortliche
-  Person statt des Teams, in den Checklisten-Zeilen wie bisher die zugewiesene Person
-- Übersicht, Board: „Alle einklappen“ / „Alle ausklappen“ statt des Schalters „Kompakt“ (eingeklappt zeigen die
-  Karten nur Kunde, Projektname und Fortschritt)
-- Übersicht, Karten: Projektname über die ganze Breite (bis zwei Zeilen), darunter Status, Fortschrittsbalken,
-  Anzahl erledigter von allen Einträgen (z. B. „5/10“) und Fälligkeit; die Statusfarbe erscheint nur noch einmal
-- Gespeicherte Ansichten lassen sich umbenennen (Stift oder Doppelklick in der Seitenleiste)
-- Checklisten: erledigte (durchgestrichene) Einträge sind dunkler und damit besser lesbar
+- My tasks: projects you are responsible for now appear as well (marked "Responsible"), even if no checklist and
+  no item in them is assigned to you
+- Project page: checklists can be assigned and deleted (with confirmation) directly in the list, without opening
+  them
+- Customer page redesigned: header with short code, name, "Edit" and "+ Project", location/contact/email (email as
+  link; editing via the button), notes, projects as a table with status (custom name and color as in the board),
+  labels, progress, due date and responsible person
+- Overview, List: column "Assignee" instead of "Team / Assignee"; the project row shows the responsible person
+  instead of the team, the checklist rows show the assigned person as before
+- Overview, Board: "Collapse all" / "Expand all" instead of the "Compact" toggle (collapsed cards only show
+  customer, project name and progress)
+- Overview, Cards: project name across the full width (up to two lines), below it status, progress bar, number of
+  completed of all items (e.g. "5/10") and due date; the status color appears only once
+- Saved views can be renamed (pencil or double-click in the sidebar)
+- Checklists: completed (struck-through) items are darker and therefore more readable
 
-### Behoben
+### Fixed
 
-- Seitenleiste: Entfernen/Umbenennen bei Favoriten und gespeicherten Ansichten war auf Geräten ohne Maus
-  (Tablet, Handy) nicht erreichbar; die Knöpfe sind dort jetzt immer sichtbar
-- Auswahllisten (z. B. Rolle beim Anlegen eines Benutzers) und Datumsfelder zeigten teilweise unsichtbare
-  Einträge, wenn das Theme der App und das des Betriebssystems verschieden waren (z. B. App hell, Windows
-  dunkel). Die Browser-Bedienelemente folgen jetzt dem Theme der App
+- Sidebar: removing/renaming favorites and saved views was not reachable on devices without a mouse (tablet,
+  phone); the buttons are now always visible there
+- Select lists (e.g. role when creating a user) and date fields partly showed invisible entries when the theme of
+  the app and of the operating system differed (e.g. app light, Windows dark). The browser controls now follow the
+  app theme
 
 ## [0.0.5] – 2026-11-04
 
-### Hinzugefügt
+### Added
 
-- Übersicht: neue Ansichten **Kalender** (Projekte am Fälligkeitsdatum, per Drag & Drop umplanen) und
-  **Zeitachse** (Gantt: Balken vom Start bis zur Fälligkeit, ziehen verschiebt, Enden ziehen ändert
-  Start/Fälligkeit; Zoom Wochen/Monate); einheitlicher Ansichts-Umschalter Karten · Board · Liste ·
-  Kalender · Zeitachse
-- Startdatum pro Projekt (Projektseite, Kontextmenü „Zeitraum“, Zeitachse); ohne Startdatum gilt das
-  Erstelldatum
-- Filterleiste für alle Ansichten der Übersicht: Kunde (mit „Alle“/„Keine“), Label und Verantwortlich als
-  Dropdowns; im Board zusätzlich „Gruppieren“ nach Status, Kunde oder Verantwortlich und „Kompakt“.
-  Die Filter werden pro Benutzer in der Datenbank gespeichert und sind auf allen Geräten gleich
-- Gespeicherte Ansichten: aktuelle Ansicht mit Filtern unter einem Namen speichern; sie erscheinen in
-  der Seitenleiste
-- Board: ruhigere Karten (Labels als Farbpunkte, max. zwei plus „+N“; Fortschrittsbalken;
-  Fälligkeit, Anzahl Checklisten, Verantwortliche/r und Team unten), Schnellaktionen beim Überfahren
-  (Verantwortlich, Zeitraum, Favorit, Menü), „Projekt hinzufügen“ am Ende jeder Spalte
-- Board: WIP-Limit pro Status-Spalte (z. B. „WIP 2/2“, rot sobald erreicht)
-- Status (Planung, Aktiv, Review, Blockiert, Erledigt) für alle umbenennbar, mit eigener Farbe und
-  WIP-Limit: direkt im Board per Klick auf den Spaltentitel (nur Admins; zurücksetzbar auf Standard)
-- Tags (Labels) für Projekte mit frei wählbarer Farbe (54 vorgegebene Farben oder eine eigene): im
-  Projekt zuweisen oder direkt neu anlegen, sichtbar in allen Ansichten der Übersicht sowie in der
-  Projektliste des Kunden; Verwaltung (umbenennen, umfärben, löschen) unter Einstellungen → Projekte
-- Board und Karten der Übersicht: Rechtsklick auf ein Projekt öffnet ein Menü zum Öffnen, für Checklisten (öffnen oder neu
-  anlegen), Umbenennen, Status, Zeitraum, Verantwortliche Person, Tags und Favorit; auf Touch-Geräten
-  über den „…“-Knopf der Karte. Rechtsklick auf einen Kunden: Kunde öffnen, neues Projekt, nur diesen
-  Kunden anzeigen, ausblenden
-- Board: Karten lassen sich auch innerhalb einer Spalte verschieben (Reihenfolge wird gespeichert
-  und gilt für alle Benutzer)
-- Verantwortliche Person pro Projekt (Projektseite, Board-Karte und Kontextmenü)
-- Neue Projektseite: Kopfzeile mit Pfad, Status, Favorit und Aktionen (Duplizieren, Archivieren, Löschen,
-  „+ Checkliste“), Fortschritt mit Klartext („37 % · 19 von 31 Einträgen · noch 50 Tage“), Reiter Checklisten ·
-  Aktivität · Dateien · Notizen und rechts ein Eigenschaften-Panel (Status, Kunde, Verantwortlich, Start/Ende,
-  Labels, Beobachter, Easy Redmine) mit Bearbeitung direkt im Panel sowie „Letzte Aktivität“
-- Aktivitätsverlauf pro Projekt: erledigte Einträge (zusammengefasst), abgeschlossene/angelegte/gelöschte
-  Checklisten, Status, Zeitraum, Verantwortlich, Labels, Redmine-Ticket und Dateien; bereits erledigte Einträge
-  erscheinen rückwirkend
-- Dateien pro Projekt hochladen (auch per Drag & Drop, max. 25 MB pro Datei), herunterladen und löschen; die Dateien
-  liegen in der Datenbank und sind damit in jedem Backup enthalten
-- Projekt duplizieren: Kopie mit Beschreibung, Verantwortlich, Labels und allen Checklisten (Einträge nicht erledigt,
-  ohne Fälligkeiten), Status Planung
-- Beobachter pro Projekt (Personen mit Zugriff auf den Kunden)
-- Easy-Redmine-Ticket pro Projekt; die Redmine-Adresse stellt ein Admin unter Einstellungen → Projekte ein, daraus
-  wird der Link gebildet
-- Kartenansicht der Übersicht neu: eine Karte pro Kunde mit Ort, Fortschrittsring, Projekten (Status, Fortschritt,
-  Fälligkeit) und Fusszeile (überfällige bzw. offene Einträge, nächste Fälligkeit, Team); Kunden mit überfälligen
-  Einträgen stehen zuerst und sind rot umrandet; leere Kunden mit „+ Projekt aus Template“. Karten lassen sich
-  einzeln oder mit „Alle ein-/ausklappen“ einklappen; eingeklappt bleiben Kopf und Fusszeile als Zusammenfassung
-- Listenansicht der Übersicht neu: Kennzahlen (aktive Projekte, offene/überfällige Einträge, fällig in 14 Tagen,
-  im Verzug, blockiert), pro Projekt die Checklisten als Unterzeilen (Status „nicht begonnen/läuft/n überfällig/
-  fertig“, Fortschritt, Fälligkeit, Zuständig), Spalte **Zeit vs. Fortschritt** (Fortschrittsbalken mit Markierung
-  der verstrichenen Zeit, „im Plan“ / „x % im Verzug“ / „überfällig“) und „Aktualisiert“ (letzte Aktivität)
+- Overview: new views **Calendar** (projects on their due date, reschedule via drag & drop) and **Timeline** (Gantt:
+  bars from start to due date, dragging moves, dragging the ends changes start/due date; zoom weeks/months);
+  consistent view switcher Cards · Board · List · Calendar · Timeline
+- Start date per project (project page, context menu "Schedule", timeline); without a start date, the creation
+  date applies
+- Filter bar for all overview views: customer (with "All"/"None"), label and responsible as dropdowns; in the board
+  additionally "Group by" status, customer or responsible and "Compact". The filters are stored per user in the
+  database and are the same on all devices
+- Saved views: save the current view with filters under a name; they appear in the sidebar
+- Board: calmer cards (labels as color dots, max. two plus "+N"; progress bar; due date, number of checklists,
+  responsible person and team at the bottom), quick actions on hover (responsible, schedule, favorite, menu),
+  "Add project" at the end of each column
+- Board: WIP limit per status column (e.g. "WIP 2/2", red once reached)
+- Status (Planning, Active, Review, Blocked, Done) renamable for everyone, with a custom color and WIP limit:
+  directly in the board by clicking the column title (admins only; can be reset to the default)
+- Tags (labels) for projects with a freely selectable color (54 predefined colors or a custom one): assign in the
+  project or create directly, visible in all overview views and in the customer's project list; management
+  (rename, recolor, delete) under Settings → Projects
+- Board and cards of the overview: right-clicking a project opens a menu to open it, for checklists (open or
+  create), rename, status, schedule, responsible person, tags and favorite; on touch devices via the "…" button of
+  the card. Right-clicking a customer: open customer, new project, show only this customer, hide
+- Board: cards can also be moved within a column (the order is saved and applies to all users)
+- Responsible person per project (project page, board card and context menu)
+- New project page: header with path, status, favorite and actions (Duplicate, Archive, Delete, "+ Checklist"),
+  progress in plain text ("37 % · 19 of 31 items · 50 days left"), tabs Checklists · Activity · Files · Notes and on
+  the right a properties panel (status, customer, responsible, start/end, labels, watchers, Easy Redmine) with
+  editing directly in the panel plus "Latest activity"
+- Activity log per project: completed items (grouped), completed/created/deleted checklists, status, schedule,
+  responsible, labels, Redmine ticket and files; already completed items appear retroactively
+- Upload files per project (also via drag & drop, max. 25 MB per file), download and delete them; the files are
+  stored in the database and are therefore included in every backup
+- Duplicate project: copy with description, responsible, labels and all checklists (items not completed, without
+  due dates), status Planning
+- Watchers per project (people with access to the customer)
+- Easy Redmine ticket per project; an admin sets the Redmine address under Settings → Projects, the link is built
+  from it
+- Overview cards view redesigned: one card per customer with location, progress ring, projects (status, progress,
+  due date) and footer (overdue or open items, next due date, team); customers with overdue items come first and
+  have a red border; empty customers with "+ Project from template". Cards can be collapsed individually or with
+  "Collapse/expand all"; collapsed, the header and footer remain as a summary
+- Overview list view redesigned: key figures (active projects, open/overdue items, due in 14 days, behind
+  schedule, blocked), per project the checklists as sub rows (status "not started/running/n overdue/done",
+  progress, due date, assignee), column **Time vs. progress** (progress bar with a marker for the elapsed time,
+  "on track" / "x % behind" / "overdue") and "Updated" (latest activity)
 
-### Geändert
+### Changed
 
-- Seitenleiste: aufklappbarer Abschnitt „Kunden“ entfernt (Kunden über den Menüpunkt „Kunden“)
-- Seitenleiste: „Zuletzt besucht“ entfernt (inkl. Server-Schnittstelle `/api/recent` und Tabelle
-  `user_recent`, Migration 00017); stattdessen „Gespeicherte Ansichten“
-- Lange Status-Namen werden in den Board-Spalten nicht mehr abgeschnitten, sondern umgebrochen
-- README auf Englisch
-- Übersicht, Meine Aufgaben, Kunden und Templates haben denselben Seitenkopf (Titel, Untertitel, Aktionen rechts)
-  und dieselben Abstände; „Meine Aufgaben“ nutzt jetzt die volle Breite wie die anderen Seiten
-- Server: Lese-Timeout 3 Minuten statt 30 Sekunden, damit Datei-Uploads auch über langsame Leitungen klappen
-- Datenbank-Migrationen 00012–00018; sie werden beim Start automatisch angewendet (vorher ein Backup machen)
+- Sidebar: collapsible "Customers" section removed (customers via the "Customers" menu item)
+- Sidebar: "Recently visited" removed (incl. the server endpoint `/api/recent` and the table `user_recent`,
+  migration 00017); "Saved views" instead
+- Long status names are no longer cut off in the board columns but wrapped
+- README in English
+- Overview, My tasks, Customers and Templates have the same page header (title, subtitle, actions on the right) and
+  the same spacing; "My tasks" now uses the full width like the other pages
+- Server: read timeout 3 minutes instead of 30 seconds, so file uploads also work over slow connections
+- Database migrations 00012–00018; they are applied automatically on startup (make a backup first)
 
 ## [0.0.4] – 2026-11-04
 
-### Hinzugefügt
+### Added
 
-- GitHub-Release wird bei jedem Versions-Tag automatisch angelegt, mit den Notizen aus dieser Datei
-  (Workflow `release.yml`; optional Ankündigung auf Discord über das Secret `DISCORD_WEBHOOK`)
+- A GitHub release is created automatically for every version tag, with the notes from this file (workflow
+  `release.yml`; optional announcement on Discord via the secret `DISCORD_WEBHOOK`)
 
-### Geändert
+### Changed
 
-- GitHub Actions auf aktuelle Versionen (keine Node-20-Warnungen mehr)
-- Testdaten und Code-Beispiele verwenden nur noch neutrale Beispielnamen
+- GitHub Actions on current versions (no more Node 20 warnings)
+- Test data and code examples only use neutral example names
 
-### Behoben
+### Fixed
 
-- Workflows akzeptieren beim manuellen Start das Tag mit oder ohne „v“ (`0.0.3` wie `v0.0.3`)
+- When started manually, the workflows accept the tag with or without "v" (`0.0.3` as well as `v0.0.3`)
 
 ## [0.0.3] – 2026-11-04
 
-### Hinzugefügt
+### Added
 
-- Image `:edge` mit dem aktuellen Entwicklungsstand, bei jedem Push auf `main` nach grünen Tests
+- Image `:edge` with the current development state, on every push to `main` after green tests
 
-### Geändert
+### Changed
 
-- `docker-compose.yml` verwendet nur noch das veröffentlichte Image
-  `ghcr.io/seals187/projectlist`, ohne `build`/`args`; Version über `PROJECTLIST_VERSION` in der `.env`
-  (`latest` = neuestes Release, `edge` = Entwicklungsstand, oder z. B. `0.0.2`)
-- Alle Code-Kommentare auf Englisch (Oberflächentexte unverändert)
+- `docker-compose.yml` only uses the published image `ghcr.io/seals187/projectlist`, without `build`/`args`;
+  version via `PROJECTLIST_VERSION` in the `.env` (`latest` = newest release, `edge` = development state, or e.g.
+  `0.0.2`)
+- All code comments in English (UI texts unchanged)
 
-### Behoben
+### Fixed
 
-- Kurzbeschreibungen der Schriften in den Einstellungen erscheinen jetzt in der gewählten Sprache (waren immer Deutsch)
-- „Zuletzt besucht“: Besuche innerhalb derselben Millisekunde wurden manchmal in falscher Reihenfolge
-  angezeigt; dadurch schlug auch der Test auf GitHub Actions zufällig fehl
+- Short descriptions of the fonts in the settings now appear in the selected language (were always German)
+- "Recently visited": visits within the same millisecond were sometimes shown in the wrong order; this also made
+  the test on GitHub Actions fail randomly
 
 ## [0.0.2] – 2026-11-04
 
-### Hinzugefügt
+### Added
 
-- `CHANGELOG.md` mit der Versionsgeschichte
-- `.gitattributes`: Zeilenenden einheitlich LF (auch unter Windows), Bilder und Schriften als Binärdateien
-- Container-Image auf GitHub (`ghcr.io/seals187/projectlist`) für linux/amd64 und linux/arm64,
-  automatisch bei jedem Release-Tag (`:X.Y.Z`, `:X.Y`, `:latest`); bestehende Tags manuell nachveröffentlichbar
-- GitHub Actions: Tests (go vet, go test, Frontend-Build) bei jedem Push auf `main` und bei Pull Requests
+- `CHANGELOG.md` with the version history
+- `.gitattributes`: consistent LF line endings (also on Windows), images and fonts as binary files
+- Container image on GitHub (`ghcr.io/seals187/projectlist`) for linux/amd64 and linux/arm64, automatically on
+  every release tag (`:X.Y.Z`, `:X.Y`, `:latest`); existing tags can be published afterwards manually
+- GitHub Actions: tests (go vet, go test, frontend build) on every push to `main` and on pull requests
 
-### Geändert
+### Changed
 
-- Dockerfile baut Frontend und Go nativ und kompiliert für die Zielarchitektur (schnelle Multi-Arch-Builds
-  ohne Emulation); OCI-Labels (Quelle, Lizenz, Version) verknüpfen das Image mit dem Repository
+- The Dockerfile builds frontend and Go natively and cross-compiles for the target architecture (fast multi-arch
+  builds without emulation); OCI labels (source, license, version) link the image to the repository
 
 ## [0.0.1] – 2026-11-04
 
-Erste Version.
+First version.
 
-### Hinzugefügt
+### Added
 
-**Grundlagen**
+**Basics**
 
-- Selbst gehostete Projektverwaltung für mehrere Benutzer: Kunden → Projekte → Checklisten,
-  Templates als Kopiervorlagen
-- Ein einzelnes Go-Binary (net/http, SQLite, sqlc, goose) mit eingebettetem SvelteKit-Frontend;
-  Docker-Image distroless (~29 MB, im Betrieb ~6 MB RAM), Compose mit 128-MB-Limit und Healthcheck
-- Benutzer mit Rollen Admin, Member und Viewer sowie Kundenzuordnung; Argon2id, Sessions,
-  CSRF- und Origin-Schutz, strenge Content-Security-Policy
-- Backup per Befehl (`projectlist backup`) und als Download für Admins
-- Oberfläche auf Englisch, Deutsch und Französisch
-- Datenbank-Migrationen 00001–00011
+- Self-hosted project management for multiple users: customers → projects → checklists, templates as copy
+  templates
+- A single Go binary (net/http, SQLite, sqlc, goose) with an embedded SvelteKit frontend; distroless Docker image
+  (~29 MB, ~6 MB RAM in operation), Compose with a 128 MB limit and health check
+- Users with the roles Admin, Member and Viewer plus customer assignment; Argon2id, sessions, CSRF and origin
+  protection, strict Content Security Policy
+- Backup via command (`projectlist backup`) and as a download for admins
+- UI in English, German and French
+- Database migrations 00001–00011
 
-**Übersicht**
+**Overview**
 
-- Ansichten Karten, Liste (mit Kennzahlen) und Board (Status-Spalten, Drag & Drop, Kundenfilter);
-  Standardansicht in den Einstellungen wählbar, gerade genutzte Ansicht bleibt in der Sitzung erhalten
-- Projektstatus Planung, Aktiv, Review, Blockiert, Erledigt und Archiviert; Fälligkeitsdatum,
-  Team (zugewiesene Personen) und nächster offener Schritt je Projekt
-- Projekte je Kunde einklappbar (Standard: eingeklappt)
-- Dialog „Neues Projekt“ mit Kunde, Status, Fälligkeit und optional erster Checkliste aus einem Template
+- Views Cards, List (with key figures) and Board (status columns, drag & drop, customer filter); default view
+  selectable in the settings, the view in use is kept for the session
+- Project status Planning, Active, Review, Blocked, Done and Archived; due date, team (assigned people) and next
+  open step per project
+- Projects collapsible per customer (default: collapsed)
+- "New project" dialog with customer, status, due date and optionally a first checklist from a template
 
-**Seitenleiste**
+**Sidebar**
 
-- Suche (Strg+K) und „+“ für ein neues Projekt
-- Favoriten und „Zuletzt besucht“ (Kunden, Projekte, Checklisten, Templates), pro Benutzer in der
-  Datenbank gespeichert und damit auf allen Geräten gleich
-- Kundenbaum mit Kürzel, Projektanzahl und Status-Punkten; Kunden und Projekte per Klick auf-/zuklappbar
-- Abschnitte einklappbar, Seitenleiste in der Breite verstellbar und ganz einklappbar (Strg+\)
-- Unten Benutzer (→ Einstellungen), Theme-Umschalter und Abmelden; optionaler Untertitel über `APP_SUBTITLE`
+- Search (Ctrl+K) and "+" for a new project
+- Favorites and "Recently visited" (customers, projects, checklists, templates), stored per user in the database
+  and therefore the same on all devices
+- Customer tree with short code, project count and status dots; customers and projects expand/collapse on click
+- Collapsible sections, resizable sidebar width, sidebar fully collapsible (Ctrl+\)
+- At the bottom the user (→ settings), theme toggle and sign out; optional subtitle via `APP_SUBTITLE`
 
-**Kunden**
+**Customers**
 
-- Kundenübersicht als Liste (aufklappbar mit Projekten) oder Karten; Suche, Filter (alle, mit aktiven
-  Projekten, kritisch, ohne Projekt) und Sortierung (letzte Aktivität, Name, Fortschritt, Fälligkeit,
-  offene Aufgaben)
-- Status je Kunde: Neu, Im Plan, Kritisch, Abgeschlossen
-- Ort, Ansprechpartner und E-Mail je Kunde
-- Je Projekt einstellbar, ob es in den Gesamtfortschritt des Kunden einfliesst; ausgenommene
-  Projekte werden grau dargestellt, beim Kunden steht „ohne N Projekt(e)“
+- Customer overview as a list (expandable with projects) or cards; search, filters (all, with active projects,
+  critical, without project) and sorting (latest activity, name, progress, due date, open tasks)
+- Status per customer: New, On track, Critical, Completed
+- Location, contact person and email per customer
+- Configurable per project whether it counts towards the customer's overall progress; excluded projects are shown
+  in grey, the customer shows "without N project(s)"
 
-**Meine Aufgaben**
+**My tasks**
 
-- Tab „Kunden“: Kunden → Projekte → Checklisten, an denen man beteiligt ist, mit Fälligkeit
-  (Gestern/Heute/Morgen)
-- Tab „Persönlich“: zugewiesene Einträge zum Abhaken
-- Filter Offen, Heute und Erledigt (letzte 30 Tage)
+- Tab "Customers": customers → projects → checklists you are involved in, with due date
+  (Yesterday/Today/Tomorrow)
+- Tab "Personal": assigned items to check off
+- Filters Open, Today and Done (last 30 days)
 
-**Checklisten-Editor**
+**Checklist editor**
 
-- Blöcke: Überschriften H1–H4 (einklappbar), Text, Aufzählung, Nummerierung, Zitat, Codeblock mit
-  Syntax-Highlighting, Trennlinie und Einträge mit Checkbox
-- Einträge mit Zuständigen, Fälligkeit, Status-Text (z. B. „Erledigt“) und Notizen;
-  Umwandeln eines Blocks in einen Eintrag mit einem Klick
-- Abschnitts- und Zeilenfarben in drei Stufen (wie Word/Excel), Text- und Markerfarben,
-  Fett/Kursiv/Unterstrichen/Durchgestrichen, Links mit Text und URL
-- Rahmenlinien (ein-/ausschaltbar), Zoom 80–160 %, Rückgängig/Wiederholen, Drag & Drop
-- Ganze Checklisten einer Person zuweisbar; Checkliste als Template speichern
+- Blocks: headings H1–H4 (collapsible), text, bulleted list, numbered list, quote, code block with syntax
+  highlighting, divider and items with a checkbox
+- Items with assignees, due date, status text (e.g. "Done") and notes; convert a block into an item with one click
+- Section and row colors in three levels (like Word/Excel), text and highlight colors,
+  bold/italic/underline/strikethrough, links with text and URL
+- Grid lines (on/off), zoom 80–160 %, undo/redo, drag & drop
+- Whole checklists assignable to a person; save a checklist as a template
 
-**Darstellung**
+**Appearance**
 
-- Themes Hell, Dunkel, Dunkelgrau und System
-- 12 eingebettete Schriften (u. a. Inter, Geist, Mona Sans), Überschriften in Serif oder wie der Text,
-  Code in JetBrains Mono; keine externen Anfragen
-- Checkbox links oder rechts, eckig oder rund; Codeblock-Hintergrund Hellgrau, Dunkelgrau oder Schwarz
+- Themes Light, Dark, Dark grey and System
+- 12 embedded fonts (incl. Inter, Geist, Mona Sans), headings in serif or like the body text, code in
+  JetBrains Mono; no external requests
+- Checkbox left or right, square or round; code block background light grey, dark grey or black
 
-[Unveröffentlicht]: https://github.com/seals187/projectList/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/seals187/projectList/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/seals187/projectList/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/seals187/projectList/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/seals187/projectList/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/seals187/projectList/compare/v0.1.0...v0.1.1

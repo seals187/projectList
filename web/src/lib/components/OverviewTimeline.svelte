@@ -15,14 +15,15 @@
 
   let { groups, today }: { groups: OvCustomer[]; today: string } = $props();
 
-  // Zoom: this week (Mon–Sun), the next 14 / 30 days from today (days fill the
+  // Zoom: this week (Mon–Sun), the next 14 / 30 / 60 days from today (days fill the
   // available width, min. width per day), or months (fixed scale, scrolls).
-  type Zoom = 'week' | '14d' | '30d' | 'months';
-  const ZOOMS: readonly Zoom[] = ['week', '14d', '30d', 'months'];
+  type Zoom = 'week' | '14d' | '30d' | '60d' | 'months';
+  const ZOOMS: readonly Zoom[] = ['week', '14d', '30d', '60d', 'months'];
   const ZOOM: Record<Zoom, { days: number; minDayW: number }> = {
     week: { days: 7, minDayW: 60 },
     '14d': { days: 14, minDayW: 36 },
     '30d': { days: 30, minDayW: 24 },
+    '60d': { days: 60, minDayW: 18 },
     months: { days: 196, minDayW: 8 }
   };
   const ZOOM_KEY = 'timeline-zoom';
