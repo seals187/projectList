@@ -64,6 +64,7 @@ describe('breadcrumb and history labels', () => {
     myTasks: 'Meine Aufgaben',
     customers: 'Kunden',
     templates: 'Templates',
+    reports: 'Reporting',
     settings: 'Einstellungen',
     settingsPage: (s) => ({ appearance: 'Darstellung' })[s] ?? null
   };

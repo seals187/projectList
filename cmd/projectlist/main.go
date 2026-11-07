@@ -28,6 +28,7 @@ import (
 	"github.com/seals187/projectList/internal/db/sqlc"
 	"github.com/seals187/projectList/internal/httpapi"
 	"github.com/seals187/projectList/internal/mail"
+	"github.com/seals187/projectList/internal/report"
 	"github.com/seals187/projectList/internal/static"
 	"github.com/seals187/projectList/web"
 )
@@ -115,6 +116,9 @@ func serve(cfg config.Config, log *slog.Logger) error {
 	// automations of the template library: schedules (and later integrations)
 	auto := automation.New(database, log)
 	go auto.Run(ctx, 15*time.Minute)
+	// scheduled report e-mails
+	reports := &report.Mailer{DB: database, Q: q, Sender: &mail.SMTP{Cfg: cfg.SMTP}, AppURL: cfg.AppURL, Log: log, Now: time.Now}
+	go reports.Run(ctx, 15*time.Minute)
 
 	srv := &http.Server{
 		Addr: cfg.ListenAddr,

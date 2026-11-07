@@ -21,7 +21,7 @@
   import { barCls, statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
   import { dueUrgent, pct } from '$lib/overview';
   import { tagsByIds } from '$lib/tags';
-  import { cardHex, projectColor, stripeStyle } from '$lib/cardColors';
+  import { cardHex, projectColor, tintStyle } from '$lib/cardColors';
   import { myColors } from '$lib/myColors.svelte';
   import { cardColorLabel } from '$lib/cardColorLabel';
   import { setCustomerColors } from '$lib/projectActions';
@@ -305,7 +305,8 @@
             href="/projects/{p.id}"
             oncontextmenu={(e) => projectMenu(e, p.id)}
             data-testid="customer-project-row"
-            style={stripeStyle(projectColor(p.id, myColors.all))}
+            class:card-tint={!!projectColor(p.id, myColors.all)}
+            style={tintStyle(projectColor(p.id, myColors.all))}
             class="{cols} border-b border-zinc-100 px-4 py-3 text-sm hover:bg-zinc-50 dark:border-zinc-800/70 dark:hover:bg-zinc-800/40
               {p.status === 'blocked' ? 'bg-red-50/50 dark:bg-red-950/15' : ''}">
             <span class="flex min-w-0 items-center gap-2.5">

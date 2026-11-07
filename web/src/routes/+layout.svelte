@@ -61,6 +61,8 @@
   const settingsPage = $derived(page.url.pathname.startsWith('/settings'));
   // reachable without a session: sign-in and invitation / password links
   const publicPage = $derived(page.url.pathname === '/login' || page.url.pathname === '/invite');
+  // print views (report as PDF): without sidebar and back bar
+  const printPage = $derived(page.url.pathname.startsWith('/reports/print'));
   // checklist page: tabs of the open checklists above the content
   const checklistId = $derived(Number(page.url.pathname.match(/^\/checklists\/(\d+)/)?.[1] ?? 0) || null);
   $effect(() => {
@@ -151,6 +153,8 @@
 {#if !session.ready}
   <div class="h-dvh"></div>
 {:else if publicPage}
+  {@render children()}
+{:else if session.user && printPage}
   {@render children()}
 {:else if session.user}
   <div

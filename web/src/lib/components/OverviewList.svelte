@@ -23,7 +23,7 @@
   import TagDots from './TagDots.svelte';
   import CustomerMenu from './CustomerMenu.svelte';
   import { setBoardHidden, sidebar } from '$lib/state.svelte';
-  import { customerCardColor, projectColor, stripeStyle, tintStyle } from '$lib/cardColors';
+  import { customerCardColor, projectColor, tintStyle } from '$lib/cardColors';
   import ProjectMenu from './ProjectMenu.svelte';
   import { myColors } from '$lib/myColors.svelte';
   import type { SidebarCustomer } from '$lib/types';
@@ -148,7 +148,8 @@
             {@const tags = tagsByIds(p.tag_ids)}
             {@const pc = percent(p.done, p.total)}
             {@const urgent = dueUrgent(p, today)}
-            <a href="/projects/{p.id}" class="ol-row col-span-full grid-cols-subgrid" style={stripeStyle(projectColor(p.id, myColors.all))} oncontextmenu={(e) => projectMenu(e, p, g.customer)} data-testid="project-row">
+            <a href="/projects/{p.id}" class="ol-row col-span-full grid-cols-subgrid" class:card-tint={!!projectColor(p.id, myColors.all)}
+            style={tintStyle(projectColor(p.id, myColors.all))} oncontextmenu={(e) => projectMenu(e, p, g.customer)} data-testid="project-row">
               <!-- project: name + tags (C2: same line, C1: own line + checklists) -->
               {#if wide}
                 <span class="flex min-w-0 items-center gap-3">

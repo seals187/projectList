@@ -25,8 +25,8 @@ interface Filter {
 }
 
 /** Pages whose header state can be saved as a view. */
-export type ViewPage = 'overview' | 'tasks' | 'customers' | 'templates';
-export const VIEW_PAGES: Record<ViewPage, string> = { overview: '/', tasks: '/tasks', customers: '/customers', templates: '/templates' };
+export type ViewPage = 'overview' | 'tasks' | 'customers' | 'templates' | 'reports';
+export const VIEW_PAGES: Record<ViewPage, string> = { overview: '/', tasks: '/tasks', customers: '/customers', templates: '/templates', reports: '/reports' };
 
 export interface SavedView extends Omit<Filter, 'compact'> {
   id: string;

@@ -22,8 +22,8 @@ SELECT CAST(COALESCE(MAX(position), -1) + 1 AS INTEGER) FROM checklist_items WHE
 UPDATE checklist_items SET position = position + 1 WHERE checklist_id = ? AND position >= ?;
 
 -- name: CreateItem :one
-INSERT INTO checklist_items (checklist_id, kind, title, description, note_color, bg_color, status, indent, lang, position, assignee_id, due_date)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO checklist_items (checklist_id, kind, title, description, note_color, bg_color, status, indent, lang, position, assignee_id, due_date, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 RETURNING id;
 
 -- name: UpdateItem :exec

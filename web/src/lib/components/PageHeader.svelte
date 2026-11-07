@@ -28,10 +28,12 @@
     views?: HeaderView[];
     activeView?: string;
     onViewChange?: (key: string) => void;
-    primaryAction?: { label: string; onClick: (e: MouseEvent) => void };
+    primaryAction?: { label: string; onClick: (e: MouseEvent) => void; icon?: IconName }; // icon: default "plus"
+    extraActions?: { label: string; icon: IconName; onClick: (e: MouseEvent) => void; testid?: string }[]; // buttons left of sorting
     reservePrimary?: boolean; // views with and without primary action: keep its space (stable layout)
     searchPlaceholder: string;
     searchValue: string;
+    noSearch?: boolean; // page without free-text search (e.g. reporting)
     onSearch: (q: string) => void;
     filters?: HeaderFilter[];
     quickFilters?: QuickFilter[];
@@ -40,8 +42,8 @@
     sortOptions?: { value: string; label: string }[];
     activeSort?: string;
     onSortChange?: (v: string) => void;
-    collapsed: boolean;
-    onToggleCollapse: () => void;
+    collapsed?: boolean;
+    onToggleCollapse?: () => void; // without it there is no expand/collapse button
     collapseDisabled?: boolean;
     displayOptions?: { key: string; label: string; value: boolean }[]; // "Display" popover (per page)
     onDisplayChange?: (key: string, value: boolean) => void;
@@ -85,8 +87,10 @@
     onViewChange,
     primaryAction,
     reservePrimary = false,
+    extraActions = [],
     searchPlaceholder,
     searchValue,
+    noSearch = false,
     onSearch,
     filters = [],
     quickFilters = [],
@@ -198,7 +202,7 @@
         </div>
       {/if}
       {#if primaryAction}
-        <button type="button" class="ph-primary {reservePrimary ? 'min-w-32 justify-center' : ''}" onclick={primaryAction.onClick}><IconCmp name="plus" size={15} />{primaryAction.label}</button>
+        <button type="button" class="ph-primary {reservePrimary ? 'min-w-32 justify-center' : ''}" onclick={primaryAction.onClick}><IconCmp name={primaryAction.icon ?? 'plus'} size={15} />{primaryAction.label}</button>
       {:else if reservePrimary}
         <span class="min-w-32" aria-hidden="true"></span>
       {/if}
@@ -208,6 +212,7 @@
   <!-- row 2: search | filters, chips, save view … sorting, toggle -->
   <div bind:this={row2} class="ph-strip" role="toolbar" aria-label={t('ph.sort')}>
     <div bind:this={left2} class="flex shrink-0 items-center gap-2">
+      {#if !noSearch}
       <label class="flex h-8 items-center gap-2 pr-1 pl-2">
         <IconCmp name="search" size={14} class="ph-muted-icon" />
         <input
@@ -220,6 +225,7 @@
       </label>
       {#if filters.length || quickFilters.length || onSaveView}
         <span class="h-5 w-px shrink-0 bg-zinc-200 dark:bg-zinc-700" aria-hidden="true"></span>
+      {/if}
       {/if}
       {#if filters.length}
         <IconCmp name="filter" size={14} class="ph-muted-icon mx-0.5" />
@@ -256,13 +262,18 @@
     </div>
     <div class="min-w-4 flex-1"></div>
     <div bind:this={right2} class="flex shrink-0 items-center gap-2">
+      {#each extraActions as a (a.label)}
+        <button type="button" class="ph-ctl" onclick={a.onClick} data-testid={a.testid}><IconCmp name={a.icon} size={14} class="ph-muted-icon" />{a.label}</button>
+      {/each}
       {#if sortOptions.length && activeSort !== undefined}
         <SelectDropdown label={t('ph.sort')} options={sortOptions} value={activeSort} onchange={(v) => onSortChange?.(v)} icon="arrowUpDown" bare />
       {/if}
-      <button type="button" class="ph-ctl disabled:cursor-default disabled:opacity-50" disabled={collapseDisabled} onclick={onToggleCollapse} aria-pressed={collapsed}>
+      {#if onToggleCollapse}
+        <button type="button" class="ph-ctl disabled:cursor-default disabled:opacity-50" disabled={collapseDisabled} onclick={onToggleCollapse} aria-pressed={collapsed}>
         <IconCmp name={collapsed ? 'chevronsUpDown' : 'chevronsDownUp'} size={14} class="ph-muted-icon" />
         {t(collapsed ? 'ph.expandAll' : 'ph.collapseAll')}
-      </button>
+        </button>
+      {/if}
       <button
         type="button"
         class="ph-ctl disabled:cursor-default disabled:opacity-50 {displayAt ? 'ph-ctl-active' : ''}"

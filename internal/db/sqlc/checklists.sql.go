@@ -12,9 +12,9 @@ import (
 )
 
 const createChecklist = `-- name: CreateChecklist :one
-INSERT INTO checklists (project_id, title, template_id, position)
-VALUES (?, ?, ?, ?)
-RETURNING id, project_id, title, template_id, position, assignee_id
+INSERT INTO checklists (project_id, title, template_id, position, created_at)
+VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+RETURNING id, project_id, title, template_id, position, assignee_id, created_at
 `
 
 type CreateChecklistParams struct {
@@ -39,6 +39,7 @@ func (q *Queries) CreateChecklist(ctx context.Context, arg CreateChecklistParams
 		&i.TemplateID,
 		&i.Position,
 		&i.AssigneeID,
+		&i.CreatedAt,
 	)
 	return i, err
 }
@@ -442,7 +443,7 @@ func (q *Queries) SetChecklistPosition(ctx context.Context, arg SetChecklistPosi
 }
 
 const updateChecklistTitle = `-- name: UpdateChecklistTitle :one
-UPDATE checklists SET title = ? WHERE id = ? RETURNING id, project_id, title, template_id, position, assignee_id
+UPDATE checklists SET title = ? WHERE id = ? RETURNING id, project_id, title, template_id, position, assignee_id, created_at
 `
 
 type UpdateChecklistTitleParams struct {
@@ -460,6 +461,7 @@ func (q *Queries) UpdateChecklistTitle(ctx context.Context, arg UpdateChecklistT
 		&i.TemplateID,
 		&i.Position,
 		&i.AssigneeID,
+		&i.CreatedAt,
 	)
 	return i, err
 }

@@ -18,7 +18,7 @@
   import Icon from './Icon.svelte';
   import EntityIcon from './EntityIcon.svelte';
   import TagDots from './TagDots.svelte';
-  import { customerCardColor, projectColor, stripeStyle, tintStyle } from '$lib/cardColors';
+  import { customerCardColor, projectColor, tintStyle } from '$lib/cardColors';
   import { myColors } from '$lib/myColors.svelte';
   import { dayMonth } from '$lib/listMetrics';
 
@@ -121,7 +121,8 @@
           {#each g.projects.slice(0, MAX_ROWS) as p (p.id)}
             {@const tags = tagsByIds(p.tag_ids)}
             <li>
-              <a href="/projects/{p.id}" class="group relative -mx-2 block rounded-lg px-2 py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/50" style={stripeStyle(projectColor(p.id, myColors.all))} oncontextmenu={(e) => projectMenu(e, p)}>
+              <a href="/projects/{p.id}" class="group relative -mx-2 block rounded-lg px-2 py-2.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/50" class:card-tint={!!projectColor(p.id, myColors.all)}
+            style={tintStyle(projectColor(p.id, myColors.all))} oncontextmenu={(e) => projectMenu(e, p)}>
                 <!-- line 1: folder, name … status pill on the right -->
                 <span class="flex items-start gap-2">
                   <EntityIcon type="project" size="xs" class="mt-px" />

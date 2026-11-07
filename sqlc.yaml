@@ -41,6 +41,10 @@ sql:
             go_type:
               type: "int64"
               pointer: true
+          - column: "report_schedules.created_by"
+            go_type:
+              type: "int64"
+              pointer: true
           - column: "checklist_templates.category_id"
             go_type:
               type: "int64"

@@ -92,13 +92,13 @@ export function tintStyle(color: string): string | undefined {
   return `--tint:${CARD_HEX[c.base]}` + (c.strong ? ';--tint-l:30%;--tint-d:40%' : '');
 }
 
-/** Personal color of a project (set in the project menu; "" = none). Shown in the board as the
- *  card tint, elsewhere (cards, list, My tasks, customers) as a stripe on the project row. */
+/** Personal color of a project (set in the project menu; "" = none): tints the board card and the
+ *  project rows elsewhere (cards, list, My tasks, customers). */
 export function projectColor(id: number, mine: MyColors): string {
   return mine.board[String(id)] ?? '';
 }
 
-/** Inline style for the color stripe at the left edge of a project row; undefined without a color. */
+/** Inline style for a color stripe at the left edge (board card tinted by the customer color). */
 export function stripeStyle(color: string): string | undefined {
   const hex = cardHex(color);
   return hex ? `box-shadow: inset 3px 0 0 ${hex}` : undefined;

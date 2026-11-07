@@ -17,7 +17,7 @@ docker compose up -d        # pulls the published image ghcr.io/seals187/project
 ```
 
 Version via `PROJECTLIST_VERSION` in `.env`: `latest` = newest release (default), `edge` =
-current development state (every push to `main`), or a fixed version such as `0.1.6`.
+current development state (every push to `main`), or a fixed version such as `0.1.7`.
 Update: `docker compose pull && docker compose up -d`.
 
 Then sign in at <http://localhost:8080> with the admin credentials from `.env`.
@@ -36,7 +36,7 @@ docker compose logs -f projectlist    # structured JSON logs
 Every release has an image for **linux/amd64** and **linux/arm64** (e.g. Raspberry Pi):
 
 ```bash
-docker pull ghcr.io/seals187/projectlist:latest   # or a fixed version, e.g. :0.1.6
+docker pull ghcr.io/seals187/projectlist:latest   # or a fixed version, e.g. :0.1.7
 ```
 
 `docker-compose.yml` already uses this image. Without Compose:
@@ -62,7 +62,7 @@ For every version tag, the workflow `release.yml` creates the GitHub release wit
 | `ADMIN_NAME`          | `Admin`                | Display name of the first admin |
 | `APP_SUBTITLE`        | –                      | Optional subtitle below "ProjectList" in the sidebar (e.g. company or department name) |
 | `PORT`                | `8080`                 | Host port (docker compose only) |
-| `PROJECTLIST_VERSION` | `latest`               | Image version for docker compose: `latest`, `edge` or e.g. `0.1.6` |
+| `PROJECTLIST_VERSION` | `latest`               | Image version for docker compose: `latest`, `edge` or e.g. `0.1.7` |
 | `LISTEN_ADDR`         | `:8080`                | Listen address inside the container |
 | `DB_PATH`             | `/data/projectlist.db` | Path of the SQLite file |
 | `COOKIE_SECURE`       | `true`                 | Send the session cookie over HTTPS only. On `http://localhost` this works in Chrome/Edge/Firefox; set `false` for plain HTTP access via an IP or hostname |
@@ -229,6 +229,17 @@ Checklists consist of **blocks** that are edited like a document. Changes are sa
   checklists
 - "Save as template" in a checklist header saves it as a new template
 
+### Reporting
+
+*Reporting* in the sidebar shows four views over the customers you may see (admins: all), filtered by period,
+customer, person and label: **Dashboard** (key figures vs. the previous period, completed vs. created checklists per
+week, projects by status, due dates), **Customers** (progress, open / overdue checklists; status report as a
+print view → "Save as PDF"), **Workload** (open checklists per person, checklists without a person) and **Templates** (usage,
+duration, punctuality). **Export** downloads the current view as CSV. **Schedule e-mail** (admins and members)
+sends the report weekly or monthly by e-mail (SMTP required); members schedule it for themselves, admins for
+any user. The reporting counts checklists as a whole (done when all items are checked; due date = the latest
+due date of its items) and projects, never single items. Durations need the creation time of checklists and items, which is recorded since version 0.1.7.
+
 ### Template library
 
 The templates page has three views:
@@ -339,6 +350,7 @@ internal/auth/        Argon2id, sessions, login limiter, admin bootstrap
 internal/authz/       roles & customer assignment
 internal/service/     apply a template / save a checklist as template (transactions), template variables
 internal/automation/  automation rules: events, conditions, schedules, integration interface
+internal/report/      reporting: key figures, customer status report, scheduled report e-mails
 internal/richtext/    allow-list sanitizing of inline formatting
 internal/httpapi/     JSON API, middleware, validation
 internal/static/      serving the embedded frontend (br/gzip, cache headers)
@@ -373,6 +385,7 @@ All endpoints under `/api`, JSON. Writing requests need the header `X-CSRF-Token
 | Tags        | `POST /tags` (members), `PATCH/DELETE /tags/{id}`, `PUT /status-labels/{status}` (`label`, `color`, `wip_limit`; admin); catalog, status names, colors and WIP limits come with `GET /sidebar` |
 | Checklists  | `GET/POST /projects/{id}/checklists`, `POST /projects/{id}/checklists/from-template`, `PUT /projects/{id}/checklists/order`, `GET/PATCH/DELETE /checklists/{id}`, `POST /checklists/{id}/save-as-template` |
 | Items       | `POST /checklists/{id}/items`, `PUT /checklists/{id}/items/order`, `PATCH/DELETE /items/{id}`, `POST /items/{id}/done` |
+| Reporting   | `GET /reports` (`period`, `customers`, `assignees`, `tags`), `GET /reports/customers/{id}` (`period`), `GET/POST /report-schedules`, `PATCH/DELETE /report-schedules/{id}`, `POST /report-schedules/{id}/send` |
 | Templates   | `GET/POST /templates`, `GET/PATCH/DELETE /templates/{id}`, `POST /templates/{id}/items`, `PUT /templates/{id}/items/order`, `PATCH/DELETE /template-items/{id}`, `GET /templates/{id}/variables`, `GET/POST /template-categories`, `PATCH/DELETE /template-categories/{id}`, `GET/POST /template-variables`, `PATCH/DELETE /template-variables/{id}`, `GET/POST /automations`, `PATCH/DELETE /automations/{id}` |
 | Sidebar     | `PUT/DELETE /favorites/{kind}/{id}` (`kind` = customer, project, checklist or template), `PUT /favorites/order` (`groups`, `items` with `kind`, `id`, `group_id`), `POST /favorite-groups` (`name`), `PATCH/DELETE /favorite-groups/{id}` (`name`, `collapsed`), `PUT /board/order` (`status`, `ids`), `PUT /prefs/board-hidden` (`customer_ids`), `PUT /prefs/{overview,saved_views}` (any JSON, per user); favorites (`kind`, `id`, `group_id`, `position`), `favorite_groups` and settings come with `GET /sidebar` |
 | Other       | `GET /sidebar`, `GET /overview`, `GET /my-tasks`, `GET /my-checklists`, `GET /search?q=`, `GET /admin/backup`, `GET /healthz` |

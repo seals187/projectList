@@ -45,7 +45,7 @@ export function backList(h: Hist, max = 8): { entry: HistEntry; delta: number }[
 
 // ---- Descriptions ------------------------------------------------------------------
 
-export type PageIcon = 'home' | 'tasks' | 'building2' | 'template' | 'settings' | 'grid' | 'columns' | 'list' | 'calendar' | 'timeline';
+export type PageIcon = 'home' | 'tasks' | 'building2' | 'template' | 'chart' | 'settings' | 'grid' | 'columns' | 'list' | 'calendar' | 'timeline';
 
 // overview: the view is shown by its icon (cards = default, not in the URL)
 const VIEW_ICON: Record<string, PageIcon> = { cards: 'grid', board: 'columns', list: 'list', calendar: 'calendar', timeline: 'timeline' };
@@ -65,6 +65,7 @@ export interface NavTexts {
   myTasks: string;
   customers: string;
   templates: string;
+  reports: string;
   settings: string;
   settingsPage: (slug: string) => string | null;
 }
@@ -134,6 +135,7 @@ export function describe(path: string, search: string, data: NavData, tx: NavTex
   if (path.startsWith('/tasks')) return { label: tx.myTasks, icon: 'tasks' };
   if (path.startsWith('/customers')) return { label: tx.customers, icon: 'building2' };
   if (path.startsWith('/templates')) return { label: tx.templates, icon: 'template' };
+  if (path.startsWith('/reports')) return { label: tx.reports, icon: 'chart' };
   if (path.startsWith('/settings')) {
     const sub = tx.settingsPage(path.split('/')[2] ?? '');
     return { label: sub ? `${tx.settings} · ${sub}` : tx.settings, icon: 'settings' };

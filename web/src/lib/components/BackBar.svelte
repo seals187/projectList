@@ -23,6 +23,7 @@
     myTasks: t('nav.myTasks'),
     customers: t('nav.customers'),
     templates: t('nav.templates'),
+    reports: t('nav.reports'),
     settings: t('nav.settings'),
     settingsPage: (slug) => {
       const it = SETTINGS_NAV.find((x) => x.href === `/settings/${slug}`);

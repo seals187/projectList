@@ -39,6 +39,7 @@
     monitor: 'M3 4h18v12H3zM8 20h8M12 16v4',
     zap: 'M13 2 4 14h7l-1 8 9-12h-7z',
     braces: 'M8 4H7a2 2 0 0 0-2 2v4l-2 2 2 2v4a2 2 0 0 0 2 2h1M16 4h1a2 2 0 0 1 2 2v4l2 2-2 2v4a2 2 0 0 1-2 2h-1',
+    chart: 'M4 4v16h16M7 15l4-4 3 3 5-6',
     arrowRight: 'M5 12h14M13 6l6 6-6 6',
     briefcase: 'M3 8h18v12H3zM9 8V5h6v3M3 13h18',
     board: 'M4 4h16v16H4zM9 8v8M14 8v4',

@@ -59,6 +59,7 @@ type Checklist struct {
 	TemplateID *int64 `json:"template_id"`
 	Position   int64  `json:"position"`
 	AssigneeID *int64 `json:"assignee_id"`
+	CreatedAt  string `json:"created_at"`
 }
 
 type ChecklistItem struct {
@@ -77,6 +78,7 @@ type ChecklistItem struct {
 	NoteColor   string     `json:"note_color"`
 	BgColor     string     `json:"bg_color"`
 	Status      string     `json:"status"`
+	CreatedAt   string     `json:"created_at"`
 }
 
 type ChecklistTemplate struct {
@@ -169,6 +171,19 @@ type ProjectTag struct {
 type ProjectWatcher struct {
 	ProjectID int64 `json:"project_id"`
 	UserID    int64 `json:"user_id"`
+}
+
+type ReportSchedule struct {
+	ID          int64  `json:"id"`
+	CreatedBy   *int64 `json:"created_by"`
+	RecipientID int64  `json:"recipient_id"`
+	Freq        string `json:"freq"`
+	Weekday     int64  `json:"weekday"`
+	Day         int64  `json:"day"`
+	Filters     string `json:"filters"`
+	Lang        string `json:"lang"`
+	LastSentOn  string `json:"last_sent_on"`
+	CreatedAt   string `json:"created_at"`
 }
 
 type Session struct {

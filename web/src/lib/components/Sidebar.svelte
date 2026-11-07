@@ -110,7 +110,8 @@
     { href: '/', icon: 'home' as const, label: t('nav.overview'), on: path === '/' },
     { href: '/tasks', icon: 'tasks' as const, label: t('nav.myTasks'), on: path === '/tasks', badge: sidebar.myTasks },
     { href: '/customers', icon: 'building2' as const, label: t('nav.customers'), on: /^\/(customers|projects|checklists)(\/|$)/.test(path) },
-    { href: '/templates', icon: 'template' as const, label: t('nav.templates'), on: path.startsWith('/templates') }
+    { href: '/templates', icon: 'template' as const, label: t('nav.templates'), on: path.startsWith('/templates') },
+    { href: '/reports', icon: 'chart' as const, label: t('nav.reports'), on: path.startsWith('/reports') }
   ]);
 
   // same selection colors as view switchers and chips (app.css: sel-on / sel-off)

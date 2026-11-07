@@ -8,6 +8,32 @@ Changes until the next release are collected under **Unreleased**.
 
 ## [Unreleased]
 
+## [0.1.7] – 2026-11-07
+
+### Added
+
+- Reporting (new menu entry): four views over the customers the user may see, with filters period (7 / 30 / 90
+  days, 12 months), customer, person and label (saved views possible)
+  - The reporting counts checklists (as a whole: done when all items are checked, due at the latest due date of
+    its items) and projects – no single items
+  - Dashboard: completed / open / overdue checklists (vs. the previous period), projects done, completed vs.
+    created checklists per week (line chart with hover), projects by status, due in the next 14 days
+  - Customers: projects, progress (completed checklists), open and overdue checklists, next due date; preview
+    of the status report and "PDF" (print view, save as PDF in the browser)
+  - Workload: open checklists per person (open / due this week / overdue), done in the period, checklists
+    without a person
+  - Templates: applications, average duration, planned duration, on time, checklists that took longest,
+    automations
+  - Export: CSV of the current view; "Schedule e-mail" (admins and members): weekly or monthly report e-mail
+    via SMTP with the current filters and the recipient's access (admins choose the recipient)
+  - Checklists and items now record their creation time (migration 00028); durations and "created" figures
+    build up from this version on (checklists from templates: since they were applied)
+
+### Changed
+
+- Project color: project rows in the overview "Cards" and "List", My tasks, Customers and the customer page
+  are now tinted completely (like the board cards) instead of showing a stripe
+
 ## [0.1.6] – 2026-11-07
 
 ### Added
@@ -515,7 +541,8 @@ First version.
   JetBrains Mono; no external requests
 - Checkbox left or right, square or round; code block background light grey, dark grey or black
 
-[Unreleased]: https://github.com/seals187/projectList/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/seals187/projectList/compare/v0.1.7...HEAD
+[0.1.7]: https://github.com/seals187/projectList/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/seals187/projectList/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/seals187/projectList/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/seals187/projectList/compare/v0.1.3...v0.1.4

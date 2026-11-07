@@ -12,8 +12,8 @@ import (
 )
 
 const createItem = `-- name: CreateItem :one
-INSERT INTO checklist_items (checklist_id, kind, title, description, note_color, bg_color, status, indent, lang, position, assignee_id, due_date)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+INSERT INTO checklist_items (checklist_id, kind, title, description, note_color, bg_color, status, indent, lang, position, assignee_id, due_date, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 RETURNING id
 `
 

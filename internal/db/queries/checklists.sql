@@ -49,8 +49,8 @@ WHERE c.id = ?;
 SELECT CAST(COALESCE(MAX(position), -1) + 1 AS INTEGER) FROM checklists WHERE project_id = ?;
 
 -- name: CreateChecklist :one
-INSERT INTO checklists (project_id, title, template_id, position)
-VALUES (?, ?, ?, ?)
+INSERT INTO checklists (project_id, title, template_id, position, created_at)
+VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 RETURNING *;
 
 -- name: UpdateChecklistTitle :one

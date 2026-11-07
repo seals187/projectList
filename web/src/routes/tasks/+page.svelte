@@ -22,7 +22,7 @@
   import ProgressToggle from '$lib/components/ProgressToggle.svelte';
   import Icon from '$lib/components/Icon.svelte';
   import EntityIcon from '$lib/components/EntityIcon.svelte';
-  import { customerWide, projectColor, stripeStyle, tintStyle } from '$lib/cardColors';
+  import { customerWide, projectColor, tintStyle } from '$lib/cardColors';
   import { myColors } from '$lib/myColors.svelte';
   import CustomerMenu from '$lib/components/CustomerMenu.svelte';
   import ProjectMenu from '$lib/components/ProjectMenu.svelte';
@@ -284,7 +284,8 @@
                   <!-- project row: click expands the checklists -->
                   <div
                     class="{rowCols} cursor-pointer rounded-lg px-1 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-                    style={stripeStyle(projectColor(p.id, myColors.all))}
+                    class:card-tint={!!projectColor(p.id, myColors.all)}
+            style={tintStyle(projectColor(p.id, myColors.all))}
                     role="button"
                     tabindex="0"
                     aria-expanded={pOpen}
