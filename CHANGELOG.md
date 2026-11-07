@@ -8,6 +8,14 @@ Changes until the next release are collected under **Unreleased**.
 
 ## [Unreleased]
 
+## [0.1.9] – 2026-11-07
+
+### Added
+
+- Content size per page: Overview, My tasks, Customers, Templates and Reporting have "− 100 % +" right of
+  "Display" (70–110 % in 5 % steps, a click on the value resets to 100 %); per page and user, synced across
+  devices; the page header keeps its size
+
 ## [0.1.8] – 2026-11-07
 
 ### Changed
@@ -550,7 +558,8 @@ First version.
   JetBrains Mono; no external requests
 - Checkbox left or right, square or round; code block background light grey, dark grey or black
 
-[Unreleased]: https://github.com/seals187/projectList/compare/v0.1.8...HEAD
+[Unreleased]: https://github.com/seals187/projectList/compare/v0.1.9...HEAD
+[0.1.9]: https://github.com/seals187/projectList/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/seals187/projectList/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/seals187/projectList/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/seals187/projectList/compare/v0.1.5...v0.1.6

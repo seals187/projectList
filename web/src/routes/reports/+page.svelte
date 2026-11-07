@@ -12,6 +12,7 @@
   import { download, percent, PERIODS, reportQuery, toCsv, type Report, type ReportFilter } from '$lib/reporting';
   import type { TemplateCategory } from '$lib/types';
   import PageHeader, { type HeaderFilter } from '$lib/components/PageHeader.svelte';
+  import ZoomArea from '$lib/components/ZoomArea.svelte';
   import type { FilterId } from '$lib/components/FilterDropdown.svelte';
   import ReportDashboard from '$lib/components/ReportDashboard.svelte';
   import ReportCustomers from '$lib/components/ReportCustomers.svelte';
@@ -128,6 +129,7 @@
 <svelte:head><title>{t('nav.reports')} · ProjectList</title></svelte:head>
 
 <PageHeader
+  zoomPage="reports"
   icon="chart"
   title={t('nav.reports')}
   subtitle={t('rep.subtitle')}
@@ -148,6 +150,7 @@
   {filters}
   onSaveView={(name) => addPageView(name, 'reports', page.url.search.slice(1))} />
 
+<ZoomArea page="reports">
 {#if !report}
   <p class="text-sm text-zinc-400">{t('common.loading')}</p>
 {:else if view === 'dashboard'}
@@ -159,6 +162,7 @@
 {:else}
   <ReportTemplates {report} {categories} />
 {/if}
+</ZoomArea>
 
 {#if scheduling}
   <ScheduleDialog {filter} onclose={() => (scheduling = false)} />

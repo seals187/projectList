@@ -59,7 +59,8 @@ export const UI_PREF_KEYS = [
   'checkShape',
   'gridLines',
   'codeBg',
-  'overviewDefault'
+  'overviewDefault',
+  'pageZoom'
 ] as const;
 export type UiPrefKey = (typeof UI_PREF_KEYS)[number];
 

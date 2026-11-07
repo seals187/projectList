@@ -27,6 +27,7 @@
   import type { CustomerListItem } from '$lib/types';
   import type { FilterId } from '$lib/components/FilterDropdown.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
+  import ZoomArea from '$lib/components/ZoomArea.svelte';
   import NewCustomerDialog from '$lib/components/NewCustomerDialog.svelte';
   import ProgressToggle from '$lib/components/ProgressToggle.svelte';
   import Icon from '$lib/components/Icon.svelte';
@@ -107,6 +108,7 @@
 <svelte:head><title>{t('nav.customers')} · ProjectList</title></svelte:head>
 
 <PageHeader
+  zoomPage="customers"
   icon="building2"
   title={t('nav.customers')}
   subtitle="{t('overview.nCustomers', { n: totals.customers })} · {t('overview.nProjects', { n: totals.projects })} · {t('customers.nOpen', { n: totals.open })}"
@@ -196,6 +198,7 @@
   </div>
 {/snippet}
 
+<ZoomArea page="customers">
 {#if rows.length === 0}
   <p class="py-4 text-sm text-zinc-400">{isAdmin() ? t('overview.noCustomersAdmin') : t('overview.noCustomers')}</p>
 {:else if visible.length === 0}
@@ -335,6 +338,7 @@
     </div>
   </div>
 {/if}
+</ZoomArea>
 
 {#if adding}
   <NewCustomerDialog onclose={() => (adding = false)} />

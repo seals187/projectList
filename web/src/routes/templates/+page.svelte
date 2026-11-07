@@ -21,6 +21,7 @@
   import { triggerDetail, triggerTitle } from '$lib/automationText';
   import type { AutomationRule, AutomationRun, Template, TemplateCategory, TemplateSummary, TemplateVariable } from '$lib/types';
   import PageHeader, { type QuickFilter } from '$lib/components/PageHeader.svelte';
+  import ZoomArea from '$lib/components/ZoomArea.svelte';
   import Icon from '$lib/components/Icon.svelte';
   import TemplateMenu from '$lib/components/TemplateMenu.svelte';
   import ApplyTemplateDialog from '$lib/components/ApplyTemplateDialog.svelte';
@@ -201,6 +202,7 @@
 <svelte:head><title>{t('nav.templates')} · ProjectList</title></svelte:head>
 
 <PageHeader
+  zoomPage="templates"
   icon="fileText"
   title={t('nav.templates')}
   subtitle={t('templates.subtitle')}
@@ -228,6 +230,7 @@
   displayOptions={view === 'library' ? Object.keys(DISPLAY).map((k) => ({ key: k, label: displayLabel(k), value: disp[k] })) : []}
   onDisplayChange={(k, v) => setDisplay('templates.library', k, v)} />
 
+<ZoomArea page="templates">
 {#if view === 'library'}
   <div class="surface overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800" data-testid="template-library">
     <div class="{cols} border-b border-zinc-200 px-4 py-2.5 text-[11px] font-semibold tracking-wider text-zinc-400 uppercase dark:border-zinc-800">
@@ -309,6 +312,7 @@
 {:else}
   <VariablesView variables={shownVariables} {admin} onedit={(v) => (varEdit = { variable: v })} />
 {/if}
+</ZoomArea>
 
 {#if menu}
   {@const m = menu}

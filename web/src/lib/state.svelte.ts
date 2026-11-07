@@ -1,6 +1,7 @@
 import type { Favorite, FavoriteGroup, ProjectStatus, SidebarCustomer, Tag, User } from './types';
 import { applyFonts, DEFAULT_FONT, FONT_IDS, type FontId, type HeadingFont } from './fonts';
 import { CUSTOMER_SORTS, type CustomerSort } from './customers';
+import { parsePageZoom, stepPageZoom, withPageZoom, type PageZoom, type ZoomPage } from './pageZoom';
 import { applyAppearance, parseTheme, readAppearance, UI_PREF_KEYS, type Accent, type Density, type DimContent, type ThemeChoice, type UiPrefKey } from './appearance';
 
 // Global state (Svelte 5 runes).
@@ -244,6 +245,7 @@ interface ViewPrefs {
   dimContent: DimContent; // darken the main window (veil over all pages)
   density: Density; // row spacing of lists and checklists
   scale: number; // font size of the whole app (1 = 100 %)
+  pageZoom: PageZoom; // content size of the main pages (70–110 %, see pageZoom.ts)
 }
 
 // width range of the checklist note column (px, before zoom)
@@ -251,7 +253,7 @@ export const NOTE_MIN = 160;
 export const NOTE_MAX = 900;
 
 const PREFS_KEY = 'view-prefs';
-const defaultPrefs: ViewPrefs = { checkPos: 'right', checkShape: 'square', gridLines: true, zoom: 1, codeBg: 'dark', overview: 'cards', overviewDefault: 'last', customersView: 'list', customersSort: 'activity', font: DEFAULT_FONT, headingFont: 'serif', noteWidth: 0, ...readAppearance({}) };
+const defaultPrefs: ViewPrefs = { checkPos: 'right', checkShape: 'square', gridLines: true, zoom: 1, codeBg: 'dark', overview: 'cards', overviewDefault: 'last', customersView: 'list', customersSort: 'activity', font: DEFAULT_FONT, headingFont: 'serif', noteWidth: 0, pageZoom: {}, ...readAppearance({}) };
 
 function readPrefs(): ViewPrefs {
   try {
@@ -277,6 +279,7 @@ function readPrefsFrom(p: any): ViewPrefs {
       font: FONT_IDS.includes(p.font) ? p.font : DEFAULT_FONT,
       headingFont: p.headingFont === 'sans' ? 'sans' : 'serif',
       noteWidth: Number.isFinite(p.noteWidth) && p.noteWidth >= NOTE_MIN && p.noteWidth <= NOTE_MAX ? Math.round(p.noteWidth) : 0,
+      pageZoom: parsePageZoom(p.pageZoom),
       ...readAppearance(p)
   };
 }
@@ -314,6 +317,11 @@ export function stepZoom(dir: -1 | 0 | 1) {
   const i = ZOOM_STEPS.indexOf(prefs.zoom);
   const next = dir === 0 ? 1 : ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, Math.max(0, (i < 0 ? ZOOM_STEPS.indexOf(1) : i) + dir))];
   setPref('zoom', next);
+}
+
+/** Content size of a main page one step smaller / bigger (dir ±1), 0 = 100 %. */
+export function stepPageZoomOf(page: ZoomPage, dir: -1 | 0 | 1) {
+  setPref('pageZoom', withPageZoom(prefs.pageZoom, page, stepPageZoom(prefs.pageZoom[page] ?? 1, dir)));
 }
 
 /** Classes for the checkbox shape. */

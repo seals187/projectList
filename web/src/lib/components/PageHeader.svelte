@@ -47,6 +47,7 @@
     collapseDisabled?: boolean;
     displayOptions?: { key: string; label: string; value: boolean }[]; // "Display" popover (per page)
     onDisplayChange?: (key: string, value: boolean) => void;
+    zoomPage?: import('$lib/pageZoom').ZoomPage; // "− 100 % +": content size of this page
   }
 
   /** "Freitag, 06.11.2026": weekday in the UI language, date always dd.mm.yyyy. */
@@ -77,6 +78,8 @@
   import FilterOptions from './FilterOptions.svelte';
   import SelectDropdown from './SelectDropdown.svelte';
   import ContextMenu from './ContextMenu.svelte';
+  import { prefs, stepPageZoomOf } from '$lib/state.svelte';
+  import { PAGE_ZOOM_STEPS } from '$lib/pageZoom';
 
   let {
     icon,
@@ -103,7 +106,8 @@
     onToggleCollapse,
     collapseDisabled = false,
     displayOptions = [],
-    onDisplayChange
+    onDisplayChange,
+    zoomPage
   }: HeaderProps = $props();
 
   // ---- fitting (no wrapping) -------------------------------------------------------
@@ -287,6 +291,15 @@
         <IconCmp name="columns" size={14} class={displayAt ? 'text-accent-600 dark:text-accent-300' : 'ph-muted-icon'} />
         {t('ph.display')}
       </button>
+      {#if zoomPage}
+        {@const z = prefs.pageZoom[zoomPage] ?? 1}
+        <!-- content size of this page (70–110 %); a click on the value resets to 100 % -->
+        <div class="ph-ctl gap-0! px-0.5!" role="group" aria-label={t('ph.zoom')} data-testid="page-zoom">
+          <button type="button" class="rounded px-1.5 py-1 hover:bg-zinc-100 disabled:opacity-35 dark:hover:bg-zinc-700" onclick={() => stepPageZoomOf(zoomPage, -1)} disabled={z <= PAGE_ZOOM_STEPS[0]} title={t('ph.zoomOut')} aria-label={t('ph.zoomOut')}><IconCmp name="minus" size={13} /></button>
+          <button type="button" class="min-w-[3.25rem] rounded px-1 py-1 text-center tabular-nums hover:bg-zinc-100 dark:hover:bg-zinc-700" onclick={() => stepPageZoomOf(zoomPage, 0)} title={t('ph.zoomReset')} aria-label={t('ph.zoomReset')}>{Math.round(z * 100)} %</button>
+          <button type="button" class="rounded px-1.5 py-1 hover:bg-zinc-100 disabled:opacity-35 dark:hover:bg-zinc-700" onclick={() => stepPageZoomOf(zoomPage, 1)} disabled={z >= PAGE_ZOOM_STEPS[PAGE_ZOOM_STEPS.length - 1]} title={t('ph.zoomIn')} aria-label={t('ph.zoomIn')}><IconCmp name="plus" size={13} /></button>
+        </div>
+      {/if}
     </div>
   </div>
 </section>

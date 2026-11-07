@@ -32,6 +32,7 @@
   import OverviewCalendar from '$lib/components/OverviewCalendar.svelte';
   import OverviewTimeline from '$lib/components/OverviewTimeline.svelte';
   import PageHeader, { headerDate, type HeaderFilter } from '$lib/components/PageHeader.svelte';
+  import ZoomArea from '$lib/components/ZoomArea.svelte';
   import type { FilterId, FilterItem } from '$lib/components/FilterDropdown.svelte';
 
   const today = todayISO();
@@ -202,6 +203,7 @@
 <svelte:head><title>{t('nav.overview')} · ProjectList</title></svelte:head>
 
 <PageHeader
+  zoomPage="overview"
   icon="home"
   title={t('overview.hello', { name: session.user?.name ?? '' })}
   views={OVERVIEW_VIEWS.map((v) => ({ key: v, label: t(`overview.view.${v}`), icon: VIEW_ICON[v] }))}
@@ -229,6 +231,7 @@
   {/snippet}
 </PageHeader>
 
+<ZoomArea page="overview">
 {#if sidebar.customers.length === 0}
   <p class="py-2 text-sm text-zinc-400">
     {#if isAdmin()}<a href="/customers" class="text-accent-600 hover:underline">{t('overview.noCustomersAdmin')}</a>{:else}{t('overview.noCustomers')}{/if}
@@ -249,3 +252,4 @@
 {:else}
   <OverviewCards groups={shown} {today} {canCreate} oncreate={(id) => create(id)} display={disp} />
 {/if}
+</ZoomArea>

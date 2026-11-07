@@ -17,6 +17,7 @@
   import { displayLabel, displayOf, setDisplay } from '$lib/display.svelte';
   import type { OverviewExtra, SidebarChecklist, SidebarCustomer, SidebarProject, Task } from '$lib/types';
   import PageHeader, { headerDate, type HeaderFilter } from '$lib/components/PageHeader.svelte';
+  import ZoomArea from '$lib/components/ZoomArea.svelte';
   import type { FilterId } from '$lib/components/FilterDropdown.svelte';
   import TaskList from '$lib/components/TaskList.svelte';
   import ProgressToggle from '$lib/components/ProgressToggle.svelte';
@@ -218,6 +219,7 @@
 
 <div>
   <PageHeader
+    zoomPage="tasks"
     icon="listChecks"
     title={t('nav.myTasks')}
     subtitle="{headerDate(new Date(), locale())} · {t('tasks.assigned', { n: assigned })}"
@@ -243,6 +245,7 @@
     displayOptions={Object.keys(DISPLAY).map((k) => ({ key: k, label: displayLabel(k), value: disp[k] }))}
     onDisplayChange={(k, v) => setDisplay(`tasks.${tab}`, k, v)} />
 
+  <ZoomArea page="tasks">
   {#if tab === 'customers'}
     <div class="no-glass space-y-4 rounded-2xl bg-zinc-100/70 p-3 in-[.has-bg]:bg-transparent in-[.has-bg]:p-0 dark:bg-zinc-900/50">
       {#each groups as g (g.customer.id)}
@@ -363,6 +366,7 @@
       {/if}
     </div>
   {/if}
+  </ZoomArea>
 </div>
 
 {#if menu}
