@@ -49,9 +49,16 @@ WHERE c.id = ?;
 SELECT CAST(COALESCE(MAX(position), -1) + 1 AS INTEGER) FROM checklists WHERE project_id = ?;
 
 -- name: CreateChecklist :one
-INSERT INTO checklists (project_id, title, template_id, position, created_at)
-VALUES (?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+-- new checklists belong to the person responsible for the project (if any)
+INSERT INTO checklists (project_id, title, template_id, position, assignee_id, created_at)
+VALUES (sqlc.arg(project_id), sqlc.arg(title), sqlc.arg(template_id), sqlc.arg(position),
+        (SELECT p.owner_id FROM projects p WHERE p.id = sqlc.arg(project_id)), strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 RETURNING *;
+
+-- name: AssignChecklistsToOwner :exec
+-- new person responsible: takes over the checklists without a person and those of the previous one
+UPDATE checklists SET assignee_id = sqlc.narg(new_owner)
+WHERE project_id = sqlc.arg(project_id) AND (assignee_id IS NULL OR assignee_id = sqlc.narg(old_owner));
 
 -- name: UpdateChecklistTitle :one
 UPDATE checklists SET title = ? WHERE id = ? RETURNING *;

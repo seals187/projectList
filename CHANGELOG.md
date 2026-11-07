@@ -8,6 +8,15 @@ Changes until the next release are collected under **Unreleased**.
 
 ## [Unreleased]
 
+## [0.1.8] – 2026-11-07
+
+### Changed
+
+- The person responsible for a project gets its checklists: new checklists (also from templates, automations,
+  duplicates) are assigned to them; when the person responsible is set or changes, the checklists without a
+  person and those of the previous person responsible go to the new one (others stay as they are). Migration
+  00029 assigns the existing checklists without a person once
+
 ## [0.1.7] – 2026-11-07
 
 ### Added
@@ -541,7 +550,8 @@ First version.
   JetBrains Mono; no external requests
 - Checkbox left or right, square or round; code block background light grey, dark grey or black
 
-[Unreleased]: https://github.com/seals187/projectList/compare/v0.1.7...HEAD
+[Unreleased]: https://github.com/seals187/projectList/compare/v0.1.8...HEAD
+[0.1.8]: https://github.com/seals187/projectList/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/seals187/projectList/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/seals187/projectList/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/seals187/projectList/compare/v0.1.4...v0.1.5

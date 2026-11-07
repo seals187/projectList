@@ -201,6 +201,12 @@ func (s *Server) updateProject(w http.ResponseWriter, r *http.Request, u authz.U
 	if err != nil {
 		return err
 	}
+	if !samePtr(p.OwnerID, prev.OwnerID) {
+		// the new person responsible takes over the checklists without a person and those of the previous one
+		if err := s.q.AssignChecklistsToOwner(r.Context(), sqlc.AssignChecklistsToOwnerParams{NewOwner: p.OwnerID, ProjectID: p.ID, OldOwner: prev.OwnerID}); err != nil {
+			return err
+		}
+	}
 	s.logProjectChanges(r.Context(), u, prev, p)
 	if p.Status != prev.Status {
 		s.fire(r.Context(), automation.ProjectStatus, p, nil)

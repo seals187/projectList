@@ -84,8 +84,8 @@
     const known = new Set(d.checklists.map((c) => c.id));
     if (sp.checklists.some((c) => !known.has(c.id))) untrack(() => reloadChecklists());
   });
-  async function reloadChecklists() {
-    if (reloading) return;
+  async function reloadChecklists(force = false) {
+    if (reloading && !force) return;
     reloading = true;
     try {
       const fresh = await api.get<ProjectDetail>(`/projects/${id}`);
@@ -111,7 +111,9 @@
     try {
       data.project = await api.patch<Project>(`/projects/${id}`, body);
       refreshSidebar(0);
-      loadActivity();
+      // a new person responsible takes over checklists (see updateProject): show their assignees
+      if ('owner_id' in body) reloadChecklists(true);
+      else loadActivity();
     } catch (e) {
       toast(errorText(e));
     }
