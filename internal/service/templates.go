@@ -5,6 +5,8 @@ package service
 import (
 	"context"
 	"database/sql"
+	"html"
+	"time"
 
 	"github.com/seals187/projectList/internal/db"
 	"github.com/seals187/projectList/internal/db/sqlc"
@@ -13,8 +15,29 @@ import (
 // ApplyTemplate creates a new checklist in the project as a SNAPSHOT of the
 // template: entries and headings are copied; later template changes
 // do not affect the checklist. template_id is only an origin
-// reference. If title is empty, the template name is used.
-func ApplyTemplate(ctx context.Context, d *sql.DB, projectID, templateID int64, title string) (sqlc.Checklist, error) {
+// reference. If title is empty, the template name is used. With Values, the
+// variables ({{key}}) in title, items and descriptions are replaced. Every
+// application is logged in template_uses ("used" in the library).
+func ApplyTemplate(ctx context.Context, d *sql.DB, projectID, templateID int64, title string, opts ...ApplyOptions) (sqlc.Checklist, error) {
+	var o ApplyOptions
+	if len(opts) > 0 {
+		o = opts[0]
+	}
+	if o.Now.IsZero() {
+		o.Now = time.Now()
+	}
+	sub := func(s string) string { return Substitute(s, o.Values) }
+	// item texts are rich text (HTML), except code blocks
+	escaped := make(map[string]string, len(o.Values))
+	for k, v := range o.Values {
+		escaped[k] = html.EscapeString(v)
+	}
+	subItem := func(kind, s string) string {
+		if kind == "code" {
+			return sub(s)
+		}
+		return Substitute(s, escaped)
+	}
 	var cl sqlc.Checklist
 	err := db.WithTx(ctx, d, func(q *sqlc.Queries) error {
 		tmpl, err := q.GetTemplate(ctx, templateID)
@@ -28,6 +51,7 @@ func ApplyTemplate(ctx context.Context, d *sql.DB, projectID, templateID int64, 
 		if title == "" {
 			title = tmpl.Name
 		}
+		title = sub(title)
 		pos, err := q.NextChecklistPosition(ctx, projectID)
 		if err != nil {
 			return err
@@ -40,13 +64,16 @@ func ApplyTemplate(ctx context.Context, d *sql.DB, projectID, templateID int64, 
 		}
 		for i, it := range items {
 			if _, err := q.CreateItem(ctx, sqlc.CreateItemParams{
-				ChecklistID: cl.ID, Kind: it.Kind, Title: it.Title, Description: it.Description,
+				ChecklistID: cl.ID, Kind: it.Kind, Title: subItem(it.Kind, it.Title), Description: subItem("", it.Description),
 				NoteColor: it.NoteColor, BgColor: it.BgColor, Indent: it.Indent, Lang: it.Lang, Position: int64(i),
 			}); err != nil {
 				return err
 			}
 		}
-		return nil
+		pid, cid := projectID, cl.ID
+		return q.AddTemplateUse(ctx, sqlc.AddTemplateUseParams{
+			TemplateID: templateID, ProjectID: &pid, ChecklistID: &cid, RuleID: o.RuleID, UsedAt: o.Now.UTC().Format(time.RFC3339),
+		})
 	})
 	return cl, err
 }
@@ -75,4 +102,11 @@ func SaveChecklistAsTemplate(ctx context.Context, d *sql.DB, checklistID int64, 
 		return nil
 	})
 	return tmpl, err
+}
+
+// ApplyOptions of ApplyTemplate.
+type ApplyOptions struct {
+	Values map[string]string // variable values (see ResolveValues); nil = no replacement
+	RuleID *int64            // automation rule that applied the template
+	Now    time.Time         // zero = time.Now
 }

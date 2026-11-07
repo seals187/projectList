@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/seals187/projectList/internal/authz"
+	"github.com/seals187/projectList/internal/automation"
 	"github.com/seals187/projectList/internal/db/sqlc"
 )
 
@@ -54,7 +55,7 @@ func (s *Server) createProject(w http.ResponseWriter, r *http.Request, u authz.U
 		return err
 	}
 	v := validator{}
-	p := sqlc.CreateProjectParams{CustomerID: customerID, Status: "active"}
+	p := sqlc.CreateProjectParams{CustomerID: customerID, Status: "planning"} // new projects always start in planning
 	p.Name = v.text("name", deref(req.Name), 1, 200)
 	p.Description = v.text("description", deref(req.Description), 0, 10000)
 	if req.Status != nil {
@@ -69,6 +70,7 @@ func (s *Server) createProject(w http.ResponseWriter, r *http.Request, u authz.U
 		return err
 	}
 	s.logActivity(r.Context(), pr.ID, u.ID, actProjectCreated, "", "")
+	s.fire(r.Context(), automation.ProjectCreated, pr, nil)
 	writeJSON(w, http.StatusCreated, pr)
 	return nil
 }
@@ -200,6 +202,9 @@ func (s *Server) updateProject(w http.ResponseWriter, r *http.Request, u authz.U
 		return err
 	}
 	s.logProjectChanges(r.Context(), u, prev, p)
+	if p.Status != prev.Status {
+		s.fire(r.Context(), automation.ProjectStatus, p, nil)
+	}
 	writeJSON(w, http.StatusOK, p)
 	return nil
 }

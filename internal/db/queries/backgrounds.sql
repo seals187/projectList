@@ -26,3 +26,7 @@ UPDATE customers SET background = ? WHERE id = ?;
 
 -- name: SetProjectBackground :exec
 UPDATE projects SET background = ? WHERE id = ?;
+
+-- name: SetCustomerColor :exec
+-- Shared customer color (overview cards; with color_everywhere in all views).
+UPDATE customers SET color = ?, color_everywhere = ? WHERE id = ?;

@@ -106,8 +106,9 @@ func (s *Server) setBoardHidden(w http.ResponseWriter, r *http.Request, u authz.
 // as opaque JSON: the overview filters ("overview") and the saved views
 // ("saved_views"), the own background ("background") and the display options of
 // the page headers ("display", per page and view) and the appearance settings
-// ("ui": accent color, density, …; synced across devices). Only these keys are accepted.
-var clientPrefKeys = []string{"overview", "saved_views", "background", "display", "ui", "views_layout"}
+// ("ui": accent color, density, …; synced across devices) and the personal card
+// colors of the overview ("card_colors"). Only these keys are accepted.
+var clientPrefKeys = []string{"overview", "saved_views", "background", "display", "ui", "views_layout", "card_colors"}
 
 const maxClientPref = 32 << 10
 

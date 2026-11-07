@@ -31,6 +31,10 @@
   import ProgressToggle from '$lib/components/ProgressToggle.svelte';
   import Icon from '$lib/components/Icon.svelte';
   import EntityIcon from '$lib/components/EntityIcon.svelte';
+  import { customerWide, tintStyle } from '$lib/cardColors';
+  import type { SidebarCustomer, SidebarProject } from '$lib/types';
+  import CustomerMenu from '$lib/components/CustomerMenu.svelte';
+  import ProjectMenu from '$lib/components/ProjectMenu.svelte';
 
   const today = todayISO();
   // view and sorting start from the former per-browser settings
@@ -53,6 +57,14 @@
   let infos = $state<CustomerListItem[]>([]);
   let adding = $state(false);
   let menuFor = $state<number | null>(null);
+  // right click: customer menu (cards, list rows) or project menu (expanded projects)
+  let ctx = $state<{ customer: SidebarCustomer; project?: SidebarProject; x: number; y: number } | null>(null);
+  function openCtx(e: MouseEvent, customer: SidebarCustomer, project?: SidebarProject) {
+    e.preventDefault();
+    e.stopPropagation();
+    menuFor = null;
+    ctx = { customer, project, x: e.clientX, y: e.clientY };
+  }
 
   $effect(() => {
     refreshSidebar(0);
@@ -191,7 +203,8 @@
   <!-- Cards -->
   <div class="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-4">
     {#each visible as r (r.customer.id)}
-      <a href="/customers/{r.customer.id}" class="card block p-4 transition-shadow hover:shadow-md">
+      {@const tint = customerWide(r.customer)}
+      <a href="/customers/{r.customer.id}" oncontextmenu={(e) => openCtx(e, r.customer)} class="card block p-4 transition-shadow hover:shadow-md {tint ? 'card-tint' : ''}" style={tintStyle(tint)}>
         <div class="flex items-start gap-3">
           <EntityIcon type="customer" size="lg" />
           <div class="min-w-0 flex-1">
@@ -235,18 +248,22 @@
 
       {#each visible as r (r.customer.id)}
         {@const open = expandedSet.has(r.customer.id)}
+        {@const tint = customerWide(r.customer)}
         <div class="border-b border-zinc-100 last:border-b-0 dark:border-zinc-800/70 {open ? 'bg-zinc-50/80 dark:bg-zinc-900/50' : ''}">
-          <div style:grid-template-columns={tpl} class="{cols} px-4 py-3 text-sm {open ? '' : 'hover:bg-zinc-50 dark:hover:bg-zinc-900/40'}">
+          <div role="group" aria-label={r.customer.name} oncontextmenu={(e) => openCtx(e, r.customer)} data-testid="customers-row" style:grid-template-columns={tpl} class="{cols} px-4 py-3 text-sm {open ? '' : 'hover:bg-zinc-50 dark:hover:bg-zinc-900/40'} {tint ? 'card-tint' : ''}" style={tintStyle(tint)}>
             <div class="flex min-w-0 items-center gap-2.5">
+              <!-- chevron and customer icon expand the projects; name and location open the customer -->
               <button
                 type="button"
-                class="rounded p-0.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
+                class="flex shrink-0 items-center gap-2.5 rounded p-0.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200"
                 onclick={() => toggle(r.customer.id)}
                 aria-expanded={open}
-                aria-label="{t(open ? 'overview.hideProjects' : 'overview.showProjects')}: {r.customer.name}">
+                aria-label="{t(open ? 'overview.hideProjects' : 'overview.showProjects')}: {r.customer.name}"
+                title={t(open ? 'overview.hideProjects' : 'overview.showProjects')}
+                data-testid="customer-expand">
                 <Icon name="chevron" size={14} class="transition-transform {open ? 'rotate-90' : ''}" />
+                <EntityIcon type="customer" size="lg" />
               </button>
-              <EntityIcon type="customer" size="lg" />
               <a href="/customers/{r.customer.id}" class="min-w-0">
                 <span class="block truncate font-semibold hover:underline">{r.customer.name}</span>
                 <span class="block truncate text-xs text-zinc-500">{r.info?.location || ''}</span>
@@ -275,7 +292,7 @@
           {#if open}
             <div class="pb-2">
               {#each r.projects as p (p.id)}
-                <a href="/projects/{p.id}" style:grid-template-columns={tpl} class="{cols} px-4 py-1.5 text-sm hover:bg-zinc-100/70 dark:hover:bg-zinc-800/50">
+                <a href="/projects/{p.id}" oncontextmenu={(e) => openCtx(e, r.customer, p)} data-testid="customers-project-row" style:grid-template-columns={tpl} class="{cols} px-4 py-1.5 text-sm hover:bg-zinc-100/70 dark:hover:bg-zinc-800/50">
                   <span class="flex min-w-0 items-center gap-2 pl-[3.25rem]">
                     <EntityIcon type="project" size="xs" />
                     <span class="truncate font-medium {p.include_in_customer_progress ? '' : 'text-zinc-400 dark:text-zinc-500'}">{p.name}</span>
@@ -319,4 +336,13 @@
 
 {#if adding}
   <NewCustomerDialog onclose={() => (adding = false)} />
+{/if}
+
+{#if ctx}
+  {@const m = ctx}
+  {#if m.project}
+    <ProjectMenu project={m.project} customer={m.customer} x={m.x} y={m.y} onclose={() => (ctx = null)} />
+  {:else}
+    <CustomerMenu customer={m.customer} x={m.x} y={m.y} canCreate={canWrite()} onclose={() => (ctx = null)} oncreate={() => openNewProject(m.customer.id)} />
+  {/if}
 {/if}

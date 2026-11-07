@@ -9,7 +9,7 @@ import (
 )
 
 // Templates are global: all logged-in users may read them,
-// admins and members may edit them.
+// admins and members may edit them (and put them into a category).
 
 func (s *Server) listTemplates(w http.ResponseWriter, r *http.Request, _ authz.User) error {
 	ts, err := s.q.ListTemplates(r.Context())
@@ -131,8 +131,9 @@ func (s *Server) updateTemplate(w http.ResponseWriter, r *http.Request, _ authz.
 		return err
 	}
 	var req struct {
-		Name        *string `json:"name"`
-		Description *string `json:"description"`
+		Name        *string    `json:"name"`
+		Description *string    `json:"description"`
+		CategoryID  Opt[int64] `json:"category_id"`
 	}
 	if err := decode(w, r, &req); err != nil {
 		return err
@@ -142,7 +143,17 @@ func (s *Server) updateTemplate(w http.ResponseWriter, r *http.Request, _ authz.
 		return err
 	}
 	v := validator{}
-	p := sqlc.UpdateTemplateParams{ID: id, Name: t.Name, Description: t.Description}
+	p := sqlc.UpdateTemplateParams{ID: id, Name: t.Name, Description: t.Description, CategoryID: t.CategoryID}
+	if req.CategoryID.Set {
+		p.CategoryID = nil
+		if !req.CategoryID.Null {
+			cid := req.CategoryID.V
+			if _, err := s.q.GetTemplateCategory(r.Context(), cid); err != nil {
+				v["category_id"] = "invalid_value"
+			}
+			p.CategoryID = &cid
+		}
+	}
 	if req.Name != nil {
 		p.Name = v.text("name", *req.Name, 1, 200)
 	}

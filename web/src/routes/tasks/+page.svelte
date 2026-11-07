@@ -7,7 +7,7 @@
   //  Header (PageHeader): search, filters customer / due date, chips open / today / done,
   //  sorting, expand/collapse; state per user in localStorage and in the URL.
   import { api, errorText } from '$lib/api';
-  import { refreshSidebar, session, sidebar, toast } from '$lib/state.svelte';
+  import { canWrite, openNewProject, refreshSidebar, session, sidebar, toast } from '$lib/state.svelte';
   import { locale, t, todayISO, withoutText } from '$lib/i18n.svelte';
   import { barCls, customerLabel, customerProgress, daysUntil, statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
   import { pct } from '$lib/overview';
@@ -22,6 +22,10 @@
   import ProgressToggle from '$lib/components/ProgressToggle.svelte';
   import Icon from '$lib/components/Icon.svelte';
   import EntityIcon from '$lib/components/EntityIcon.svelte';
+  import { customerWide, tintStyle } from '$lib/cardColors';
+  import CustomerMenu from '$lib/components/CustomerMenu.svelte';
+  import ProjectMenu from '$lib/components/ProjectMenu.svelte';
+  import ChecklistMenu from '$lib/components/ChecklistMenu.svelte';
   import { page } from '$app/state';
 
   type Tab = 'customers' | 'personal';
@@ -193,6 +197,18 @@
     return { text: shortDate(iso), cls: 'text-zinc-500' };
   }
 
+  // ---- Context menus (customer, project, checklist) ------------------------------------
+  type Menu =
+    | { t: 'customer'; customer: SidebarCustomer }
+    | { t: 'project'; customer: SidebarCustomer; project: SidebarProject }
+    | { t: 'checklist'; project: SidebarProject; checklist: SidebarChecklist };
+  let menu = $state<(Menu & { x: number; y: number }) | null>(null);
+  function openMenu(e: MouseEvent, m: Menu) {
+    e.preventDefault();
+    e.stopPropagation();
+    menu = { ...m, x: e.clientX, y: e.clientY };
+  }
+
   // Columns of a project/checklist row: arrow | name | progress | due | toggle | link
   const rowCols = 'grid grid-cols-[1.5rem_minmax(0,1fr)_11rem_4rem_2rem_1.25rem] items-center gap-x-3';
 </script>
@@ -231,8 +247,9 @@
       {#each groups as g (g.customer.id)}
         {@const cust = customerProgress(g.customer.projects)}
         {@const open = !closedSet.has(g.customer.id)}
-        <section class="rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
-          <header class="flex items-center gap-3">
+        {@const tint = customerWide(g.customer)}
+        <section class="rounded-xl border border-zinc-200 bg-white px-4 py-3 shadow-xs dark:border-zinc-800 dark:bg-zinc-900 {tint ? 'card-tint' : ''}" style={tintStyle(tint)}>
+          <header class="flex items-center gap-3" role="group" aria-label={g.customer.name} oncontextmenu={(e) => openMenu(e, { t: 'customer', customer: g.customer })}>
             <EntityIcon type="customer" size="lg" />
             <div class="min-w-0 flex-1">
               <a href="/customers/{g.customer.id}" class="block truncate text-[15px] font-semibold hover:underline">{customerLabel(g.customer.name)}</a>
@@ -271,6 +288,8 @@
                     aria-expanded={pOpen}
                     aria-label="{t('tasks.showChecklists')}: {p.name}"
                     onclick={() => toggleProject(p.id)}
+                    oncontextmenu={(e) => openMenu(e, { t: 'project', customer: g.customer, project: p })}
+                    data-testid="task-project-row"
                     onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), toggleProject(p.id))}>
                     <span class="flex size-6 items-center justify-center rounded text-zinc-400 {pOpen ? 'bg-zinc-100 dark:bg-zinc-800' : ''}">
                       <Icon name="chevron" size={13} class="transition-transform {pOpen ? 'rotate-90' : ''}" />
@@ -304,7 +323,7 @@
                       {#each p.checklists as cl (cl.id)}
                         {@const due = cl.next_due && clOpen(cl) ? dueLabel(cl.next_due) : null}
                         <li>
-                          <a href="/checklists/{cl.id}" class="{rowCols} rounded-lg px-1 py-1.5 text-sm hover:bg-accent-50/60 dark:hover:bg-accent-950/30">
+                          <a href="/checklists/{cl.id}" oncontextmenu={(e) => openMenu(e, { t: 'checklist', project: p, checklist: cl })} data-testid="task-checklist-row" class="{rowCols} rounded-lg px-1 py-1.5 text-sm hover:bg-accent-50/60 dark:hover:bg-accent-950/30">
                             <EntityIcon type="checklist" size="xs" class="justify-self-center" />
                             <span class="truncate">{cl.title}</span>
                             <span class="flex items-center gap-2.5">
@@ -342,3 +361,14 @@
     </div>
   {/if}
 </div>
+
+{#if menu}
+  {@const m = menu}
+  {#if m.t === 'customer'}
+    <CustomerMenu customer={m.customer} x={m.x} y={m.y} canCreate={canWrite()} onclose={() => (menu = null)} oncreate={() => openNewProject(m.customer.id)} />
+  {:else if m.t === 'project'}
+    <ProjectMenu project={m.project} customer={m.customer} x={m.x} y={m.y} onclose={() => (menu = null)} />
+  {:else}
+    <ChecklistMenu checklist={m.checklist} project={m.project} x={m.x} y={m.y} onclose={() => (menu = null)} />
+  {/if}
+{/if}

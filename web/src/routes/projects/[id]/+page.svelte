@@ -6,6 +6,7 @@
   import { goto } from '$app/navigation';
   import { api, errorText } from '$lib/api';
   import { canWrite, refreshSidebar, sidebar, toast } from '$lib/state.svelte';
+  import { untrack } from 'svelte';
   import { fmtDate, t, todayISO } from '$lib/i18n.svelte';
   import { reorder, sortable } from '$lib/sortable';
   import type { ActivityEntry, Checklist, ChecklistSummary, Project, ProjectDetail, ProjectStatus } from '$lib/types';
@@ -72,6 +73,31 @@
       notFound = true;
     }
   }
+  // Automations create checklists on the server (tag added, status changed, …). The
+  // sidebar is refreshed after every change; a checklist there that this page does
+  // not have yet reloads the list (and the activity).
+  let reloading = false;
+  $effect(() => {
+    const sp = sidebar.customers.flatMap((c) => c.projects).find((p) => p.id === id);
+    const d = data;
+    if (!sp || !d || d.project.id !== id) return;
+    const known = new Set(d.checklists.map((c) => c.id));
+    if (sp.checklists.some((c) => !known.has(c.id))) untrack(() => reloadChecklists());
+  });
+  async function reloadChecklists() {
+    if (reloading) return;
+    reloading = true;
+    try {
+      const fresh = await api.get<ProjectDetail>(`/projects/${id}`);
+      if (data && data.project.id === fresh.project.id) data.checklists = fresh.checklists;
+      loadActivity();
+    } catch {
+      /* stays as it is; the next change tries again */
+    } finally {
+      reloading = false;
+    }
+  }
+
   async function loadActivity() {
     try {
       activity = await api.get<ActivityEntry[]>(`/projects/${id}/activity?limit=200`);

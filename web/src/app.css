@@ -139,6 +139,16 @@ html[data-heading='sans'] { --font-serif: var(--font-sans); }
 @utility btn-danger {
   @apply btn text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40;
 }
+/* template icon in the category color (--c) */
+@utility tpl-icon {
+  @apply flex size-9 shrink-0 items-center justify-center rounded-lg;
+  color: var(--c);
+  background: color-mix(in srgb, var(--c) 12%, transparent);
+}
+/* variable reference in templates: {{name}} */
+@utility var-chip {
+  @apply inline-block rounded-md bg-accent-50 px-1.5 py-0.5 font-mono text-[12px] whitespace-nowrap text-accent-700 dark:bg-accent-950/60 dark:text-accent-300;
+}
 @utility input {
   @apply w-full rounded-md border border-zinc-300 bg-white px-2.5 py-1.5 text-sm outline-none placeholder:text-zinc-400 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 dark:border-zinc-700 dark:bg-zinc-900;
 }
@@ -462,3 +472,18 @@ main.has-bg
 main.has-bg .band .input::placeholder { color: var(--color-zinc-300); }
 main.has-bg .band select[class*='dark:bg-accent'] { background-color: rgb(165 180 252 / 0.22); }
 main.has-bg .band select[class*='dark:bg-accent']:hover { background-color: rgb(165 180 252 / 0.32); }
+
+/* ---- Card colors (overview Cards, Board, List; see lib/cardColors.ts) -------------------
+   A card with a color is lightly tinted; wins over the background-image rules above. */
+.card-tint {
+  background-color: color-mix(in srgb, var(--tint) var(--tint-l, 13%), #fff) !important;
+}
+.card-tint:not([class*="border-red"]) {
+  border-color: color-mix(in srgb, var(--tint) 40%, #e4e4e7) !important;
+}
+.dark .card-tint {
+  background-color: color-mix(in srgb, var(--tint) var(--tint-d, 20%), #18181b) !important;
+}
+.dark .card-tint:not([class*="border-red"]) {
+  border-color: color-mix(in srgb, var(--tint) 45%, #27272a) !important;
+}

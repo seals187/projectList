@@ -57,6 +57,8 @@ type sidebarCustomer struct {
 	Name       string           `json:"name"`
 	Location   string           `json:"location"`
 	Background string           `json:"background"` // "", "g<n>" or "img:<id>"
+	Color      string           `json:"color"`      // shared customer color, wins in all views with ColorAll
+	ColorAll   bool             `json:"color_everywhere"`
 	Projects   []sidebarProject `json:"projects"`
 }
 
@@ -130,7 +132,7 @@ func (s *Server) sidebar(w http.ResponseWriter, r *http.Request, u authz.User) e
 		if ps == nil {
 			ps = []sidebarProject{}
 		}
-		out[i] = sidebarCustomer{ID: c.ID, Name: c.Name, Location: c.Location, Background: c.Background, Projects: ps}
+		out[i] = sidebarCustomer{ID: c.ID, Name: c.Name, Location: c.Location, Background: c.Background, Color: c.Color, ColorAll: c.ColorEverywhere, Projects: ps}
 	}
 	favorites, err := s.q.ListFavorites(ctx, u.ID)
 	if err != nil {

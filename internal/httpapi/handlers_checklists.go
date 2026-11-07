@@ -96,8 +96,9 @@ func (s *Server) createChecklistFromTemplate(w http.ResponseWriter, r *http.Requ
 		return err
 	}
 	var req struct {
-		TemplateID int64  `json:"template_id"`
-		Title      string `json:"title"`
+		TemplateID int64             `json:"template_id"`
+		Title      string            `json:"title"`
+		Values     map[string]string `json:"values"` // custom variables ({{key}})
 	}
 	if err := decode(w, r, &req); err != nil {
 		return err
@@ -110,7 +111,14 @@ func (s *Server) createChecklistFromTemplate(w http.ResponseWriter, r *http.Requ
 	if err := v.err(); err != nil {
 		return err
 	}
-	cl, err := service.ApplyTemplate(r.Context(), s.db, projectID, req.TemplateID, title)
+	if len(req.Values) > 100 {
+		return errBadRequest("too_many_values")
+	}
+	vals, err := service.ResolveValues(r.Context(), s.q, projectID, u.Name, req.Values, s.now())
+	if err != nil {
+		return err
+	}
+	cl, err := service.ApplyTemplate(r.Context(), s.db, projectID, req.TemplateID, title, service.ApplyOptions{Values: vals, Now: s.now()})
 	if err != nil {
 		return err
 	}

@@ -155,6 +155,22 @@ func (q *Queries) SetCustomerBackground(ctx context.Context, arg SetCustomerBack
 	return err
 }
 
+const setCustomerColor = `-- name: SetCustomerColor :exec
+UPDATE customers SET color = ?, color_everywhere = ? WHERE id = ?
+`
+
+type SetCustomerColorParams struct {
+	Color           string `json:"color"`
+	ColorEverywhere bool   `json:"color_everywhere"`
+	ID              int64  `json:"id"`
+}
+
+// Shared customer color (overview cards; with color_everywhere in all views).
+func (q *Queries) SetCustomerColor(ctx context.Context, arg SetCustomerColorParams) error {
+	_, err := q.db.ExecContext(ctx, setCustomerColor, arg.Color, arg.ColorEverywhere, arg.ID)
+	return err
+}
+
 const setProjectBackground = `-- name: SetProjectBackground :exec
 UPDATE projects SET background = ? WHERE id = ?
 `

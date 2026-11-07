@@ -4,7 +4,7 @@
   import { toast } from '$lib/state.svelte';
   import { t } from '$lib/i18n.svelte';
   import { htmlToText } from '$lib/rich';
-  import type { Checklist, Template, TemplateItem, TemplateSummary } from '$lib/types';
+  import type { Checklist, Template, TemplateItem, TemplateSummary, TemplateVariable } from '$lib/types';
   import EntityIcon from './EntityIcon.svelte';
 
   let { projectId, oncreated, oncancel }: { projectId: number; oncreated: (c: Checklist) => void; oncancel: () => void } =
@@ -14,6 +14,9 @@
   let selected = $state<number | null>(null);
   let preview = $state<TemplateItem[]>([]);
   let title = $state('');
+  // custom variables of the selected template (asked, default prefilled)
+  let vars = $state<TemplateVariable[]>([]);
+  let values = $state<Record<string, string>>({});
   let busy = $state(false);
 
   $effect(() => {
@@ -27,9 +30,16 @@
     selected = tpl.id;
     title = tpl.name;
     preview = [];
+    vars = [];
     try {
-      const r = await api.get<{ template: Template; items: TemplateItem[] }>(`/templates/${tpl.id}`);
-      if (selected === tpl.id) preview = r.items;
+      const [r, v] = await Promise.all([
+        api.get<{ template: Template; items: TemplateItem[] }>(`/templates/${tpl.id}`),
+        api.get<TemplateVariable[]>(`/templates/${tpl.id}/variables`)
+      ]);
+      if (selected !== tpl.id) return;
+      preview = r.items;
+      vars = v.filter((x) => x.source !== 'system' && x.source !== 'unknown');
+      values = Object.fromEntries(vars.map((x) => [x.name, x.default_value]));
     } catch (e) {
       toast(errorText(e));
     }
@@ -39,7 +49,7 @@
     if (!selected) return;
     busy = true;
     try {
-      oncreated(await api.post<Checklist>(`/projects/${projectId}/checklists/from-template`, { template_id: selected, title }));
+      oncreated(await api.post<Checklist>(`/projects/${projectId}/checklists/from-template`, { template_id: selected, title, values }));
     } catch (e) {
       toast(errorText(e));
     } finally {
@@ -95,6 +105,12 @@
             <label class="label" for="tp-title">{t('picker.titleLabel')}</label>
             <input id="tp-title" class="input" bind:value={title} />
           </div>
+          {#each vars as v (v.name)}
+            <label class="mt-2 block">
+              <span class="mb-0.5 flex items-center gap-2 text-[13px]"><code class="var-chip">{`{{${v.name}}}`}</code><span class="truncate text-zinc-500">{v.description}</span></span>
+              <input class="input py-1! text-[13px]!" bind:value={values[v.name]} maxlength="500" />
+            </label>
+          {/each}
           <button type="button" class="btn-primary mt-3 w-full" disabled={busy} onclick={create}>{t('picker.create')}</button>
           <p class="mt-2 text-xs text-zinc-500">{t('picker.snapshot')}</p>
         {:else}

@@ -7,7 +7,8 @@
   import { api, errorText } from '$lib/api';
   import { canWrite, isAdmin, openNewProject, refreshSidebar, sidebar, toast } from '$lib/state.svelte';
   import { fmtDate, shortName, t, todayISO } from '$lib/i18n.svelte';
-  import type { Customer, CustomerPhone, Project, ProjectWithProgress } from '$lib/types';
+  import type { Customer, CustomerPhone, Project, ProjectWithProgress, SidebarProject } from '$lib/types';
+  import ProjectMenu from '$lib/components/ProjectMenu.svelte';
   import Editable from '$lib/components/Editable.svelte';
   import ConfirmButton from '$lib/components/ConfirmButton.svelte';
   import EntityIcon from '$lib/components/EntityIcon.svelte';
@@ -20,6 +21,11 @@
   import { barCls, statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
   import { dueUrgent, pct } from '$lib/overview';
   import { tagsByIds } from '$lib/tags';
+  import { cardHex } from '$lib/cardColors';
+  import { cardColorLabel } from '$lib/cardColorLabel';
+  import { setCustomerColors } from '$lib/projectActions';
+  import CardColorPicker from '$lib/components/CardColorPicker.svelte';
+  import Switch from '$lib/components/Switch.svelte';
 
   type Field = 'name' | 'notes' | 'location' | 'contact_name' | 'contact_email';
 
@@ -34,6 +40,8 @@
   const editable = $derived(canWrite());
   const today = todayISO();
   // labels and person responsible per project come with the sidebar data
+  // card colors live in the sidebar store (shared with the overview)
+  const sc = $derived(sidebar.customers.find((c) => c.id === id));
   const sidebarProjects = $derived(new Map(sidebar.customers.find((c) => c.id === id)?.projects.map((p) => [p.id, p]) ?? []));
 
   $effect(() => {
@@ -50,6 +58,22 @@
     } catch {
       customer = null;
       notFound = true;
+    }
+  }
+
+  // right click on a project row: project menu; saved changes reload the table
+  let menu = $state<{ project: SidebarProject; x: number; y: number } | null>(null);
+  function projectMenu(e: MouseEvent, projectId: number) {
+    const sp = sidebarProjects.get(projectId);
+    if (!sp || !sc) return; // not in the store (yet): browser menu
+    e.preventDefault();
+    menu = { project: sp, x: e.clientX, y: e.clientY };
+  }
+  async function reloadProjects() {
+    try {
+      projects = (await api.get<{ projects: ProjectWithProgress[] }>(`/customers/${id}`)).projects;
+    } catch (err) {
+      toast(errorText(err));
     }
   }
 
@@ -216,6 +240,30 @@
           </dd>
         </div>
       {/if}
+      <!-- card color in the overview (customer-wide, optionally in all views) -->
+      {#if sc && (editing || sc.color)}
+        <div class="min-w-0" data-testid="customer-color">
+          <dt class="text-[11px] font-semibold tracking-wider text-zinc-400 uppercase">{t('customer.color')}</dt>
+          <dd class="mt-0.5 min-w-0">
+            {#if editing}
+              <div class="-ml-1 max-w-[17rem]">
+                <CardColorPicker label={t('customer.color')} value={sc.color} onpick={(v) => setCustomerColors(sc.id, { color: v })} />
+              </div>
+              <label class="mt-1 flex items-center gap-2 text-[13px]">
+                <Switch label={t('customer.colorEverywhere')} checked={sc.color_everywhere} onchange={(v) => setCustomerColors(sc.id, { everywhere: v })} />
+                {t('customer.colorEverywhere')}
+              </label>
+              <p class="mt-1 max-w-[17rem] text-xs text-zinc-500">{t('customer.colorHint')}</p>
+            {:else}
+              <span class="flex items-center gap-2">
+                <span class="size-3.5 rounded-full" style:background-color={cardHex(sc.color)}></span>
+                {cardColorLabel(sc.color)}
+                {#if sc.color_everywhere}<span class="text-zinc-500">· {t('customer.colorEverywhere')}</span>{/if}
+              </span>
+            {/if}
+          </dd>
+        </div>
+      {/if}
     </dl>
 
     <!-- Notes (always editable inline) -->
@@ -254,6 +302,8 @@
           {@const sp = sidebarProjects.get(p.id)}
           <a
             href="/projects/{p.id}"
+            oncontextmenu={(e) => projectMenu(e, p.id)}
+            data-testid="customer-project-row"
             class="{cols} border-b border-zinc-100 px-4 py-3 text-sm hover:bg-zinc-50 dark:border-zinc-800/70 dark:hover:bg-zinc-800/40
               {p.status === 'blocked' ? 'bg-red-50/50 dark:bg-red-950/15' : ''}">
             <span class="flex min-w-0 items-center gap-2.5">
@@ -306,6 +356,10 @@
       </ConfirmButton>
     </div>
   {/if}
+{/if}
+
+{#if menu && sc}
+  <ProjectMenu project={menu.project} customer={sc} x={menu.x} y={menu.y} onchanged={reloadProjects} onclose={() => (menu = null)} />
 {/if}
 
 {#if bgOpen && customer}

@@ -56,3 +56,26 @@ export function customerAssignees(customerId: number): Promise<Assignee[]> {
   }
   return p;
 }
+
+export interface CustomerColorPatch {
+  color?: string;
+  everywhere?: boolean;
+}
+
+/** Shared customer color (only the given fields; optimistic). */
+export async function setCustomerColors(id: number, patch: CustomerColorPatch) {
+  const c = sidebar.customers.find((x) => x.id === id);
+  const prev = c ? { color: c.color, color_everywhere: c.color_everywhere } : null;
+  if (c) {
+    if (patch.color !== undefined) c.color = patch.color;
+    if (patch.everywhere !== undefined) c.color_everywhere = patch.everywhere;
+  }
+  try {
+    await api.put(`/customers/${id}/colors`, patch);
+    return true;
+  } catch (e) {
+    if (c && prev) Object.assign(c, prev);
+    toast(errorText(e));
+    return false;
+  }
+}

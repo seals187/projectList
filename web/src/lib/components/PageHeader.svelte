@@ -19,6 +19,7 @@
     label: string;
     count?: number;
     active: boolean;
+    color?: string; // colored square before the label (e.g. template categories)
   }
   export interface HeaderProps {
     icon: IconName;
@@ -28,6 +29,7 @@
     activeView?: string;
     onViewChange?: (key: string) => void;
     primaryAction?: { label: string; onClick: (e: MouseEvent) => void };
+    reservePrimary?: boolean; // views with and without primary action: keep its space (stable layout)
     searchPlaceholder: string;
     searchValue: string;
     onSearch: (q: string) => void;
@@ -64,7 +66,7 @@
   //   row 2 (white strip): search | filter icon, filters "Name: Value ▾", quick
   //          filter chips, "+ Save view" … sorting, expand/collapse toggle.
   // Nothing wraps. When space runs out: 1. filters merge into "Filters (n)" (and the
-  // search field gets narrower),
+  // search field gets narrower, chips lose their counts, "Save view" its label),
   // 2. the view switcher shows icons only, 3. the strip scrolls horizontally.
   // Sizes and colors: ph-* utilities in app.css.
   import { t } from '$lib/i18n.svelte';
@@ -82,6 +84,7 @@
     activeView,
     onViewChange,
     primaryAction,
+    reservePrimary = false,
     searchPlaceholder,
     searchValue,
     onSearch,
@@ -116,7 +119,7 @@
       const avail = row2.clientWidth - 16;
       if (!compactFilters) {
         fullLeft2 = left2.offsetWidth;
-        if (fullLeft2 + right2.offsetWidth + 16 > avail && filters.length > 0) compactFilters = true;
+        if (fullLeft2 + right2.offsetWidth + 16 > avail && (filters.length > 0 || quickFilters.length > 0 || !!onSaveView)) compactFilters = true;
       } else if (fullLeft2 + right2.offsetWidth + 16 <= avail) compactFilters = false;
     }
     if (row1 && right1) {
@@ -127,6 +130,15 @@
       } else if (fullRight1 <= avail) iconViews = false;
     }
   }
+  // other chips or filters (e.g. another view): measure the full width again
+  let lastStrip = '';
+  $effect(() => {
+    const key = [...quickFilters.map((c) => c.key), ...filters.map((f) => f.key)].join('|');
+    if (key !== lastStrip) {
+      lastStrip = key;
+      compactFilters = false;
+    }
+  });
   $effect(() => {
     const els = [row1, right1, row2, left2, right2].filter((e): e is HTMLElement => !!e);
     if (typeof ResizeObserver === 'undefined' || !els.length) return;
@@ -176,14 +188,19 @@
               aria-label={iconViews ? v.label : undefined}
               onclick={() => onViewChange?.(v.key)}>
               <IconCmp name={v.icon} size={14} class={activeView === v.key ? 'text-accent-600 dark:text-accent-300' : ''} />
-              {#if !iconViews}<span>{v.label}</span>{/if}
+              {#if !iconViews}
+                <!-- the bold (active) width is always reserved: the switcher keeps its size -->
+                <span class="inline-grid"><span class="invisible col-start-1 row-start-1 font-semibold" aria-hidden="true">{v.label}</span><span class="col-start-1 row-start-1">{v.label}</span></span>
+              {/if}
               {#if v.count !== undefined}<span class="text-[11px] font-normal text-zinc-400 tabular-nums">{v.count}</span>{/if}
             </button>
           {/each}
         </div>
       {/if}
       {#if primaryAction}
-        <button type="button" class="ph-primary" onclick={primaryAction.onClick}><IconCmp name="plus" size={15} />{primaryAction.label}</button>
+        <button type="button" class="ph-primary {reservePrimary ? 'min-w-32 justify-center' : ''}" onclick={primaryAction.onClick}><IconCmp name="plus" size={15} />{primaryAction.label}</button>
+      {:else if reservePrimary}
+        <span class="min-w-32" aria-hidden="true"></span>
       {/if}
     </div>
   </div>
@@ -223,15 +240,17 @@
       {/if}
       {#each quickFilters as c (c.key)}
         <button type="button" class="ph-chip {c.active ? 'ph-chip-on' : 'ph-chip-off'}" aria-pressed={c.active} onclick={() => onQuickFilter?.(c.key)}>
-          {c.label}{#if c.count !== undefined}<span class="tabular-nums opacity-70">{c.count}</span>{/if}
+          {#if c.color}<span class="size-2 shrink-0 rounded-sm" style:background-color={c.color}></span>{/if}{c.label}{#if c.count !== undefined && !compactFilters}<span class="tabular-nums opacity-70">{c.count}</span>{/if}
         </button>
       {/each}
       {#if onSaveView}
         <button
           type="button"
           class="ph-ctl border-dashed! text-zinc-500 dark:text-zinc-400"
-          onclick={(e) => (saveAt = saveAt ? null : below(e))}>
-          <IconCmp name="plus" size={13} />{t('views.save')}
+          onclick={(e) => (saveAt = saveAt ? null : below(e))}
+          title={t('views.save')}
+          aria-label={t('views.save')}>
+          <IconCmp name="plus" size={13} />{#if !compactFilters}{t('views.save')}{/if}
         </button>
       {/if}
     </div>

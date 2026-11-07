@@ -15,6 +15,34 @@ type AppSetting struct {
 	Value string `json:"value"`
 }
 
+type AutomationRule struct {
+	ID              int64  `json:"id"`
+	TriggerKind     string `json:"trigger_kind"`
+	Source          string `json:"source"`
+	Conditions      string `json:"conditions"`
+	Schedule        string `json:"schedule"`
+	TemplateID      int64  `json:"template_id"`
+	TargetProjectID *int64 `json:"target_project_id"`
+	ChecklistTitle  string `json:"checklist_title"`
+	Enabled         bool   `json:"enabled"`
+	RunCount        int64  `json:"run_count"`
+	LastRunOn       string `json:"last_run_on"`
+	Position        int64  `json:"position"`
+}
+
+type AutomationRun struct {
+	ID           int64  `json:"id"`
+	RuleID       *int64 `json:"rule_id"`
+	ProjectID    *int64 `json:"project_id"`
+	ChecklistID  *int64 `json:"checklist_id"`
+	Status       string `json:"status"`
+	Code         string `json:"code"`
+	TemplateName string `json:"template_name"`
+	Target       string `json:"target"`
+	Detail       string `json:"detail"`
+	CreatedAt    string `json:"created_at"`
+}
+
 type Background struct {
 	ID         int64     `json:"id"`
 	Mime       string    `json:"mime"`
@@ -55,18 +83,21 @@ type ChecklistTemplate struct {
 	ID          int64  `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
+	CategoryID  *int64 `json:"category_id"`
 }
 
 type Customer struct {
-	ID           int64            `json:"id"`
-	Name         string           `json:"name"`
-	Notes        string           `json:"notes"`
-	CreatedAt    time.Time        `json:"created_at"`
-	Location     string           `json:"location"`
-	ContactName  string           `json:"contact_name"`
-	ContactEmail string           `json:"contact_email"`
-	Background   string           `json:"background"`
-	Phones       dbtypes.JSONText `json:"phones"`
+	ID              int64            `json:"id"`
+	Name            string           `json:"name"`
+	Notes           string           `json:"notes"`
+	CreatedAt       time.Time        `json:"created_at"`
+	Location        string           `json:"location"`
+	ContactName     string           `json:"contact_name"`
+	ContactEmail    string           `json:"contact_email"`
+	Background      string           `json:"background"`
+	Phones          dbtypes.JSONText `json:"phones"`
+	Color           string           `json:"color"`
+	ColorEverywhere bool             `json:"color_everywhere"`
 }
 
 type FavoriteGroup struct {
@@ -76,6 +107,12 @@ type FavoriteGroup struct {
 	Position  int64     `json:"position"`
 	Collapsed bool      `json:"collapsed"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+type IntegrationCustomer struct {
+	Source     string `json:"source"`
+	ExternalID string `json:"external_id"`
+	CustomerID int64  `json:"customer_id"`
 }
 
 type Membership struct {
@@ -154,6 +191,13 @@ type Tag struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type TemplateCategory struct {
+	ID       int64  `json:"id"`
+	Name     string `json:"name"`
+	Color    string `json:"color"`
+	Position int64  `json:"position"`
+}
+
 type TemplateItem struct {
 	ID          int64  `json:"id"`
 	TemplateID  int64  `json:"template_id"`
@@ -165,6 +209,23 @@ type TemplateItem struct {
 	Lang        string `json:"lang"`
 	NoteColor   string `json:"note_color"`
 	BgColor     string `json:"bg_color"`
+}
+
+type TemplateUse struct {
+	ID          int64  `json:"id"`
+	TemplateID  int64  `json:"template_id"`
+	ProjectID   *int64 `json:"project_id"`
+	ChecklistID *int64 `json:"checklist_id"`
+	RuleID      *int64 `json:"rule_id"`
+	UsedAt      string `json:"used_at"`
+}
+
+type TemplateVariable struct {
+	ID           int64  `json:"id"`
+	Name         string `json:"name"`
+	Description  string `json:"description"`
+	DefaultValue string `json:"default_value"`
+	Source       string `json:"source"`
 }
 
 type User struct {

@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/seals187/projectList/internal/auth"
+	"github.com/seals187/projectList/internal/automation"
 	"github.com/seals187/projectList/internal/config"
 	"github.com/seals187/projectList/internal/db"
 	"github.com/seals187/projectList/internal/db/sqlc"
@@ -111,11 +112,15 @@ func serve(cfg config.Config, log *slog.Logger) error {
 	sessions := &auth.Sessions{Q: q, TTL: cfg.SessionTTL, Secure: cfg.CookieSecure}
 	go cleanupSessions(ctx, sessions, log)
 
+	// automations of the template library: schedules (and later integrations)
+	auto := automation.New(database, log)
+	go auto.Run(ctx, 15*time.Minute)
+
 	srv := &http.Server{
 		Addr: cfg.ListenAddr,
 		Handler: httpapi.New(httpapi.Options{
 			DB: database, DBPath: cfg.DBPath, Sessions: sessions, Logger: log, Static: staticHandler, Subtitle: cfg.AppSubtitle, Version: version,
-			Mailer: &mail.SMTP{Cfg: cfg.SMTP}, AppURL: cfg.AppURL,
+			Mailer: &mail.SMTP{Cfg: cfg.SMTP}, AppURL: cfg.AppURL, Automation: auto,
 		}),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       3 * time.Minute, // file uploads (max. 25 MB) on slow connections

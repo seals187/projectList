@@ -1,13 +1,18 @@
 <script lang="ts">
-  // Context menu of a project (overview board): open, checklists, rename, status,
-  // due date, person responsible, tags. Sections expand inline.
+  // Context menu of a project (overview, customer pages, My tasks): open, favorite,
+  // checklists, rename, status, due date, person responsible, tags, delete.
+  // Sections expand inline.
   import type { ComponentProps } from 'svelte';
   import { goto } from '$app/navigation';
   import { api, errorText } from '$lib/api';
-  import { fmtDate, t } from '$lib/i18n.svelte';
-  import { canWrite, refreshSidebar, toast } from '$lib/state.svelte';
+  import { fmtDate, t, type Key } from '$lib/i18n.svelte';
+  import { canWrite, refreshSidebar, sidebar, toast } from '$lib/state.svelte';
   import { ALL_STATUSES, statusBadgeCls, statusBadgeStyle, statusDotCls, statusDotStyle, statusLabel } from '$lib/projectStatus';
   import { customerAssignees, patchProject, setProjectTags, storeProject } from '$lib/projectActions';
+  import { myColors, setMyColor } from '$lib/myColors.svelte';
+  import { isFavorite, toggleFavorite } from '$lib/navMemory.svelte';
+  import { cardHex } from '$lib/cardColors';
+  import CardColorPicker from './CardColorPicker.svelte';
   import { tagsByIds } from '$lib/tags';
   import type { Assignee, Checklist, ProjectStatus, SidebarCustomer, SidebarProject } from '$lib/types';
   import ContextMenu from './ContextMenu.svelte';
@@ -22,11 +27,25 @@
     x,
     y,
     onclose,
-    initial = null
-  }: { project: SidebarProject; customer: SidebarCustomer; x: number; y: number; onclose: () => void; initial?: Section | null } = $props();
+    initial = null,
+    boardColor = false,
+    onchanged
+  }: {
+    project: SidebarProject;
+    customer: SidebarCustomer;
+    x: number;
+    y: number;
+    onclose: () => void;
+    initial?: Section | null;
+    boardColor?: boolean; // board: offer the card color of the project
+    onchanged?: () => void; // after a saved change (pages with their own project list reload it)
+  } = $props();
 
   type IconName = ComponentProps<typeof Icon>['name'];
-  type Section = 'checklists' | 'rename' | 'status' | 'due' | 'owner' | 'tags';
+  type Section = 'checklists' | 'rename' | 'status' | 'due' | 'owner' | 'tags' | 'color';
+  // the customer color wins in the board when "use in all views" is on
+  const cust = $derived(sidebar.customers.find((c) => c.id === customer.id) ?? customer);
+  const customerWide = $derived(cust.color_everywhere && !!cust.color);
   // svelte-ignore state_referenced_locally
   let section = $state<Section | null>(initial); // quick actions on the card open a section directly
   const toggle = (s: Section) => (section = section === s ? null : s);
@@ -51,15 +70,21 @@
 
   async function rename(e: SubmitEvent) {
     e.preventDefault();
-    if (name.trim() && name.trim() !== p.name && (await patchProject(p.id, { name: name.trim() }))) section = null;
+    if (name.trim() && name.trim() !== p.name && changed(await patchProject(p.id, { name: name.trim() }))) section = null;
   }
 
-  const setStatus = (status: ProjectStatus) => patchProject(p.id, { status });
-  const setDate = (key: 'start_date' | 'due_date', v: string) => patchProject(p.id, { [key]: v || null });
+  // report saved changes (null = failed)
+  function changed<T>(r: T): T {
+    if (r) onchanged?.();
+    return r;
+  }
+  const fav = $derived(isFavorite('project', project.id));
+  const setStatus = (status: ProjectStatus) => patchProject(p.id, { status }).then(changed);
+  const setDate = (key: 'start_date' | 'due_date', v: string) => patchProject(p.id, { [key]: v || null }).then(changed);
   const dateRange = $derived(
     p.start_date && p.due_date ? `${fmtDate(p.start_date)} – ${fmtDate(p.due_date)}` : p.due_date ? fmtDate(p.due_date) : p.start_date ? `${fmtDate(p.start_date)} –` : ''
   );
-  const setOwner = (a: Assignee | null) => patchProject(p.id, { owner_id: a?.id ?? null }, a?.name);
+  const setOwner = (a: Assignee | null) => patchProject(p.id, { owner_id: a?.id ?? null }, a?.name).then(changed);
 
   async function addChecklist(e: SubmitEvent) {
     e.preventDefault();
@@ -69,6 +94,33 @@
       refreshSidebar(0);
       open(`/checklists/${c.id}`);
     } catch (err) {
+      toast(errorText(err));
+    }
+  }
+
+  // delete: inline confirmation (warning when checklists would be deleted too)
+  let confirmDelete = $state(false);
+  let deleting = $state(false);
+  const count = (n: number, one: Key, many: Key) => (n === 1 ? t(one) : t(many, { n }));
+  function deleteWarning() {
+    const items = p.checklists.reduce((s, c) => s + c.total, 0);
+    return t('project.deleteWarn', {
+      checklists: count(p.checklists.length, 'project.del.cl1', 'project.del.cln'),
+      items: count(items, 'project.del.it1', 'project.del.itn')
+    });
+  }
+  async function removeProject() {
+    deleting = true;
+    try {
+      await api.del(`/projects/${p.id}`);
+      // drop it from the overview right away; the reload brings the rest in line
+      for (const c of sidebar.customers) c.projects = c.projects.filter((x) => x.id !== p.id);
+      refreshSidebar(0);
+      toast(t('project.deleted', { name: p.name }));
+      onchanged?.();
+      onclose();
+    } catch (err) {
+      deleting = false;
       toast(errorText(err));
     }
   }
@@ -99,6 +151,9 @@
 
   <button type="button" class={itemCls} role="menuitem" onclick={() => open(`/projects/${p.id}`)}>
     <Icon name="external" size={15} class="text-zinc-400" />{t('menu.openProject')}
+  </button>
+  <button type="button" class={itemCls} role="menuitem" onclick={() => (toggleFavorite('project', p.id), onclose())}>
+    <Icon name="star" size={15} class={fav ? 'fill-amber-400 text-amber-500' : 'text-zinc-400'} />{t(fav ? 'nav.removeFavorite' : 'nav.addFavorite')}
   </button>
 
   {@render item('checklists', 'checkSquare', t('project.checklists'), String(p.checklists.length))}
@@ -184,9 +239,56 @@
     {@render item('tags', 'droplet', t('tags.title'), tagsByIds(p.tag_ids).map((tag) => tag.name).join(', '))}
     {#if section === 'tags'}
       <div class={subCls}>
-        <TagMenu ids={p.tag_ids} onchange={(next) => setProjectTags(p.id, next).then(() => {})} onescape={onclose} />
+        <TagMenu ids={p.tag_ids} onchange={(next) => setProjectTags(p.id, next).then(changed).then(() => {})} onescape={onclose} />
       </div>
     {/if}
   {/if}
 
+  <!-- personal card color (everyone, also viewers; the shared customer color wins) -->
+  {#if boardColor}
+      {@const shown = customerWide ? cust.color : (myColors.all.board[String(p.id)] ?? '')}
+      <button type="button" class={itemCls} role="menuitem" aria-expanded={section === 'color'} onclick={() => toggle('color')}>
+        <Icon name="palette" size={15} class="shrink-0 text-zinc-400" />
+        <span>{t('menu.cardColor')}</span>
+        <span class="ml-auto flex items-center gap-1.5">
+          {#if shown}<span class="size-3 rounded-full" style:background-color={cardHex(shown)}></span>{/if}
+          <Icon name="chevron" size={13} class="shrink-0 text-zinc-400 transition-transform {section === 'color' ? 'rotate-90' : ''}" />
+        </span>
+      </button>
+      {#if section === 'color'}
+        <div class={subCls}>
+          {#if customerWide}
+            <p class="px-1 pb-1 text-xs text-zinc-500">{t('menu.cardColorWide')}</p>
+          {:else}
+            <CardColorPicker label={t('menu.cardColor')} value={myColors.all.board[String(p.id)] ?? ''} onpick={(c) => setMyColor('board', p.id, c)} />
+            <p class="px-1 pt-1 text-xs text-zinc-400">{t('menu.cardColorMine')}</p>
+          {/if}
+        </div>
+      {/if}
+  {/if}
+
+  {#if editable}
+    <div class="my-1 border-t border-zinc-100 dark:border-zinc-800"></div>
+    {#if !confirmDelete}
+      <button type="button" class="{itemCls} text-red-600 dark:text-red-400" role="menuitem" onclick={() => ((confirmDelete = true), (section = null))}>
+        <Icon name="trash" size={15} class="shrink-0" />{t('project.delete')}
+      </button>
+    {:else}
+      <div class="mx-1 mb-1 rounded-lg border border-red-200 bg-red-50 p-2.5 text-[13px] dark:border-red-500/30 dark:bg-red-500/10" role="alertdialog" aria-label={t('project.delete')} data-testid="project-delete-confirm">
+        <p class="font-semibold text-red-700 dark:text-red-300">{t('project.deleteAsk', { name: p.name })}</p>
+        {#if p.checklists.length}
+          <p class="mt-1.5 flex gap-1.5 text-red-700 dark:text-red-300">
+            <Icon name="alert" size={14} class="mt-0.5 shrink-0" />
+            <span>{deleteWarning()}</span>
+          </p>
+        {/if}
+        <p class="mt-1.5 text-zinc-500 dark:text-zinc-400">{t('project.deleteFinal')}</p>
+        <div class="mt-2.5 flex justify-end gap-1.5">
+          <button type="button" class="btn-outline py-1!" onclick={() => (confirmDelete = false)}>{t('common.cancel')}</button>
+          <!-- svelte-ignore a11y_autofocus -->
+          <button type="button" class="btn bg-red-600 py-1! text-white hover:bg-red-700" onclick={removeProject} disabled={deleting} autofocus>{t('common.delete')}</button>
+        </div>
+      </div>
+    {/if}
+  {/if}
 </ContextMenu>

@@ -18,6 +18,8 @@
   import Icon from './Icon.svelte';
   import EntityIcon from './EntityIcon.svelte';
   import TagDots from './TagDots.svelte';
+  import { customerCardColor, tintStyle } from '$lib/cardColors';
+  import { myColors } from '$lib/myColors.svelte';
   import { dayMonth } from '$lib/listMetrics';
 
   let {
@@ -84,9 +86,12 @@
 <div class="grid grid-cols-[repeat(auto-fill,minmax(21rem,1fr))] items-start gap-4">
   {#each cards as g (g.customer.id)}
     {@const open = openCustomers.has(g.customer.id)}
+    {@const tint = customerCardColor(g.customer, 'cards', myColors.all)}
     <section
       class="flex flex-col rounded-xl border bg-white p-4 shadow-xs dark:bg-zinc-900/40
-        {g.overdue ? 'border-red-300 dark:border-red-500/50' : 'border-zinc-200 dark:border-zinc-800'}"
+        {g.overdue ? 'border-red-300 dark:border-red-500/50' : 'border-zinc-200 dark:border-zinc-800'}
+        {tint ? 'card-tint' : ''}"
+      style={tintStyle(tint)}
       aria-label={g.customer.name}>
       <!-- customer -->
       <header role="group" class="flex items-center gap-3" oncontextmenu={(e) => customerMenu(e, g.customer)}>
@@ -197,5 +202,6 @@
     {canCreate}
     onclose={() => (menu = null)}
     oncreate={() => oncreate(m.customer.id)}
-    onfilter={(mode) => customerFilter(m.customer.id, mode)} />
+    onfilter={(mode) => customerFilter(m.customer.id, mode)}
+    colorView="cards" />
 {/if}

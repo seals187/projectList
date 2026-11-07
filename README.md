@@ -17,7 +17,7 @@ docker compose up -d        # pulls the published image ghcr.io/seals187/project
 ```
 
 Version via `PROJECTLIST_VERSION` in `.env`: `latest` = newest release (default), `edge` =
-current development state (every push to `main`), or a fixed version such as `0.1.4`.
+current development state (every push to `main`), or a fixed version such as `0.1.5`.
 Update: `docker compose pull && docker compose up -d`.
 
 Then sign in at <http://localhost:8080> with the admin credentials from `.env`.
@@ -36,7 +36,7 @@ docker compose logs -f projectlist    # structured JSON logs
 Every release has an image for **linux/amd64** and **linux/arm64** (e.g. Raspberry Pi):
 
 ```bash
-docker pull ghcr.io/seals187/projectlist:latest   # or a fixed version, e.g. :0.1.4
+docker pull ghcr.io/seals187/projectlist:latest   # or a fixed version, e.g. :0.1.5
 ```
 
 `docker-compose.yml` already uses this image. Without Compose:
@@ -62,7 +62,7 @@ For every version tag, the workflow `release.yml` creates the GitHub release wit
 | `ADMIN_NAME`          | `Admin`                | Display name of the first admin |
 | `APP_SUBTITLE`        | –                      | Optional subtitle below "ProjectList" in the sidebar (e.g. company or department name) |
 | `PORT`                | `8080`                 | Host port (docker compose only) |
-| `PROJECTLIST_VERSION` | `latest`               | Image version for docker compose: `latest`, `edge` or e.g. `0.1.4` |
+| `PROJECTLIST_VERSION` | `latest`               | Image version for docker compose: `latest`, `edge` or e.g. `0.1.5` |
 | `LISTEN_ADDR`         | `:8080`                | Listen address inside the container |
 | `DB_PATH`             | `/data/projectlist.db` | Path of the SQLite file |
 | `COOKIE_SECURE`       | `true`                 | Send the session cookie over HTTPS only. On `http://localhost` this works in Chrome/Edge/Firefox; set `false` for plain HTTP access via an IP or hostname |
@@ -92,7 +92,7 @@ The proxy must pass the `Host` header through unchanged (origin check).
 
 | Role     | Visibility              | Permissions |
 |----------|-------------------------|-------------|
-| `admin`  | all customers           | everything, incl. user management (*Settings → Users*), creating/deleting customers, backup |
+| `admin`  | all customers           | everything, incl. user management (*Settings → Users*), creating/deleting customers, backup, template categories, variables and automations |
 | `member` | assigned customers only | edit customers; create/change/delete/check projects, checklists and items; manage templates |
 | `viewer` | assigned customers only | read only |
 
@@ -229,6 +229,26 @@ Checklists consist of **blocks** that are edited like a document. Changes are sa
   checklists
 - "Save as template" in a checklist header saves it as a new template
 
+### Template library
+
+The templates page has three views:
+
+- **Library** – templates grouped by category (chips filter one category), with the number of items, how often
+  a template was used and when last. **Use** opens a dialog: customer → project (or a new project), checklist
+  title and the template's variables; the checklist is created and opened. Categories (name, color) are
+  managed by admins; admins and members put templates into a category (template menu → "Category").
+- **Variables** – write `{{name}}` into the name, items or descriptions of a template; the value is filled in
+  when the template is applied. System variables: `customer.name`, `customer.location`,
+  `customer.contact`, `customer.email`, `project.name`, `project.ticket`, `project.start`, `project.due` (due
+  date of the project), `today`, `user.name` (the earlier German names still work). Custom variables (admins) are asked when applying (default value prefilled);
+  variables of an integration (source Easy Redmine, OTOBO) will be delivered by the integration. Unknown
+  variables stay as they are.
+- **Automations** – rules "trigger → template" (admins): *project created* (optionally name contains … /
+  customer is …), *tag added*, *status changed* and *schedule* (yearly, monthly, weekly, into a fixed project).
+  Event rules run at most once per project; the latest runs are listed. Triggers of integrations (Easy Redmine,
+  OTOBO: new project / new ticket) are prepared in `internal/automation` (`Source` interface, events with fields
+  for conditions and variables, `integration_customers` mapping) and will be enabled with the integration.
+
 ## Backup & restore
 
 **Backup via CLI** (consistent even while running, via `VACUUM INTO`):
@@ -317,7 +337,8 @@ internal/db/queries/  SQL sources for sqlc
 internal/db/sqlc/     generated, type-safe query code
 internal/auth/        Argon2id, sessions, login limiter, admin bootstrap
 internal/authz/       roles & customer assignment
-internal/service/     apply a template / save a checklist as template (transactions)
+internal/service/     apply a template / save a checklist as template (transactions), template variables
+internal/automation/  automation rules: events, conditions, schedules, integration interface
 internal/richtext/    allow-list sanitizing of inline formatting
 internal/httpapi/     JSON API, middleware, validation
 internal/static/      serving the embedded frontend (br/gzip, cache headers)
@@ -352,7 +373,7 @@ All endpoints under `/api`, JSON. Writing requests need the header `X-CSRF-Token
 | Tags        | `POST /tags` (members), `PATCH/DELETE /tags/{id}`, `PUT /status-labels/{status}` (`label`, `color`, `wip_limit`; admin); catalog, status names, colors and WIP limits come with `GET /sidebar` |
 | Checklists  | `GET/POST /projects/{id}/checklists`, `POST /projects/{id}/checklists/from-template`, `PUT /projects/{id}/checklists/order`, `GET/PATCH/DELETE /checklists/{id}`, `POST /checklists/{id}/save-as-template` |
 | Items       | `POST /checklists/{id}/items`, `PUT /checklists/{id}/items/order`, `PATCH/DELETE /items/{id}`, `POST /items/{id}/done` |
-| Templates   | `GET/POST /templates`, `GET/PATCH/DELETE /templates/{id}`, `POST /templates/{id}/items`, `PUT /templates/{id}/items/order`, `PATCH/DELETE /template-items/{id}` |
+| Templates   | `GET/POST /templates`, `GET/PATCH/DELETE /templates/{id}`, `POST /templates/{id}/items`, `PUT /templates/{id}/items/order`, `PATCH/DELETE /template-items/{id}`, `GET /templates/{id}/variables`, `GET/POST /template-categories`, `PATCH/DELETE /template-categories/{id}`, `GET/POST /template-variables`, `PATCH/DELETE /template-variables/{id}`, `GET/POST /automations`, `PATCH/DELETE /automations/{id}` |
 | Sidebar     | `PUT/DELETE /favorites/{kind}/{id}` (`kind` = customer, project, checklist or template), `PUT /favorites/order` (`groups`, `items` with `kind`, `id`, `group_id`), `POST /favorite-groups` (`name`), `PATCH/DELETE /favorite-groups/{id}` (`name`, `collapsed`), `PUT /board/order` (`status`, `ids`), `PUT /prefs/board-hidden` (`customer_ids`), `PUT /prefs/{overview,saved_views}` (any JSON, per user); favorites (`kind`, `id`, `group_id`, `position`), `favorite_groups` and settings come with `GET /sidebar` |
 | Other       | `GET /sidebar`, `GET /overview`, `GET /my-tasks`, `GET /my-checklists`, `GET /search?q=`, `GET /admin/backup`, `GET /healthz` |
 

@@ -21,6 +21,11 @@
   import EntityIcon from './EntityIcon.svelte';
   import ProgressRing from './ProgressRing.svelte';
   import TagDots from './TagDots.svelte';
+  import CustomerMenu from './CustomerMenu.svelte';
+  import { setBoardHidden, sidebar } from '$lib/state.svelte';
+  import { customerCardColor, tintStyle } from '$lib/cardColors';
+  import { myColors } from '$lib/myColors.svelte';
+  import type { SidebarCustomer } from '$lib/types';
 
   let {
     groups,
@@ -55,6 +60,22 @@
       .join(' ')
   );
   const barColor = (done: number, total: number) => (total > 0 && done === total ? 'bg-emerald-500' : 'bg-[var(--accent-primary)]');
+
+  // right click on a customer card: customer menu (incl. card color of the list)
+  let menu = $state<{ customer: SidebarCustomer; x: number; y: number } | null>(null);
+  function customerMenu(e: MouseEvent, customer: SidebarCustomer) {
+    if ((e.target as HTMLElement).closest('[data-testid="project-row"]')) return; // browser menu on project links
+    e.preventDefault();
+    menu = { customer, x: e.clientX, y: e.clientY };
+  }
+  // customer filter (shared with all overview views)
+  const hidden = $derived(new Set(sidebar.boardHidden));
+  function customerFilter(id: number, mode: 'only' | 'toggle' | 'all') {
+    const all = sidebar.customers.map((c) => c.id);
+    if (mode === 'all') setBoardHidden([]);
+    else if (mode === 'only') setBoardHidden(all.filter((x) => x !== id));
+    else setBoardHidden(hidden.has(id) ? [...hidden].filter((x) => x !== id) : [...hidden, id]);
+  }
 </script>
 
 <svelte:window bind:innerWidth={winWidth} />
@@ -63,9 +84,10 @@
   {#each groups as g (g.customer.id)}
     {@const s = customerSummary(g.projects, today)}
     {@const open = openCustomers.has(g.customer.id)}
+    {@const tint = customerCardColor(g.customer, 'list', myColors.all)}
     {#if g.projects.length === 0}
       <!-- customer without projects: slim card -->
-      <section class="surface ol-card flex items-center gap-3" aria-label={g.customer.name}>
+      <section class="surface ol-card flex items-center gap-3 {tint ? 'card-tint' : ''}" style={tintStyle(tint)} aria-label={g.customer.name} oncontextmenu={(e) => customerMenu(e, g.customer)}>
         <EntityIcon type="customer" size="lg" />
         <div class="min-w-0 flex-1">
           <a href="/customers/{g.customer.id}" class="block truncate text-[15px] font-bold hover:underline">{g.customer.name}</a>
@@ -78,7 +100,7 @@
         {/if}
       </section>
     {:else}
-      <section class="surface ol-card" aria-label={g.customer.name}>
+      <section class="surface ol-card {tint ? 'card-tint' : ''}" style={tintStyle(tint)} aria-label={g.customer.name} oncontextmenu={(e) => customerMenu(e, g.customer)}>
         <!-- customer head: click toggles -->
         <div class="flex items-center gap-3">
           <button
@@ -175,3 +197,17 @@
     {/if}
   {/each}
 </div>
+
+{#if menu}
+  {@const m = menu}
+  <CustomerMenu
+    customer={m.customer}
+    x={m.x}
+    y={m.y}
+    hidden={hidden.has(m.customer.id)}
+    {canCreate}
+    onclose={() => (menu = null)}
+    oncreate={() => oncreate(m.customer.id)}
+    onfilter={(mode) => customerFilter(m.customer.id, mode)}
+    colorView="list" />
+{/if}

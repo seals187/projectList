@@ -15,6 +15,7 @@ import (
 	"unicode"
 
 	"github.com/seals187/projectList/internal/authz"
+	"github.com/seals187/projectList/internal/automation"
 	"github.com/seals187/projectList/internal/db"
 	"github.com/seals187/projectList/internal/db/sqlc"
 )
@@ -375,6 +376,7 @@ func (s *Server) duplicateProject(w http.ResponseWriter, r *http.Request, u auth
 		return err
 	}
 	s.logActivity(ctx, p.ID, u.ID, actProjectCreated, src.Name, "copy")
+	s.fire(ctx, automation.ProjectCreated, p, nil)
 	writeJSON(w, http.StatusCreated, p)
 	return nil
 }

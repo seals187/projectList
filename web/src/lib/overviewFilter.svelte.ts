@@ -9,6 +9,7 @@ import type { SidebarProject } from './types';
 import { normQuery } from './pageStateCore';
 import { syncDisplay } from './display.svelte';
 import { syncUi } from './uiSync.svelte';
+import { syncMyColors } from './myColors.svelte';
 
 export type BoardGroup = 'status' | 'customer' | 'owner';
 export const BOARD_GROUPS: readonly BoardGroup[] = ['status', 'customer', 'owner'];
@@ -74,6 +75,7 @@ export function syncFromServer() {
   if (!filterTimer) Object.assign(filter, parseFilter(sidebar.prefs.overview));
   if (!viewsSaving) savedViews.list = parseViews(sidebar.prefs.saved_views);
   syncDisplay();
+  syncMyColors();
   syncUi();
 }
 

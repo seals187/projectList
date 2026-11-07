@@ -5,9 +5,11 @@ import (
 	"net/http"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/seals187/projectList/internal/authz"
+	"github.com/seals187/projectList/internal/automation"
 	"github.com/seals187/projectList/internal/db"
 	"github.com/seals187/projectList/internal/db/sqlc"
 )
@@ -225,6 +227,13 @@ func (s *Server) setProjectTags(w http.ResponseWriter, r *http.Request, u authz.
 	}
 	if !slices.Equal(prev, ids) {
 		s.logActivity(ctx, id, u.ID, actTags, "", strings.Join(names, ", "))
+		if p, err := s.q.GetProject(ctx, id); err == nil {
+			for _, t := range ids {
+				if !slices.Contains(prev, t) {
+					s.fire(ctx, automation.ProjectTag, p, map[string]string{"tag": strconv.FormatInt(t, 10)})
+				}
+			}
+		}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"tag_ids": ids})
 	return nil

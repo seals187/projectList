@@ -8,6 +8,54 @@ Changes until the next release are collected under **Unreleased**.
 
 ## [Unreleased]
 
+## [0.1.5] – 2026-11-07
+
+### Added
+
+- Overview (cards, board, calendar, timeline): "Delete project" in the project menu (right-click or "…");
+  asks for confirmation and warns how many checklists and items are deleted with it
+- Card colors in the overview: every user sets their own colors (only visible to them, synced across their
+  devices) for customers in "Cards" and "List" (right-click on the customer → "Card color") and for projects in
+  "Board" (project menu → "Card color"); the card is tinted (light and dark theme), each of the 13 colors in two
+  shades: light and strong (darker in the light theme, lighter in the dark theme). On the customer page (edit
+  mode) a shared customer color for all users with the switch "Use in all views" – when on, it replaces the
+  personal colors in Cards, List and Board (also for its projects) and also tints the customer under Customers
+  (cards and list rows) and My tasks (customer blocks). Migrations 00024 and 00025
+- Overview "List": right-click on a customer opens the customer menu (open, new project, filters, card color)
+- Right-click menus outside the overview: on the projects of a customer page and of the customers list (same
+  project menu as in the overview: rename, status, schedule, responsible, tags, delete …), on customers in the
+  customers list, on templates (open, rename, favorite, delete with confirmation) and in My tasks on customers,
+  projects and checklists (checklist: open, open project, rename, favorite, save as template, delete with
+  confirmation)
+- Project and customer menus: "Add to favorites" / "Remove from favorites"
+- Template library: the templates page has three views
+  - Library: templates grouped by category (colored chips filter a category), items, "used" count and "last
+    used", "Use" (dialog: customer → project or new project, checklist title, variables → checklist is created
+    and opened) and the template menu (now also "Use" and "Category"). Categories (name, color) are managed by
+    admins
+  - Variables: `{{name}}` in templates is replaced when applying – system variables (customer, project, due
+    date, today, user) and custom variables (admins; asked when applying, default value), also asked in
+    "From template" on the project page; values in rich text are escaped
+  - Automations (admins): rules "trigger → template" for project created (optional name/customer condition),
+    tag added, status changed and schedule (yearly/monthly/weekly into a project); on/off switch, run counter,
+    latest runs. Easy Redmine and OTOBO triggers are prepared (integration interface, event fields, customer
+    mapping) and will be enabled with the integration
+  - System variables have English names (`customer.name`, `customer.location`, `customer.contact`,
+    `customer.email`, `project.name`, `project.ticket`, `project.start`, `project.due`, `today`, `user.name`);
+    migration 00027 renames the first (German) names in existing templates and rules, which also keep working
+  - The view switcher (Library / Automations / Variables) keeps its size when switching views
+  - Migration 00026
+  - Project page: checklists created by an automation (e.g. after adding a tag) appear right away without
+    reloading; the activity shows "Automation" as the author
+
+### Changed
+
+- Customers, list view: clicking the customer icon also expands and collapses the projects (like the arrow);
+  name and location still open the customer
+- New projects always start with the status "Planning", wherever they are created (customer page, dialog "New
+  project", board column, duplicate); before, the customer page created them as "Active" and the board used the
+  status of the column
+
 ## [0.1.4] – 2026-11-07
 
 ### Added
@@ -458,7 +506,8 @@ First version.
   JetBrains Mono; no external requests
 - Checkbox left or right, square or round; code block background light grey, dark grey or black
 
-[Unreleased]: https://github.com/seals187/projectList/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/seals187/projectList/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/seals187/projectList/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/seals187/projectList/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/seals187/projectList/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/seals187/projectList/compare/v0.1.1...v0.1.2

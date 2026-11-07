@@ -773,6 +773,13 @@ func TestProjectStatusDueAndOverview(t *testing.T) {
 	expect(t, "projekt mit status+datum", admin.do("POST", fmt.Sprintf("/api/customers/%d/projects", a.ID),
 		map[string]any{"name": "P", "status": "planning", "due_date": "2026-11-20"}, &p), 201)
 	admin.do("POST", fmt.Sprintf("/api/customers/%d/projects", b.ID), map[string]any{"name": "Q"}, &q)
+	var qs struct {
+		Project proj `json:"project"`
+	}
+	admin.do("GET", fmt.Sprintf("/api/projects/%d", q.ID), nil, &qs)
+	if qs.Project.Status != "planning" { // without a status (e.g. customer page): always planning
+		t.Fatalf("default status: %q", qs.Project.Status)
+	}
 	url := fmt.Sprintf("/api/projects/%d", p.ID)
 
 	for _, s := range []string{"active", "review", "blocked", "done", "archived"} {
@@ -1196,7 +1203,7 @@ func TestBoardOrderAndHiddenCustomers(t *testing.T) {
 	for _, p := range s.Customers[0].Projects {
 		got[p.ID] = [2]any{p.Status, p.Pos}
 	}
-	if got[p3.ID] != [2]any{"review", int64(0)} || got[p1.ID] != [2]any{"review", int64(1)} || got[p2.ID][0] != "active" {
+	if got[p3.ID] != [2]any{"review", int64(0)} || got[p1.ID] != [2]any{"review", int64(1)} || got[p2.ID][0] != "planning" {
 		t.Fatalf("board-reihenfolge falsch: %+v", got)
 	}
 	if s.BoardHidden == nil || len(s.BoardHidden) != 0 {

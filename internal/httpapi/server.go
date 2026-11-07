@@ -13,6 +13,7 @@ import (
 
 	"github.com/seals187/projectList/internal/auth"
 	"github.com/seals187/projectList/internal/authz"
+	"github.com/seals187/projectList/internal/automation"
 	"github.com/seals187/projectList/internal/db/sqlc"
 	"github.com/seals187/projectList/internal/mail"
 )
@@ -30,19 +31,21 @@ type Server struct {
 	appURL        string
 	now           func() time.Time
 	redmineClient *http.Client // nil = default (tests may replace)
+	auto          *automation.Engine
 }
 
 type Options struct {
-	DB       *sql.DB
-	DBPath   string // for backups (target directory for the temporary file)
-	Sessions *auth.Sessions
-	Logger   *slog.Logger
-	Static   http.Handler     // SPA; nil = no static files
-	Subtitle string           // APP_SUBTITLE, included in /api/auth/me
-	Version  string           // build version (ldflags), included in /api/auth/me
-	Mailer   mail.Sender      // nil = e-mail disabled (links are shown to the admin)
-	AppURL   string           // APP_URL: base for links in e-mails; "" = from the request
-	Now      func() time.Time // nil = time.Now (tests)
+	DB         *sql.DB
+	DBPath     string // for backups (target directory for the temporary file)
+	Sessions   *auth.Sessions
+	Logger     *slog.Logger
+	Static     http.Handler       // SPA; nil = no static files
+	Subtitle   string             // APP_SUBTITLE, included in /api/auth/me
+	Version    string             // build version (ldflags), included in /api/auth/me
+	Mailer     mail.Sender        // nil = e-mail disabled (links are shown to the admin)
+	AppURL     string             // APP_URL: base for links in e-mails; "" = from the request
+	Now        func() time.Time   // nil = time.Now (tests)
+	Automation *automation.Engine // nil = engine without integrations (scheduler not started)
 }
 
 // handlerFunc is an API handler for logged-in users.
@@ -74,6 +77,11 @@ func New(o Options) http.Handler {
 	}
 	if s.now == nil {
 		s.now = time.Now
+	}
+	s.auto = o.Automation
+	if s.auto == nil {
+		s.auto = automation.New(o.DB, o.Logger)
+		s.auto.Now = s.now
 	}
 
 	mux := http.NewServeMux()
@@ -127,6 +135,7 @@ func New(o Options) http.Handler {
 	mux.Handle("DELETE /api/backgrounds/{id}", s.authed(s.deleteBackground))
 	mux.Handle("PUT /api/customers/{id}/background", s.writer(s.setCustomerBackground))
 	mux.Handle("PUT /api/projects/{id}/background", s.writer(s.setProjectBackground))
+	mux.Handle("PUT /api/customers/{id}/colors", s.writer(s.setCustomerColors))
 
 	// Tags and status names (catalog: members create, admins rename/delete)
 	mux.Handle("POST /api/tags", s.writer(s.createTag))
@@ -161,6 +170,21 @@ func New(o Options) http.Handler {
 	mux.Handle("PUT /api/templates/{id}/items/order", s.writer(s.orderTemplateItems))
 	mux.Handle("PATCH /api/template-items/{id}", s.writer(s.updateTemplateItem))
 	mux.Handle("DELETE /api/template-items/{id}", s.writer(s.deleteTemplateItem))
+	mux.Handle("GET /api/templates/{id}/variables", s.authed(s.templateVariables))
+
+	// Template library: categories, variables, automations (admins edit)
+	mux.Handle("GET /api/template-categories", s.authed(s.listTemplateCategories))
+	mux.Handle("POST /api/template-categories", s.admin(s.createTemplateCategory))
+	mux.Handle("PATCH /api/template-categories/{id}", s.admin(s.updateTemplateCategory))
+	mux.Handle("DELETE /api/template-categories/{id}", s.admin(s.deleteTemplateCategory))
+	mux.Handle("GET /api/template-variables", s.authed(s.listTemplateVariables))
+	mux.Handle("POST /api/template-variables", s.admin(s.createTemplateVariable))
+	mux.Handle("PATCH /api/template-variables/{id}", s.admin(s.updateTemplateVariable))
+	mux.Handle("DELETE /api/template-variables/{id}", s.admin(s.deleteTemplateVariable))
+	mux.Handle("GET /api/automations", s.authed(s.listAutomations))
+	mux.Handle("POST /api/automations", s.admin(s.createAutomation))
+	mux.Handle("PATCH /api/automations/{id}", s.admin(s.updateAutomation))
+	mux.Handle("DELETE /api/automations/{id}", s.admin(s.deleteAutomation))
 
 	// Miscellaneous
 	mux.Handle("GET /api/sidebar", s.authed(s.sidebar))

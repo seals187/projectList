@@ -1,6 +1,8 @@
 -- name: ListTemplates :many
-SELECT t.id, t.name, t.description,
-       CAST((SELECT COUNT(*) FROM template_items ti WHERE ti.template_id = t.id AND ti.kind = 'item') AS INTEGER) AS item_count
+SELECT t.id, t.name, t.description, t.category_id,
+       CAST((SELECT COUNT(*) FROM template_items ti WHERE ti.template_id = t.id AND ti.kind = 'item') AS INTEGER) AS item_count,
+       CAST((SELECT COUNT(*) FROM template_uses u WHERE u.template_id = t.id) AS INTEGER) AS used_count,
+       CAST((SELECT COALESCE(MAX(u.used_at), '') FROM template_uses u WHERE u.template_id = t.id) AS TEXT) AS last_used
 FROM checklist_templates t
 ORDER BY t.name COLLATE NOCASE, t.id;
 
@@ -11,7 +13,7 @@ SELECT * FROM checklist_templates WHERE id = ?;
 INSERT INTO checklist_templates (name, description) VALUES (?, ?) RETURNING *;
 
 -- name: UpdateTemplate :one
-UPDATE checklist_templates SET name = ?, description = ? WHERE id = ? RETURNING *;
+UPDATE checklist_templates SET name = ?, description = ?, category_id = ? WHERE id = ? RETURNING *;
 
 -- name: DeleteTemplate :exec
 DELETE FROM checklist_templates WHERE id = ?;

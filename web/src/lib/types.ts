@@ -166,10 +166,76 @@ export interface Template {
   id: number;
   name: string;
   description: string;
+  category_id?: number | null;
 }
 
 export interface TemplateSummary extends Template {
   item_count: number;
+  used_count?: number; // applications (manually or by automations)
+  last_used?: string; // RFC 3339, "" = never / unknown
+}
+
+/** Category of the template library (admins manage them). */
+export interface TemplateCategory {
+  id: number;
+  name: string;
+  color: string; // card color name, "" = gray
+  position: number;
+}
+
+/** Variable for {{name}} in templates. source: "system", "custom", an integration or "unknown". */
+export interface TemplateVariable {
+  id?: number;
+  name: string;
+  source: string;
+  description: string;
+  desc_key?: string; // system: i18n key
+  default_value: string;
+  example?: string;
+  used_in?: number;
+  templates?: number[];
+}
+
+export interface AutomationCondition {
+  field: string;
+  op: 'equals' | 'contains';
+  value: string;
+}
+
+export interface AutomationSchedule {
+  freq: 'yearly' | 'monthly' | 'weekly';
+  month?: number;
+  day?: number;
+  weekday?: number; // 1 = Monday … 7 = Sunday
+}
+
+export interface AutomationRule {
+  id: number;
+  trigger_kind: string;
+  source: string;
+  conditions: AutomationCondition[];
+  schedule: AutomationSchedule | null;
+  template_id: number;
+  target_project_id: number | null;
+  checklist_title: string;
+  enabled: boolean;
+  run_count: number;
+  last_run_on: string;
+  template_name: string;
+  target_name: string;
+}
+
+export interface AutomationRun {
+  id: number;
+  rule_id: number | null;
+  project_id: number | null;
+  checklist_id: number | null;
+  status: 'ok' | 'warning' | 'error';
+  code: string;
+  template_name: string;
+  target: string;
+  detail: string;
+  created_at: string;
 }
 
 export interface SidebarChecklist {
@@ -203,6 +269,8 @@ export interface SidebarCustomer {
   name: string;
   location: string; // e.g. town, "" = none
   background: string; // "", "g<n>" or "img:<id>"
+  color: string; // shared customer color; with color_everywhere it wins in all views (all users)
+  color_everywhere: boolean;
   projects: SidebarProject[];
 }
 

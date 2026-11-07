@@ -10,7 +10,7 @@ import (
 )
 
 const createTemplate = `-- name: CreateTemplate :one
-INSERT INTO checklist_templates (name, description) VALUES (?, ?) RETURNING id, name, description
+INSERT INTO checklist_templates (name, description) VALUES (?, ?) RETURNING id, name, description, category_id
 `
 
 type CreateTemplateParams struct {
@@ -21,7 +21,12 @@ type CreateTemplateParams struct {
 func (q *Queries) CreateTemplate(ctx context.Context, arg CreateTemplateParams) (ChecklistTemplate, error) {
 	row := q.db.QueryRowContext(ctx, createTemplate, arg.Name, arg.Description)
 	var i ChecklistTemplate
-	err := row.Scan(&i.ID, &i.Name, &i.Description)
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.CategoryID,
+	)
 	return i, err
 }
 
@@ -90,13 +95,18 @@ func (q *Queries) DeleteTemplateItem(ctx context.Context, id int64) error {
 }
 
 const getTemplate = `-- name: GetTemplate :one
-SELECT id, name, description FROM checklist_templates WHERE id = ?
+SELECT id, name, description, category_id FROM checklist_templates WHERE id = ?
 `
 
 func (q *Queries) GetTemplate(ctx context.Context, id int64) (ChecklistTemplate, error) {
 	row := q.db.QueryRowContext(ctx, getTemplate, id)
 	var i ChecklistTemplate
-	err := row.Scan(&i.ID, &i.Name, &i.Description)
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.CategoryID,
+	)
 	return i, err
 }
 
@@ -161,8 +171,10 @@ func (q *Queries) ListTemplateItems(ctx context.Context, templateID int64) ([]Te
 }
 
 const listTemplates = `-- name: ListTemplates :many
-SELECT t.id, t.name, t.description,
-       CAST((SELECT COUNT(*) FROM template_items ti WHERE ti.template_id = t.id AND ti.kind = 'item') AS INTEGER) AS item_count
+SELECT t.id, t.name, t.description, t.category_id,
+       CAST((SELECT COUNT(*) FROM template_items ti WHERE ti.template_id = t.id AND ti.kind = 'item') AS INTEGER) AS item_count,
+       CAST((SELECT COUNT(*) FROM template_uses u WHERE u.template_id = t.id) AS INTEGER) AS used_count,
+       CAST((SELECT COALESCE(MAX(u.used_at), '') FROM template_uses u WHERE u.template_id = t.id) AS TEXT) AS last_used
 FROM checklist_templates t
 ORDER BY t.name COLLATE NOCASE, t.id
 `
@@ -171,7 +183,10 @@ type ListTemplatesRow struct {
 	ID          int64  `json:"id"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
+	CategoryID  *int64 `json:"category_id"`
 	ItemCount   int64  `json:"item_count"`
+	UsedCount   int64  `json:"used_count"`
+	LastUsed    string `json:"last_used"`
 }
 
 func (q *Queries) ListTemplates(ctx context.Context) ([]ListTemplatesRow, error) {
@@ -187,7 +202,10 @@ func (q *Queries) ListTemplates(ctx context.Context) ([]ListTemplatesRow, error)
 			&i.ID,
 			&i.Name,
 			&i.Description,
+			&i.CategoryID,
 			&i.ItemCount,
+			&i.UsedCount,
+			&i.LastUsed,
 		); err != nil {
 			return nil, err
 		}
@@ -246,19 +264,30 @@ func (q *Queries) ShiftTemplateItemPositions(ctx context.Context, arg ShiftTempl
 }
 
 const updateTemplate = `-- name: UpdateTemplate :one
-UPDATE checklist_templates SET name = ?, description = ? WHERE id = ? RETURNING id, name, description
+UPDATE checklist_templates SET name = ?, description = ?, category_id = ? WHERE id = ? RETURNING id, name, description, category_id
 `
 
 type UpdateTemplateParams struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
+	CategoryID  *int64 `json:"category_id"`
 	ID          int64  `json:"id"`
 }
 
 func (q *Queries) UpdateTemplate(ctx context.Context, arg UpdateTemplateParams) (ChecklistTemplate, error) {
-	row := q.db.QueryRowContext(ctx, updateTemplate, arg.Name, arg.Description, arg.ID)
+	row := q.db.QueryRowContext(ctx, updateTemplate,
+		arg.Name,
+		arg.Description,
+		arg.CategoryID,
+		arg.ID,
+	)
 	var i ChecklistTemplate
-	err := row.Scan(&i.ID, &i.Name, &i.Description)
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.CategoryID,
+	)
 	return i, err
 }
 

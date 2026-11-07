@@ -14,6 +14,8 @@
   import ProjectMenu from './ProjectMenu.svelte';
   import CustomerMenu from './CustomerMenu.svelte';
   import StatusMenu from './StatusMenu.svelte';
+  import { projectCardColor, tintStyle } from '$lib/cardColors';
+  import { myColors } from '$lib/myColors.svelte';
   import Avatar from './Avatar.svelte';
   import Icon from './Icon.svelte';
   import EntityIcon from './EntityIcon.svelte';
@@ -74,11 +76,11 @@
     return BOARD_STATUSES.map((s) => ({ key: s, title: statusLabel(s), status: s, items: projects.filter((p) => p.status === s).sort(byPosition) }));
   });
 
-  // the only visible customer is preselected when creating a project
+  // the only visible customer is preselected when creating a project; new
+  // projects always start in "planning", also from another status column
   const singleCustomer = $derived(groups.length === 1 ? groups[0].customer.id : null);
   function addTo(col: Column) {
-    if (col.status) oncreate(singleCustomer, col.status);
-    else oncreate(col.customer?.id ?? singleCustomer, 'planning');
+    oncreate(col.status ? singleCustomer : (col.customer?.id ?? singleCustomer), 'planning');
   }
 
   // WIP limit (status columns): limit reached = red
@@ -228,6 +230,7 @@
       <div class="flex flex-1 flex-col {filter.compact ? 'gap-1.5' : 'gap-2.5'}">
         {#each col.items as p (p.id)}
           {@const tags = tagsByIds(p.tag_ids)}
+          {@const tint = projectCardColor(p, p.customer, myColors.all)}
           {#if col.status && over?.status === col.status && over.before === p.id}<div class="-my-1.5 h-1 shrink-0 rounded-full bg-accent-500"></div>{/if}
           <a
             href="/projects/{p.id}"
@@ -246,7 +249,9 @@
             class="group relative block rounded-xl border bg-white shadow-xs transition-shadow hover:border-accent-300 hover:shadow-md dark:bg-zinc-900 dark:hover:border-accent-500/50
               {filter.compact ? 'px-3 py-2' : 'p-3'}
               {p.status === 'blocked' ? 'border-red-300 dark:border-red-500/50' : 'border-zinc-200 dark:border-zinc-800'}
-              {dragId === p.id ? 'opacity-50' : ''}">
+              {dragId === p.id ? 'opacity-50' : ''}
+              {tint ? 'card-tint' : ''}"
+            style={tintStyle(tint)}>
             <!-- customer (in customer columns: the status instead) -->
             {#if col.customer}
               <p class="flex items-center gap-1.5 pr-6 text-xs text-zinc-500">
@@ -342,7 +347,7 @@
   <StatusMenu status={m.status} x={m.x} y={m.y} onclose={() => (menu = null)} />
 {:else if menu?.kind === 'project'}
   {@const m = menu}
-  <ProjectMenu project={m.project} customer={m.project.customer} x={m.x} y={m.y} initial={m.section} onclose={() => (menu = null)} />
+  <ProjectMenu project={m.project} customer={m.project.customer} x={m.x} y={m.y} initial={m.section} boardColor onclose={() => (menu = null)} />
 {:else if menu?.kind === 'customer'}
   {@const m = menu}
   <CustomerMenu

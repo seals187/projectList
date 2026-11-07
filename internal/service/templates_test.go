@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/seals187/projectList/internal/db/sqlc"
@@ -135,5 +136,19 @@ func TestSaveChecklistAsTemplate(t *testing.T) {
 	items, _ := q.ListTemplateItems(ctx, tmpl.ID)
 	if len(items) != 2 || items[0].Title != "Build" || items[1].Title != "Deploy" {
 		t.Fatalf("Template-Items falsch: %+v", items)
+	}
+}
+
+func TestVariables(t *testing.T) {
+	got := service.VariablesIn("{{a.b}} und {{ heute }}", "{{a.b}} {{Ungültig-}} {{x_1}}")
+	if strings.Join(got, ",") != "a.b,heute,x_1" {
+		t.Fatalf("VariablesIn: %v", got)
+	}
+	s := service.Substitute("Hallo {{ name }}, {{rest}}", map[string]string{"name": "Welt"})
+	if s != "Hallo Welt, {{rest}}" {
+		t.Fatalf("Substitute: %q", s)
+	}
+	if !service.ValidVariableName("server.host_name") || service.ValidVariableName("Server") || service.ValidVariableName("a..b") {
+		t.Fatal("ValidVariableName")
 	}
 }

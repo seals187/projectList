@@ -12,7 +12,7 @@ import (
 )
 
 const createCustomer = `-- name: CreateCustomer :one
-INSERT INTO customers (name, notes, location, contact_name, contact_email, phones) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, name, notes, created_at, location, contact_name, contact_email, background, phones
+INSERT INTO customers (name, notes, location, contact_name, contact_email, phones) VALUES (?, ?, ?, ?, ?, ?) RETURNING id, name, notes, created_at, location, contact_name, contact_email, background, phones, color, color_everywhere
 `
 
 type CreateCustomerParams struct {
@@ -44,6 +44,8 @@ func (q *Queries) CreateCustomer(ctx context.Context, arg CreateCustomerParams) 
 		&i.ContactEmail,
 		&i.Background,
 		&i.Phones,
+		&i.Color,
+		&i.ColorEverywhere,
 	)
 	return i, err
 }
@@ -58,7 +60,7 @@ func (q *Queries) DeleteCustomer(ctx context.Context, id int64) error {
 }
 
 const getCustomer = `-- name: GetCustomer :one
-SELECT id, name, notes, created_at, location, contact_name, contact_email, background, phones FROM customers WHERE id = ?
+SELECT id, name, notes, created_at, location, contact_name, contact_email, background, phones, color, color_everywhere FROM customers WHERE id = ?
 `
 
 func (q *Queries) GetCustomer(ctx context.Context, id int64) (Customer, error) {
@@ -74,6 +76,8 @@ func (q *Queries) GetCustomer(ctx context.Context, id int64) (Customer, error) {
 		&i.ContactEmail,
 		&i.Background,
 		&i.Phones,
+		&i.Color,
+		&i.ColorEverywhere,
 	)
 	return i, err
 }
@@ -123,7 +127,7 @@ func (q *Queries) ListCustomerActivity(ctx context.Context, userID interface{}) 
 
 const listCustomers = `-- name: ListCustomers :many
 
-SELECT id, name, notes, created_at, location, contact_name, contact_email, background, phones FROM customers c
+SELECT id, name, notes, created_at, location, contact_name, contact_email, background, phones, color, color_everywhere FROM customers c
 WHERE (?1 IS NULL
        OR c.id IN (SELECT m.customer_id FROM memberships m WHERE m.user_id = ?1))
 ORDER BY c.name COLLATE NOCASE, c.id
@@ -149,6 +153,8 @@ func (q *Queries) ListCustomers(ctx context.Context, userID interface{}) ([]Cust
 			&i.ContactEmail,
 			&i.Background,
 			&i.Phones,
+			&i.Color,
+			&i.ColorEverywhere,
 		); err != nil {
 			return nil, err
 		}
@@ -206,7 +212,7 @@ func (q *Queries) SearchCustomers(ctx context.Context, arg SearchCustomersParams
 }
 
 const updateCustomer = `-- name: UpdateCustomer :one
-UPDATE customers SET name = ?, notes = ?, location = ?, contact_name = ?, contact_email = ?, phones = ? WHERE id = ? RETURNING id, name, notes, created_at, location, contact_name, contact_email, background, phones
+UPDATE customers SET name = ?, notes = ?, location = ?, contact_name = ?, contact_email = ?, phones = ? WHERE id = ? RETURNING id, name, notes, created_at, location, contact_name, contact_email, background, phones, color, color_everywhere
 `
 
 type UpdateCustomerParams struct {
@@ -240,6 +246,8 @@ func (q *Queries) UpdateCustomer(ctx context.Context, arg UpdateCustomerParams) 
 		&i.ContactEmail,
 		&i.Background,
 		&i.Phones,
+		&i.Color,
+		&i.ColorEverywhere,
 	)
 	return i, err
 }
