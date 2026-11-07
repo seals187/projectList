@@ -31,7 +31,8 @@
   import ProgressToggle from '$lib/components/ProgressToggle.svelte';
   import Icon from '$lib/components/Icon.svelte';
   import EntityIcon from '$lib/components/EntityIcon.svelte';
-  import { customerWide, tintStyle } from '$lib/cardColors';
+  import { customerWide, projectColor, stripeStyle, tintStyle } from '$lib/cardColors';
+  import { myColors } from '$lib/myColors.svelte';
   import type { SidebarCustomer, SidebarProject } from '$lib/types';
   import CustomerMenu from '$lib/components/CustomerMenu.svelte';
   import ProjectMenu from '$lib/components/ProjectMenu.svelte';
@@ -292,7 +293,7 @@
           {#if open}
             <div class="pb-2">
               {#each r.projects as p (p.id)}
-                <a href="/projects/{p.id}" oncontextmenu={(e) => openCtx(e, r.customer, p)} data-testid="customers-project-row" style:grid-template-columns={tpl} class="{cols} px-4 py-1.5 text-sm hover:bg-zinc-100/70 dark:hover:bg-zinc-800/50">
+                <a href="/projects/{p.id}" oncontextmenu={(e) => openCtx(e, r.customer, p)} data-testid="customers-project-row" style:grid-template-columns={tpl} style={stripeStyle(projectColor(p.id, myColors.all))} class="{cols} px-4 py-1.5 text-sm hover:bg-zinc-100/70 dark:hover:bg-zinc-800/50">
                   <span class="flex min-w-0 items-center gap-2 pl-[3.25rem]">
                     <EntityIcon type="project" size="xs" />
                     <span class="truncate font-medium {p.include_in_customer_progress ? '' : 'text-zinc-400 dark:text-zinc-500'}">{p.name}</span>

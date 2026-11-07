@@ -37,7 +37,7 @@
     y: number;
     onclose: () => void;
     initial?: Section | null;
-    boardColor?: boolean; // board: offer the card color of the project
+    boardColor?: boolean; // board: hint that a shared customer color tints the card
     onchanged?: () => void; // after a saved change (pages with their own project list reload it)
   } = $props();
 
@@ -244,27 +244,23 @@
     {/if}
   {/if}
 
-  <!-- personal card color (everyone, also viewers; the shared customer color wins) -->
-  {#if boardColor}
-      {@const shown = customerWide ? cust.color : (myColors.all.board[String(p.id)] ?? '')}
-      <button type="button" class={itemCls} role="menuitem" aria-expanded={section === 'color'} onclick={() => toggle('color')}>
-        <Icon name="palette" size={15} class="shrink-0 text-zinc-400" />
-        <span>{t('menu.cardColor')}</span>
-        <span class="ml-auto flex items-center gap-1.5">
-          {#if shown}<span class="size-3 rounded-full" style:background-color={cardHex(shown)}></span>{/if}
-          <Icon name="chevron" size={13} class="shrink-0 text-zinc-400 transition-transform {section === 'color' ? 'rotate-90' : ''}" />
-        </span>
-      </button>
-      {#if section === 'color'}
-        <div class={subCls}>
-          {#if customerWide}
-            <p class="px-1 pb-1 text-xs text-zinc-500">{t('menu.cardColorWide')}</p>
-          {:else}
-            <CardColorPicker label={t('menu.cardColor')} value={myColors.all.board[String(p.id)] ?? ''} onpick={(c) => setMyColor('board', p.id, c)} />
-            <p class="px-1 pt-1 text-xs text-zinc-400">{t('menu.cardColorMine')}</p>
-          {/if}
-        </div>
-      {/if}
+  <!-- personal project color (everyone, also viewers): board card tint, elsewhere a stripe on the
+       project row; in the board a shared customer color "in all views" tints the card instead -->
+  {@const own = myColors.all.board[String(p.id)] ?? ''}
+  <button type="button" class={itemCls} role="menuitem" aria-expanded={section === 'color'} onclick={() => toggle('color')}>
+    <Icon name="palette" size={15} class="shrink-0 text-zinc-400" />
+    <span>{t('menu.projectColor')}</span>
+    <span class="ml-auto flex items-center gap-1.5">
+      {#if own}<span class="size-3 rounded-full" style:background-color={cardHex(own)}></span>{/if}
+      <Icon name="chevron" size={13} class="shrink-0 text-zinc-400 transition-transform {section === 'color' ? 'rotate-90' : ''}" />
+    </span>
+  </button>
+  {#if section === 'color'}
+    <div class={subCls}>
+      <CardColorPicker label={t('menu.projectColor')} value={own} onpick={(c) => setMyColor('board', p.id, c)} />
+      <p class="px-1 pt-1 text-xs text-zinc-400">{t('menu.projectColorHint')}</p>
+      {#if boardColor && customerWide}<p class="px-1 pt-1 text-xs text-zinc-500">{t('menu.projectColorWide')}</p>{/if}
+    </div>
   {/if}
 
   {#if editable}

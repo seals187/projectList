@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cardHex, customerCardColor, customerWide, emptyMyColors, parseCardColor, parseMyColors, projectCardColor, tintStyle, withMyColor } from './cardColors';
+import { cardHex, customerCardColor, customerWide, emptyMyColors, parseCardColor, parseMyColors, projectCardColor, projectColor, stripeStyle, tintStyle, withMyColor } from './cardColors';
 
 const cust = (o: Partial<{ id: number; color: string; color_everywhere: boolean }> = {}) => ({ id: 1, color: '', color_everywhere: false, ...o });
 
@@ -49,5 +49,15 @@ describe('card colors', () => {
     expect(tintStyle('blue')).toBe('--tint:#3b82f6');
     expect(tintStyle('blue-strong')).toBe('--tint:#3b82f6;--tint-l:30%;--tint-d:40%');
     expect(tintStyle('')).toBeUndefined();
+  });
+});
+
+describe('project color stripe', () => {
+  it('personal project color as a stripe', () => {
+    const mine = withMyColor(emptyMyColors(), 'board', 7, 'blue-strong');
+    expect(projectColor(7, mine)).toBe('blue-strong');
+    expect(projectColor(8, mine)).toBe('');
+    expect(stripeStyle('blue-strong')).toBe('box-shadow: inset 3px 0 0 #3b82f6');
+    expect(stripeStyle('')).toBeUndefined();
   });
 });

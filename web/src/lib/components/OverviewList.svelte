@@ -12,7 +12,7 @@
   import { openCustomers, toggleCustomer } from '$lib/overviewOpen.svelte';
   import { t } from '$lib/i18n.svelte';
   import { statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
-  import { dueUrgent, type OvCustomer } from '$lib/overview';
+  import { dueUrgent, type OvCustomer, type OvProject } from '$lib/overview';
   import { customerSummary, dayMonth, percent } from '$lib/listMetrics';
   import type { DisplayValues } from '$lib/displayCore';
   import { tagsByIds } from '$lib/tags';
@@ -23,7 +23,8 @@
   import TagDots from './TagDots.svelte';
   import CustomerMenu from './CustomerMenu.svelte';
   import { setBoardHidden, sidebar } from '$lib/state.svelte';
-  import { customerCardColor, tintStyle } from '$lib/cardColors';
+  import { customerCardColor, projectColor, stripeStyle, tintStyle } from '$lib/cardColors';
+  import ProjectMenu from './ProjectMenu.svelte';
   import { myColors } from '$lib/myColors.svelte';
   import type { SidebarCustomer } from '$lib/types';
 
@@ -61,12 +62,21 @@
   );
   const barColor = (done: number, total: number) => (total > 0 && done === total ? 'bg-emerald-500' : 'bg-[var(--accent-primary)]');
 
-  // right click on a customer card: customer menu (incl. card color of the list)
+  // right click on a customer card: customer menu (incl. card color of the list);
+  // project rows have their own menu (projectMenu)
   let menu = $state<{ customer: SidebarCustomer; x: number; y: number } | null>(null);
   function customerMenu(e: MouseEvent, customer: SidebarCustomer) {
     if ((e.target as HTMLElement).closest('[data-testid="project-row"]')) return; // browser menu on project links
     e.preventDefault();
     menu = { customer, x: e.clientX, y: e.clientY };
+  }
+  // right click on a project row: project menu (incl. its color, shown as a stripe)
+  let pmenu = $state<{ project: OvProject; customer: SidebarCustomer; x: number; y: number } | null>(null);
+  function projectMenu(e: MouseEvent, project: OvProject, customer: SidebarCustomer) {
+    e.preventDefault();
+    e.stopPropagation();
+    menu = null;
+    pmenu = { project, customer, x: e.clientX, y: e.clientY };
   }
   // customer filter (shared with all overview views)
   const hidden = $derived(new Set(sidebar.boardHidden));
@@ -138,7 +148,7 @@
             {@const tags = tagsByIds(p.tag_ids)}
             {@const pc = percent(p.done, p.total)}
             {@const urgent = dueUrgent(p, today)}
-            <a href="/projects/{p.id}" class="ol-row col-span-full grid-cols-subgrid" data-testid="project-row">
+            <a href="/projects/{p.id}" class="ol-row col-span-full grid-cols-subgrid" style={stripeStyle(projectColor(p.id, myColors.all))} oncontextmenu={(e) => projectMenu(e, p, g.customer)} data-testid="project-row">
               <!-- project: name + tags (C2: same line, C1: own line + checklists) -->
               {#if wide}
                 <span class="flex min-w-0 items-center gap-3">
@@ -210,4 +220,9 @@
     oncreate={() => oncreate(m.customer.id)}
     onfilter={(mode) => customerFilter(m.customer.id, mode)}
     colorView="list" />
+{/if}
+
+{#if pmenu}
+  {@const m = pmenu}
+  <ProjectMenu project={m.project} customer={m.customer} x={m.x} y={m.y} onclose={() => (pmenu = null)} />
 {/if}

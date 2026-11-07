@@ -8,6 +8,15 @@ Changes until the next release are collected under **Unreleased**.
 
 ## [Unreleased]
 
+## [0.1.6] – 2026-11-07
+
+### Added
+
+- Project color (personal, set in the project menu – now in every view, also on right-click in the overview
+  "List"): besides the board card it shows as a colored stripe on the project row in the overview "Cards" and
+  "List", My tasks, Customers (expanded projects) and the customer page; in the board a stripe also appears
+  when the shared customer color tints the card
+
 ## [0.1.5] – 2026-11-07
 
 ### Added
@@ -506,7 +515,8 @@ First version.
   JetBrains Mono; no external requests
 - Checkbox left or right, square or round; code block background light grey, dark grey or black
 
-[Unreleased]: https://github.com/seals187/projectList/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/seals187/projectList/compare/v0.1.6...HEAD
+[0.1.6]: https://github.com/seals187/projectList/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/seals187/projectList/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/seals187/projectList/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/seals187/projectList/compare/v0.1.2...v0.1.3

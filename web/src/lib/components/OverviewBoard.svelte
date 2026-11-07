@@ -14,7 +14,7 @@
   import ProjectMenu from './ProjectMenu.svelte';
   import CustomerMenu from './CustomerMenu.svelte';
   import StatusMenu from './StatusMenu.svelte';
-  import { projectCardColor, tintStyle } from '$lib/cardColors';
+  import { customerWide, projectCardColor, projectColor, stripeStyle, tintStyle } from '$lib/cardColors';
   import { myColors } from '$lib/myColors.svelte';
   import Avatar from './Avatar.svelte';
   import Icon from './Icon.svelte';
@@ -251,7 +251,7 @@
               {p.status === 'blocked' ? 'border-red-300 dark:border-red-500/50' : 'border-zinc-200 dark:border-zinc-800'}
               {dragId === p.id ? 'opacity-50' : ''}
               {tint ? 'card-tint' : ''}"
-            style={tintStyle(tint)}>
+            style={[tintStyle(tint), customerWide(p.customer) ? stripeStyle(projectColor(p.id, myColors.all)) : undefined].filter(Boolean).join(';') || undefined}>
             <!-- customer (in customer columns: the status instead) -->
             {#if col.customer}
               <p class="flex items-center gap-1.5 pr-6 text-xs text-zinc-500">
