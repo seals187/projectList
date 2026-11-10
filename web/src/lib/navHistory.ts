@@ -73,12 +73,14 @@ export interface NavTexts {
 function lookup(data: NavData) {
   const projects = new Map<number, { name: string; customer: SidebarCustomer }>();
   const lists = new Map<number, { title: string; projectId: number }>();
+  const tables = new Map<number, { title: string; projectId: number }>();
   for (const c of data.customers)
     for (const p of c.projects) {
       projects.set(p.id, { name: p.name, customer: c });
       for (const cl of p.checklists) lists.set(cl.id, { title: cl.title, projectId: p.id });
+      for (const tb of p.tables ?? []) tables.set(tb.id, { title: tb.title, projectId: p.id });
     }
-  return { projects, lists };
+  return { projects, lists, tables };
 }
 
 /** Breadcrumb of a page: always starts at the overview (the start page), then the page or the object with its parents. */
@@ -88,12 +90,12 @@ export function crumbsFor(path: string, search: string, data: NavData, tx: NavTe
 }
 
 function pageCrumbs(path: string, search: string, data: NavData, tx: NavTexts): (Described & { href?: string })[] {
-  const m = path.match(/^\/(customers|projects|checklists|templates)\/(\d+)/);
-  const { projects, lists } = lookup(data);
+  const m = path.match(/^\/(customers|projects|checklists|tables|templates)\/(\d+)/);
+  const { projects, lists, tables } = lookup(data);
   if (m) {
     const id = Number(m[2]);
-    // customers, projects and checklists sit below the customers list:
-    // customers / customer / project / checklist
+    // customers, projects, checklists and tables sit below the customers list:
+    // customers / customer / project / checklist or table
     const customersCrumb = { label: tx.customers, icon: 'building2' as const, href: '/customers' };
     const customerCrumb = (c: SidebarCustomer) => ({ label: c.name, type: 'customer' as const, href: `/customers/${c.id}` });
     if (m[1] === 'customers') {
@@ -104,12 +106,13 @@ function pageCrumbs(path: string, search: string, data: NavData, tx: NavTexts): 
       const p = projects.get(id);
       return p ? [customersCrumb, customerCrumb(p.customer), { label: p.name, type: 'project' }] : [customersCrumb, { label: '…', type: 'project' }];
     }
-    if (m[1] === 'checklists') {
-      const l = lists.get(id);
+    if (m[1] === 'checklists' || m[1] === 'tables') {
+      const type = m[1] === 'checklists' ? ('checklist' as const) : ('table' as const);
+      const l = (type === 'checklist' ? lists : tables).get(id);
       const p = l ? projects.get(l.projectId) : undefined;
       return l && p
-        ? [customersCrumb, customerCrumb(p.customer), { label: p.name, type: 'project', href: `/projects/${l.projectId}` }, { label: l.title, type: 'checklist' }]
-        : [customersCrumb, { label: '…', type: 'checklist' }];
+        ? [customersCrumb, customerCrumb(p.customer), { label: p.name, type: 'project', href: `/projects/${l.projectId}` }, { label: l.title, type }]
+        : [customersCrumb, { label: '…', type }];
     }
     const tpl = data.templates?.find((x) => x.id === id);
     return [{ label: tx.templates, icon: 'template', href: '/templates' }, { label: tpl?.name ?? '…', type: 'template' }];
@@ -121,7 +124,7 @@ function pageCrumbs(path: string, search: string, data: NavData, tx: NavTexts): 
 
 /** One line of the history menu: name and type icon / page icon. */
 export function describe(path: string, search: string, data: NavData, tx: NavTexts): Described {
-  const m = path.match(/^\/(customers|projects|checklists|templates)\/(\d+)/);
+  const m = path.match(/^\/(customers|projects|checklists|tables|templates)\/(\d+)/);
   if (m) {
     const crumbs = pageCrumbs(path, search, data, tx);
     const last = crumbs[crumbs.length - 1];

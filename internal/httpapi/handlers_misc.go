@@ -50,6 +50,13 @@ type sidebarProject struct {
 	Total      int64              `json:"total"`
 	Done       int64              `json:"done"`
 	Checklists []sidebarChecklist `json:"checklists"`
+	Tables     []sidebarTable     `json:"tables"`
+}
+
+// sidebarTable: a table of a project (breadcrumb, project page).
+type sidebarTable struct {
+	ID    int64  `json:"id"`
+	Title string `json:"title"`
 }
 
 type sidebarCustomer struct {
@@ -76,6 +83,10 @@ func (s *Server) sidebar(w http.ResponseWriter, r *http.Request, u authz.User) e
 		return err
 	}
 	checklists, err := s.q.ListChecklistsWithProgress(ctx, filter)
+	if err != nil {
+		return err
+	}
+	tables, err := s.q.ListTablesForSidebar(ctx, filter)
 	if err != nil {
 		return err
 	}
@@ -112,18 +123,26 @@ func (s *Server) sidebar(w http.ResponseWriter, r *http.Request, u authz.User) e
 	for _, c := range checklists {
 		byProject[c.ProjectID] = append(byProject[c.ProjectID], sidebarChecklist{ID: c.ID, Title: c.Title, Total: c.Total, Done: c.Done, NextDue: c.NextDue})
 	}
+	tablesByProject := make(map[int64][]sidebarTable, len(projects))
+	for _, t := range tables {
+		tablesByProject[t.ProjectID] = append(tablesByProject[t.ProjectID], sidebarTable{ID: t.ID, Title: t.Title})
+	}
 	byCustomer := make(map[int64][]sidebarProject, len(customers))
 	for _, p := range projects {
 		cls := byProject[p.ID]
 		if cls == nil {
 			cls = []sidebarChecklist{}
 		}
+		tbls := tablesByProject[p.ID]
+		if tbls == nil {
+			tbls = []sidebarTable{}
+		}
 		tagIDs := tagsByProject[p.ID]
 		if tagIDs == nil {
 			tagIDs = []int64{}
 		}
 		byCustomer[p.CustomerID] = append(byCustomer[p.CustomerID], sidebarProject{
-			ID: p.ID, Name: p.Name, Status: p.Status, StartDate: p.StartDate, DueDate: p.DueDate, CreatedAt: p.CreatedAt.Format("2006-01-02"), InProgress: p.IncludeInCustomerProgress, TagIDs: tagIDs, OwnerID: p.OwnerID, OwnerName: p.OwnerName, BoardPos: p.BoardPosition, Background: p.Background, Total: p.Total, Done: p.Done, Checklists: cls,
+			ID: p.ID, Name: p.Name, Status: p.Status, StartDate: p.StartDate, DueDate: p.DueDate, CreatedAt: p.CreatedAt.Format("2006-01-02"), InProgress: p.IncludeInCustomerProgress, TagIDs: tagIDs, OwnerID: p.OwnerID, OwnerName: p.OwnerName, BoardPos: p.BoardPosition, Background: p.Background, Total: p.Total, Done: p.Done, Checklists: cls, Tables: tbls,
 		})
 	}
 	out := make([]sidebarCustomer, len(customers))

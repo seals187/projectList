@@ -86,6 +86,8 @@ type ChecklistTemplate struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	CategoryID  *int64 `json:"category_id"`
+	Kind        string `json:"kind"`
+	SheetData   string `json:"sheet_data"`
 }
 
 type Customer struct {
@@ -163,6 +165,19 @@ type ProjectFileDatum struct {
 	Data   []byte `json:"data"`
 }
 
+type ProjectTable struct {
+	ID         int64  `json:"id"`
+	ProjectID  int64  `json:"project_id"`
+	Title      string `json:"title"`
+	TemplateID *int64 `json:"template_id"`
+	Position   int64  `json:"position"`
+	Data       string `json:"data"`
+	Version    int64  `json:"version"`
+	CreatedAt  string `json:"created_at"`
+	UpdatedAt  string `json:"updated_at"`
+	UpdatedBy  *int64 `json:"updated_by"`
+}
+
 type ProjectTag struct {
 	ProjectID int64 `json:"project_id"`
 	TagID     int64 `json:"tag_id"`
@@ -233,6 +248,7 @@ type TemplateUse struct {
 	ChecklistID *int64 `json:"checklist_id"`
 	RuleID      *int64 `json:"rule_id"`
 	UsedAt      string `json:"used_at"`
+	TableID     *int64 `json:"table_id"`
 }
 
 type TemplateVariable struct {

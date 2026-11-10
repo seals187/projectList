@@ -1,19 +1,21 @@
 <script lang="ts">
   // "Use" a template: choose customer → project (or a new project), adjust the
-  // title, fill in the variables of the template → the checklist is created and opened.
+  // title, fill in the variables of the template → the checklist (or the table of a
+  // table template) is created and opened.
   import { untrack } from 'svelte';
   import { goto } from '$app/navigation';
   import { api, errorText } from '$lib/api';
   import { refreshSidebar, sidebar, toast } from '$lib/state.svelte';
   import { t, type Key } from '$lib/i18n.svelte';
-  import type { Checklist, Project, TemplateSummary, TemplateVariable } from '$lib/types';
+  import type { Checklist, Project, Table, TemplateSummary, TemplateVariable } from '$lib/types';
   import Icon from './Icon.svelte';
-  import { itemsText } from '$lib/templateText';
+  import { templateSizeText } from '$lib/templateText';
   import EntityIcon from './EntityIcon.svelte';
 
   let { template, customerId = null, onclose }: { template: TemplateSummary; customerId?: number | null; onclose: () => void } = $props();
 
   const NEW = -1; // "new project" in the project select
+  const isTable = $derived(template.kind === 'table');
   const init = untrack(() => ({ customerId, name: template.name }));
   let customer = $state(init.customerId ?? sidebar.customers[0]?.id ?? 0);
   let project = $state(0);
@@ -55,7 +57,16 @@
     try {
       let pid = project;
       if (pid === NEW) pid = (await api.post<Project>(`/customers/${customer}/projects`, { name: newName.trim() })).id;
-      const cl = await api.post<Checklist>(`/projects/${pid}/checklists/from-template`, { template_id: template.id, title: title.trim(), values });
+      const body = { template_id: template.id, title: title.trim(), values };
+      if (isTable) {
+        const tb = await api.post<Table>(`/projects/${pid}/tables/from-template`, body);
+        refreshSidebar(0);
+        toast(t('apply.tableDone', { name: tb.title }), 'info');
+        dialog?.close();
+        goto(`/tables/${tb.id}`);
+        return;
+      }
+      const cl = await api.post<Checklist>(`/projects/${pid}/checklists/from-template`, body);
       refreshSidebar(0);
       toast(t('apply.done', { name: cl.title }), 'info');
       dialog?.close();
@@ -79,7 +90,7 @@
       <EntityIcon type="template" size="md" />
       <div class="min-w-0 flex-1">
         <h2 class="text-base font-semibold">{t('apply.title')}</h2>
-        <p class="truncate text-xs text-zinc-500">{template.name} · {itemsText(template.item_count)}</p>
+        <p class="truncate text-xs text-zinc-500">{template.name} · {templateSizeText(template)}</p>
       </div>
       <button type="button" class="btn-ghost px-1.5!" onclick={() => dialog?.close()} aria-label={t('common.cancel')}><Icon name="x" size={16} /></button>
     </div>
@@ -107,7 +118,7 @@
       </label>
     {/if}
     <label class="block">
-      <span class="label">{t('apply.checklistTitle')}</span>
+      <span class="label">{t(isTable ? 'apply.tableTitle' : 'apply.checklistTitle')}</span>
       <input class="input" bind:value={title} maxlength="200" />
     </label>
 
@@ -140,7 +151,7 @@
 
     <div class="flex justify-end gap-2 pt-1">
       <button type="button" class="btn-ghost" onclick={() => dialog?.close()}>{t('common.cancel')}</button>
-      <button type="submit" class="btn-primary" disabled={busy || !customer || (project === NEW && !newName.trim())}>{t('apply.submit')}</button>
+      <button type="submit" class="btn-primary" disabled={busy || !customer || (project === NEW && !newName.trim())}>{t(isTable ? 'apply.tableSubmit' : 'apply.submit')}</button>
     </div>
   </form>
 </dialog>

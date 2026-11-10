@@ -173,9 +173,9 @@ export function toCsv(rows: (string | number | null | undefined)[][]): string {
   return '﻿' + rows.map((r) => r.map(cell).join(';')).join('\r\n');
 }
 
-/** Downloads text as a file (browser). */
-export function download(name: string, text: string, type = 'text/csv;charset=utf-8') {
-  const url = URL.createObjectURL(new Blob([text], { type }));
+/** Downloads text (or binary content, e.g. an XLSX file) as a file (browser). */
+export function download(name: string, content: BlobPart, type = 'text/csv;charset=utf-8') {
+  const url = URL.createObjectURL(new Blob([content], { type }));
   const a = document.createElement('a');
   a.href = url;
   a.download = name;

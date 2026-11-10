@@ -8,6 +8,41 @@ Changes until the next release are collected under **Unreleased**.
 
 ## [Unreleased]
 
+## [0.2.0] – 2026-11-10
+
+### Added
+
+- **Tables** (spreadsheets) in projects, next to the checklists: new tab *Tables* on the project page and a table
+  page with toolbar, formula bar and several sheets (Fortune-sheet). Formulas as in Excel with the English function
+  names (`=SUM(E2:E8)`, `=IF(…)`, `=VLOOKUP(…)` …), number formats (currency CHF, percent), fonts, colors, borders,
+  merged cells, frozen rows/columns, filter, sort, comments. Changes are saved automatically; when someone else saved
+  the table in between, a notice offers to load their version or to keep (overwrite with) your own. Export as CSV
+  (sheet shown, ";" with BOM for Excel) and XLSX (all sheets: values, formulas, formats, colors, merged cells, column
+  widths, frozen panes), import of Excel files (.xlsx) as a new table. Activity log entries for created/deleted
+  tables; duplicating a project copies its tables. Migration 00030
+- **Table templates** in the library: "Save as template" on a table, new templates of the type *Table* (selector
+  next to "New template …"), edited in the spreadsheet on the template page; "Use" / "from a template …" creates a
+  table as a copy, variables like `{{customer.name}}` in cells are replaced. Automations still create checklists only
+- Templates: "+ Template" opens a dialog (name, type checklist / table, category – preselected from the category
+  chip) and then the new template; before, it only focused the barely visible input at the end of the list
+- Table templates from Excel: in the "New template" dialog a table template can start with the sheets of an
+  .xlsx file (name suggested from the file); on the page of a table template "Import Excel" replaces its content
+  (asks first)
+
+### Changed
+
+- Project page: the actions below the checklists and tables are real buttons ("+ Checklist" / "+ Table",
+  "From template", "Import Excel …") instead of grey text links that were hard to notice
+- Customers: the customer menu ("…" in the list, right click in list and cards) has "Delete customer" for admins;
+  the first click asks for confirmation (red), the second deletes the customer incl. all projects
+
+### Fixed
+
+- Customers (list): the "…" button of a row showed nothing (the menu was clipped by the scrolling table); it now
+  opens the full customer menu (open, favorite, new project) below the button
+- Delete buttons with confirmation (e.g. "Delete customer"): once armed, hovering turned the button light with
+  white text and made it hard to read; it now stays red (darker on hover)
+
 ## [0.1.9] – 2026-11-07
 
 ### Added
@@ -558,7 +593,8 @@ First version.
   JetBrains Mono; no external requests
 - Checkbox left or right, square or round; code block background light grey, dark grey or black
 
-[Unreleased]: https://github.com/seals187/projectList/compare/v0.1.9...HEAD
+[Unreleased]: https://github.com/seals187/projectList/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/seals187/projectList/compare/v0.1.9...v0.2.0
 [0.1.9]: https://github.com/seals187/projectList/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/seals187/projectList/compare/v0.1.7...v0.1.8
 [0.1.7]: https://github.com/seals187/projectList/compare/v0.1.6...v0.1.7

@@ -147,6 +147,7 @@ export interface ProjectDetail {
   project: Project;
   customer: { id: number; name: string };
   checklists: ChecklistSummary[];
+  tables: TableSummary[];
   progress: { total: number; done: number };
   tag_ids: number[];
   assignees: Assignee[]; // possible persons responsible
@@ -167,7 +168,12 @@ export interface Template {
   name: string;
   description: string;
   category_id?: number | null;
+  kind?: TemplateKind; // missing = checklist
+  sheet_data?: string; // table templates: the workbook (JSON, see $lib/sheetData)
 }
+
+/** A template creates a checklist (items) or a table (workbook). */
+export type TemplateKind = 'checklist' | 'table';
 
 export interface TemplateSummary extends Template {
   item_count: number;
@@ -262,6 +268,13 @@ export interface SidebarProject {
   total: number;
   done: number;
   checklists: SidebarChecklist[];
+  tables: SidebarTable[];
+}
+
+/** Table of a project in the sidebar data (breadcrumb, project tab). */
+export interface SidebarTable {
+  id: number;
+  title: string;
 }
 
 export interface SidebarCustomer {
@@ -363,4 +376,30 @@ export interface ProjectFile {
   uploaded_by: number | null;
   uploaded_by_name: string;
   created_at: string;
+}
+
+// ---- Tables (spreadsheets) -------------------------------------------------------
+
+/** Table of a project in lists (without the workbook). */
+export interface TableSummary {
+  id: number;
+  project_id: number;
+  title: string;
+  template_id: number | null;
+  position: number;
+  version: number;
+  updated_at: string; // RFC 3339
+  sheets: number;
+  updated_by_name: string;
+}
+
+/** Table with its workbook (sheets as Fortune-sheet stores them, see $lib/sheetData). */
+export interface Table extends Omit<TableSummary, 'sheets'> {
+  data: import('./sheetData').StoredSheet[];
+}
+
+export interface TableDetail {
+  table: Table;
+  project: { id: number; name: string; status: ProjectStatus };
+  customer: { id: number; name: string };
 }

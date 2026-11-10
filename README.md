@@ -1,7 +1,7 @@
 # ProjectList
 
-Lean, self-hosted project management tool: **Customers → Projects → Checklists**.
-Checklists can be created from reusable templates (as independent copies).
+Lean, self-hosted project management tool: **Customers → Projects → Checklists** (and **Tables**).
+Checklists and tables can be created from reusable templates (as independent copies).
 Changes per version: see [CHANGELOG.md](CHANGELOG.md).
 
 - A single Go binary with an embedded SvelteKit frontend, SQLite (pure Go, no CGO)
@@ -17,7 +17,7 @@ docker compose up -d        # pulls the published image ghcr.io/seals187/project
 ```
 
 Version via `PROJECTLIST_VERSION` in `.env`: `latest` = newest release (default), `edge` =
-current development state (every push to `main`), or a fixed version such as `0.1.9`.
+current development state (every push to `main`), or a fixed version such as `0.2.0`.
 Update: `docker compose pull && docker compose up -d`.
 
 Then sign in at <http://localhost:8080> with the admin credentials from `.env`.
@@ -36,7 +36,7 @@ docker compose logs -f projectlist    # structured JSON logs
 Every release has an image for **linux/amd64** and **linux/arm64** (e.g. Raspberry Pi):
 
 ```bash
-docker pull ghcr.io/seals187/projectlist:latest   # or a fixed version, e.g. :0.1.9
+docker pull ghcr.io/seals187/projectlist:latest   # or a fixed version, e.g. :0.2.0
 ```
 
 `docker-compose.yml` already uses this image. Without Compose:
@@ -62,7 +62,7 @@ For every version tag, the workflow `release.yml` creates the GitHub release wit
 | `ADMIN_NAME`          | `Admin`                | Display name of the first admin |
 | `APP_SUBTITLE`        | –                      | Optional subtitle below "ProjectList" in the sidebar (e.g. company or department name) |
 | `PORT`                | `8080`                 | Host port (docker compose only) |
-| `PROJECTLIST_VERSION` | `latest`               | Image version for docker compose: `latest`, `edge` or e.g. `0.1.9` |
+| `PROJECTLIST_VERSION` | `latest`               | Image version for docker compose: `latest`, `edge` or e.g. `0.2.0` |
 | `LISTEN_ADDR`         | `:8080`                | Listen address inside the container |
 | `DB_PATH`             | `/data/projectlist.db` | Path of the SQLite file |
 | `COOKIE_SECURE`       | `true`                 | Send the session cookie over HTTPS only. On `http://localhost` this works in Chrome/Edge/Firefox; set `false` for plain HTTP access via an IP or hostname |
@@ -137,15 +137,19 @@ the user interface translates them.
   open tasks); status per customer: *New* (no projects), *Critical* (project blocked or due/overdue within 3 days),
   *Completed*, otherwise *On track*. Location, contact person, email and phone numbers (several, with a label; clickable) can be edited on the customer page
 - **Project page**: breadcrumb, status, favorite star and actions (duplicate, archive, delete, "+ Checklist"),
-  progress in plain words ("37% · 19 of 31 items · 50 days left"), tabs *Checklists · Activity · Files · Notes* and a
+  progress in plain words ("37% · 19 of 31 items · 50 days left"), tabs *Checklists · Tables · Activity · Files · Notes* and a
   properties panel (status, customer, person responsible, start/end, labels, watchers, Easy Redmine ticket) that is
   edited in place, plus the latest activity. "New project" in the overview can create the first checklist from a
   template right away
-- **Activity log** per project: checked-off items (grouped), checklists created/completed/deleted, status, dates,
+- **Activity log** per project: checked-off items (grouped), checklists created/completed/deleted, tables created/deleted, status, dates,
   person responsible, labels, Redmine ticket and files
 - **Files** per project (upload by button or drag & drop, max. 25 MB per file); stored in the database, so they are
   part of every backup. Downloads are always served as attachments
-- **Duplicate a project** with description, person responsible, labels and all checklists (items unchecked)
+- **Duplicate a project** with description, person responsible, labels, all checklists (items unchecked) and tables
+- **Tables** (spreadsheets) per project: several sheets, formulas as in Excel with the English function names
+  (`=SUM(E2:E8)`, `=IF(…)`, `=VLOOKUP(…)`), number formats, colors, borders, merged cells, frozen rows, filter and sort;
+  saved automatically (a notice appears when someone else changed the table in between). Export as CSV (sheet shown)
+  or XLSX (all sheets), import of Excel files (.xlsx); table templates in the library (variables in cells are replaced)
 - **Easy Redmine**: ticket number per project; an admin sets the Redmine address once (*Settings → Projects*)
 - **Backgrounds**: 25 gradients or uploaded images (max. 5 MB; larger images are scaled down in the browser before
   upload) per user (whole app, *Settings*), per customer and per project; the most specific one applies

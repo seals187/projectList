@@ -6,6 +6,7 @@ import (
 	"github.com/seals187/projectList/internal/authz"
 	"github.com/seals187/projectList/internal/db"
 	"github.com/seals187/projectList/internal/db/sqlc"
+	"github.com/seals187/projectList/internal/service"
 )
 
 // Templates are global: all logged-in users may read them,
@@ -68,6 +69,7 @@ func (s *Server) createTemplate(w http.ResponseWriter, r *http.Request, _ authz.
 	var req struct {
 		Name        string            `json:"name"`
 		Description string            `json:"description"`
+		Kind        string            `json:"kind"` // "checklist" (default) or "table" (empty workbook)
 		Items       []templateItemReq `json:"items"`
 	}
 	if err := decode(w, r, &req); err != nil {
@@ -79,6 +81,13 @@ func (s *Server) createTemplate(w http.ResponseWriter, r *http.Request, _ authz.
 	if len(req.Items) > 1000 {
 		v["items"] = "too_many"
 	}
+	if req.Kind == "" {
+		req.Kind = service.KindChecklist
+	}
+	kind := v.oneOf("kind", req.Kind, service.KindChecklist, service.KindTable)
+	if kind == service.KindTable && len(req.Items) > 0 {
+		v["items"] = "invalid_value"
+	}
 	items := make([]sqlc.CreateTemplateItemParams, len(req.Items))
 	for i, it := range req.Items {
 		it.fill(v, &items[i], "items")
@@ -86,6 +95,14 @@ func (s *Server) createTemplate(w http.ResponseWriter, r *http.Request, _ authz.
 	}
 	if err := v.err(); err != nil {
 		return err
+	}
+	if kind == service.KindTable {
+		t, err := s.q.CreateTableTemplate(r.Context(), sqlc.CreateTableTemplateParams{Name: name, Description: desc, SheetData: service.EmptyWorkbook})
+		if err != nil {
+			return err
+		}
+		writeJSON(w, http.StatusCreated, t)
+		return nil
 	}
 	var t sqlc.ChecklistTemplate
 	err := db.WithTx(r.Context(), s.db, func(q *sqlc.Queries) error {
@@ -192,8 +209,10 @@ func (s *Server) createTemplateItem(w http.ResponseWriter, r *http.Request, _ au
 	if err != nil {
 		return err
 	}
-	if _, err := s.q.GetTemplate(r.Context(), templateID); err != nil {
+	if tmpl, err := s.q.GetTemplate(r.Context(), templateID); err != nil {
 		return err
+	} else if tmpl.Kind != service.KindChecklist {
+		return service.ErrTemplateKind // table templates have a workbook, no items
 	}
 	var req templateItemReq
 	if err := decode(w, r, &req); err != nil {

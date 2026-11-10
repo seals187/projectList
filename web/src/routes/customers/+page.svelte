@@ -3,8 +3,8 @@
   // (PageHeader): search, status filter, chips all / active / critical / without
   // project, sorting, expand/collapse; state per user in localStorage and in the URL.
   import { page } from '$app/state';
-  import { api } from '$lib/api';
-  import { canWrite, isAdmin, openNewProject, prefs, refreshSidebar, sidebar } from '$lib/state.svelte';
+  import { api, errorText } from '$lib/api';
+  import { canWrite, isAdmin, openNewProject, prefs, refreshSidebar, sidebar, toast } from '$lib/state.svelte';
   import { fmtDate, t, todayISO, withoutText } from '$lib/i18n.svelte';
   import { barCls, statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
   import { dueUrgent, pct, segGrow } from '$lib/overview';
@@ -58,14 +58,38 @@
 
   let infos = $state<CustomerListItem[]>([]);
   let adding = $state(false);
-  let menuFor = $state<number | null>(null);
   // right click: customer menu (cards, list rows) or project menu (expanded projects)
   let ctx = $state<{ customer: SidebarCustomer; project?: SidebarProject; x: number; y: number } | null>(null);
   function openCtx(e: MouseEvent, customer: SidebarCustomer, project?: SidebarProject) {
     e.preventDefault();
     e.stopPropagation();
-    menuFor = null;
     ctx = { customer, project, x: e.clientX, y: e.clientY };
+  }
+  // delete from the menu (admins; the menu asks for confirmation first)
+  async function removeCustomer(id: number) {
+    try {
+      await api.del(`/customers/${id}`);
+      infos = infos.filter((x) => x.id !== id);
+      ps.expanded = ps.expanded.filter((x) => x !== id);
+      refreshSidebar(0);
+    } catch (err) {
+      toast(errorText(err));
+    }
+  }
+  // "..." button of a list row: the same customer menu, right-aligned below the button
+  // (fixed position, so the scrolling table no longer clips it; menu width w-72 = 18rem).
+  // The menu closes itself on mousedown outside, so a second click on the button closes it.
+  const menuOpenFor = (id: number) => !!ctx && !ctx.project && ctx.customer.id === id;
+  let menuWasOpen = false;
+  function openMenuBelow(e: MouseEvent, customer: SidebarCustomer) {
+    e.stopPropagation();
+    if (menuWasOpen) {
+      menuWasOpen = false;
+      ctx = null;
+      return;
+    }
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    ctx = { customer, x: r.right - 18 * 16, y: r.bottom + 4 };
   }
 
   $effect(() => {
@@ -104,7 +128,6 @@
   );
 </script>
 
-<svelte:window onclick={() => (menuFor = null)} />
 <svelte:head><title>{t('nav.customers')} · ProjectList</title></svelte:head>
 
 <PageHeader
@@ -173,29 +196,17 @@
 {/snippet}
 
 {#snippet rowMenu(r: CustomerRow)}
-  <div class="relative">
-    <button
-      type="button"
-      class="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
-      onclick={(e) => {
-        e.stopPropagation();
-        menuFor = menuFor === r.customer.id ? null : r.customer.id;
-      }}
-      aria-label="{t('customers.actions')}: {r.customer.name}"
-      aria-expanded={menuFor === r.customer.id}>
-      <Icon name="dots" size={16} />
-    </button>
-    {#if menuFor === r.customer.id}
-      <div class="absolute top-full right-0 z-20 mt-1 w-44 rounded-lg border border-zinc-200 bg-white p-1 text-sm shadow-lg dark:border-zinc-800 dark:bg-zinc-900">
-        <a href="/customers/{r.customer.id}" class="block rounded px-2.5 py-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800">{t('customers.open')}</a>
-        {#if canWrite()}
-          <button type="button" class="block w-full rounded px-2.5 py-1.5 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800" onclick={() => openNewProject(r.customer.id)}>
-            {t('overview.newProject')}
-          </button>
-        {/if}
-      </div>
-    {/if}
-  </div>
+  <button
+    type="button"
+    class="rounded p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+    onmousedown={() => (menuWasOpen = menuOpenFor(r.customer.id))}
+    onclick={(e) => openMenuBelow(e, r.customer)}
+    aria-label="{t('customers.actions')}: {r.customer.name}"
+    aria-haspopup="menu"
+    aria-expanded={menuOpenFor(r.customer.id)}
+    data-testid="customer-row-menu">
+    <Icon name="dots" size={16} />
+  </button>
 {/snippet}
 
 <ZoomArea page="customers">
@@ -349,6 +360,13 @@
   {#if m.project}
     <ProjectMenu project={m.project} customer={m.customer} x={m.x} y={m.y} onclose={() => (ctx = null)} />
   {:else}
-    <CustomerMenu customer={m.customer} x={m.x} y={m.y} canCreate={canWrite()} onclose={() => (ctx = null)} oncreate={() => openNewProject(m.customer.id)} />
+    <CustomerMenu
+      customer={m.customer}
+      x={m.x}
+      y={m.y}
+      canCreate={canWrite()}
+      onclose={() => (ctx = null)}
+      oncreate={() => openNewProject(m.customer.id)}
+      ondelete={isAdmin() ? () => removeCustomer(m.customer.id) : undefined} />
   {/if}
 {/if}

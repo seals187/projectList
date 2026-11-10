@@ -11,7 +11,7 @@
   import { categoryHex } from '$lib/templateLibrary';
   import ContextMenu from './ContextMenu.svelte';
   import Icon from './Icon.svelte';
-  import { itemsText } from '$lib/templateText';
+  import { templateSizeText } from '$lib/templateText';
   import EntityIcon from './EntityIcon.svelte';
 
   let {
@@ -95,7 +95,7 @@
     <EntityIcon type="template" size="sm" class="mt-0.5" />
     <div class="min-w-0 flex-1">
       <p class="truncate font-semibold">{template.name}</p>
-      <p class="truncate text-xs text-zinc-500">{itemsText(template.item_count)}</p>
+      <p class="truncate text-xs text-zinc-500">{templateSizeText(template)}</p>
     </div>
   </div>
 

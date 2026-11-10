@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/seals187/projectList/internal/service"
 )
 
 // ---- Errors ------------------------------------------------------------------
@@ -43,6 +45,8 @@ func (s *Server) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	case errors.As(err, &he):
 	case errors.Is(err, sql.ErrNoRows):
 		he = errNotFound().(*httpError)
+	case errors.Is(err, service.ErrTemplateKind):
+		he = errBadRequest("wrong_template_kind").(*httpError)
 	case isFKViolation(err):
 		he = errBadRequest("reference_missing").(*httpError)
 	default:

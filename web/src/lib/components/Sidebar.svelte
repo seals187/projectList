@@ -16,21 +16,23 @@
   import Icon from './Icon.svelte';
   import Avatar from './Avatar.svelte';
 
-  // Projects by ID and checklist → project (active project)
+  // Projects by ID and checklist / table → project (active project)
   const lookup = $derived.by(() => {
     const projects = new Map<number, { p: SidebarProject; c: SidebarCustomer }>();
     const checklists = new Map<number, number>();
+    const tables = new Map<number, number>();
     for (const c of sidebar.customers)
       for (const p of c.projects) {
         projects.set(p.id, { p, c });
         for (const cl of p.checklists) checklists.set(cl.id, p.id);
+        for (const tb of p.tables ?? []) tables.set(tb.id, p.id);
       }
-    return { projects, checklists };
+    return { projects, checklists, tables };
   });
 
   // Active customer/project from the URL ("+" preselects the customer, favorite highlighted)
   const active = $derived.by(() => {
-    const m = page.url.pathname.match(/^\/(customers|projects|checklists)\/(\d+)/);
+    const m = page.url.pathname.match(/^\/(customers|projects|checklists|tables)\/(\d+)/);
     let customerId: number | null = null,
       projectId: number | null = null,
       checklistId: number | null = null;
@@ -38,7 +40,7 @@
       const id = Number(m[2]);
       if (m[1] === 'customers') customerId = id;
       if (m[1] === 'checklists') checklistId = id;
-      projectId = m[1] === 'projects' ? id : m[1] === 'checklists' ? (lookup.checklists.get(id) ?? null) : null;
+      projectId = m[1] === 'projects' ? id : m[1] === 'checklists' ? (lookup.checklists.get(id) ?? null) : m[1] === 'tables' ? (lookup.tables.get(id) ?? null) : null;
       if (projectId) customerId = lookup.projects.get(projectId)?.c.id ?? null;
     }
     return { customerId, projectId, checklistId };

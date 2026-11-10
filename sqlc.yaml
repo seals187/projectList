@@ -115,3 +115,15 @@ sql:
               import: "time"
               type: "Time"
               pointer: true
+          - column: "project_tables.template_id"
+            go_type:
+              type: "int64"
+              pointer: true
+          - column: "project_tables.updated_by"
+            go_type:
+              type: "int64"
+              pointer: true
+          - column: "template_uses.table_id"
+            go_type:
+              type: "int64"
+              pointer: true

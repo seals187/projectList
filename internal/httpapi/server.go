@@ -153,6 +153,17 @@ func New(o Options) http.Handler {
 	mux.Handle("DELETE /api/checklists/{id}", s.writer(s.deleteChecklist))
 	mux.Handle("POST /api/checklists/{id}/save-as-template", s.writer(s.saveChecklistAsTemplate))
 
+	// Tables (spreadsheets)
+	mux.Handle("GET /api/projects/{id}/tables", s.authed(s.listTables))
+	mux.Handle("POST /api/projects/{id}/tables", s.writer(s.createTable))
+	mux.Handle("POST /api/projects/{id}/tables/from-template", s.writer(s.createTableFromTemplate))
+	mux.Handle("PUT /api/projects/{id}/tables/order", s.writer(s.orderTables))
+	mux.Handle("GET /api/tables/{id}", s.authed(s.getTable))
+	mux.Handle("PATCH /api/tables/{id}", s.writer(s.updateTable))
+	mux.Handle("PUT /api/tables/{id}/data", s.writer(s.saveTableData))
+	mux.Handle("DELETE /api/tables/{id}", s.writer(s.deleteTable))
+	mux.Handle("POST /api/tables/{id}/save-as-template", s.writer(s.saveTableAsTemplate))
+
 	// Items
 	mux.Handle("POST /api/checklists/{id}/items", s.writer(s.createItem))
 	mux.Handle("PUT /api/checklists/{id}/items/order", s.writer(s.orderItems))
@@ -171,6 +182,7 @@ func New(o Options) http.Handler {
 	mux.Handle("PATCH /api/template-items/{id}", s.writer(s.updateTemplateItem))
 	mux.Handle("DELETE /api/template-items/{id}", s.writer(s.deleteTemplateItem))
 	mux.Handle("GET /api/templates/{id}/variables", s.authed(s.templateVariables))
+	mux.Handle("PUT /api/templates/{id}/sheet", s.writer(s.saveTemplateSheet))
 
 	// Template library: categories, variables, automations (admins edit)
 	mux.Handle("GET /api/template-categories", s.authed(s.listTemplateCategories))

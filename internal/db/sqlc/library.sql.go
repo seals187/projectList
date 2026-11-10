@@ -150,6 +150,8 @@ const listAllTemplateTexts = `-- name: ListAllTemplateTexts :many
 SELECT t.id AS template_id, t.name AS text FROM checklist_templates t
 UNION ALL
 SELECT ti.template_id, ti.title || ' ' || ti.description FROM template_items ti
+UNION ALL
+SELECT t.id, t.sheet_data FROM checklist_templates t WHERE t.kind = 'table'
 `
 
 type ListAllTemplateTextsRow struct {
@@ -157,7 +159,7 @@ type ListAllTemplateTextsRow struct {
 	Text       string `json:"text"`
 }
 
-// name and items of all templates (to find the variables they use)
+// name, items and table contents of all templates (to find the variables they use)
 func (q *Queries) ListAllTemplateTexts(ctx context.Context) ([]ListAllTemplateTextsRow, error) {
 	rows, err := q.db.QueryContext(ctx, listAllTemplateTexts)
 	if err != nil {

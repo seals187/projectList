@@ -64,6 +64,10 @@ export function activityText(a: ActivityGroup): string {
       return t('activity.fileAdded', s);
     case 'file_deleted':
       return t('activity.fileDeleted', s);
+    case 'table_created':
+      return t('activity.tableCreated', s);
+    case 'table_deleted':
+      return t('activity.tableDeleted', s);
     default:
       return a.kind;
   }
@@ -84,4 +88,5 @@ export function relativeTime(iso: string): string {
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 
 /** Object type an activity is about (type icon in the log). */
-export const activityType = (kind: string): 'checklist' | 'project' => (kind.startsWith('checklist') || kind === 'item_done' ? 'checklist' : 'project');
+export const activityType = (kind: string): 'checklist' | 'table' | 'project' =>
+  kind.startsWith('checklist') || kind === 'item_done' ? 'checklist' : kind.startsWith('table') ? 'table' : 'project';

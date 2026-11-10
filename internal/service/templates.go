@@ -44,6 +44,9 @@ func ApplyTemplate(ctx context.Context, d *sql.DB, projectID, templateID int64, 
 		if err != nil {
 			return err
 		}
+		if tmpl.Kind == KindTable {
+			return ErrTemplateKind
+		}
 		items, err := q.ListTemplateItems(ctx, templateID)
 		if err != nil {
 			return err

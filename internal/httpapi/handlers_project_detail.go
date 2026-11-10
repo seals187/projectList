@@ -40,6 +40,8 @@ const (
 	actItemDone         = "item_done"
 	actFileAdded        = "file_added"
 	actFileDeleted      = "file_deleted"
+	actTableCreated     = "table_created"
+	actTableDeleted     = "table_deleted"
 )
 
 // logActivity records an entry in the project's activity log. A failure is
@@ -298,7 +300,7 @@ func nonNil[T any](s []T) []T {
 // ---- Duplicate ----------------------------------------------------------------------------
 
 // POST /api/projects/{id}/duplicate: copy of the project in the same customer
-// with description, person responsible, labels and all checklists (items not
+// with description, person responsible, labels, all tables and all checklists (items not
 // checked off, without due dates). Status: planning.
 func (s *Server) duplicateProject(w http.ResponseWriter, r *http.Request, u authz.User) error {
 	id, err := pathID(r, "id")
@@ -368,6 +370,18 @@ func (s *Server) duplicateProject(w http.ResponseWriter, r *http.Request, u auth
 				}); err != nil {
 					return err
 				}
+			}
+		}
+		tables, err := q.ListTableDataByProject(ctx, id)
+		if err != nil {
+			return err
+		}
+		now := s.stamp()
+		for _, t := range tables {
+			if _, err := q.CreateTable(ctx, sqlc.CreateTableParams{
+				ProjectID: p.ID, Title: t.Title, TemplateID: t.TemplateID, Position: t.Position, Data: t.Data, CreatedAt: now, UpdatedAt: now, UpdatedBy: &u.ID,
+			}); err != nil {
+				return err
 			}
 		}
 		return nil

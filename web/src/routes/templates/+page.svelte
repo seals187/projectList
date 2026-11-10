@@ -8,7 +8,6 @@
   // groups), display options; state per user in localStorage and in the URL.
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
-  import { tick } from 'svelte';
   import { api, errorText } from '$lib/api';
   import { canWrite, isAdmin, toast } from '$lib/state.svelte';
   import { t, type Key } from '$lib/i18n.svelte';
@@ -17,15 +16,16 @@
   import { allCollapsed } from '$lib/pageStateCore';
   import { displayLabel, displayOf, setDisplay } from '$lib/display.svelte';
   import { categoryHex, groupTemplates, lastUsed } from '$lib/templateLibrary';
-  import { itemsText } from '$lib/templateText';
+  import { templateSizeText } from '$lib/templateText';
   import { triggerDetail, triggerTitle } from '$lib/automationText';
-  import type { AutomationRule, AutomationRun, Template, TemplateCategory, TemplateSummary, TemplateVariable } from '$lib/types';
+  import type { AutomationRule, AutomationRun, Template, TemplateCategory, TemplateKind, TemplateSummary, TemplateVariable } from '$lib/types';
   import PageHeader, { type QuickFilter } from '$lib/components/PageHeader.svelte';
   import ZoomArea from '$lib/components/ZoomArea.svelte';
   import Icon from '$lib/components/Icon.svelte';
   import TemplateMenu from '$lib/components/TemplateMenu.svelte';
   import ApplyTemplateDialog from '$lib/components/ApplyTemplateDialog.svelte';
   import CategoryDialog from '$lib/components/CategoryDialog.svelte';
+  import NewTemplateDialog from '$lib/components/NewTemplateDialog.svelte';
   import RuleDialog from '$lib/components/RuleDialog.svelte';
   import VariableDialog from '$lib/components/VariableDialog.svelte';
   import AutomationsView from '$lib/components/AutomationsView.svelte';
@@ -159,24 +159,22 @@
 
   // ---- actions -------------------------------------------------------------------------
   let newName = $state('');
-  let newInput = $state<HTMLInputElement>();
+  let newKind = $state<TemplateKind>('checklist');
   async function create(e: SubmitEvent) {
     e.preventDefault();
     if (!newName.trim()) return;
     try {
       const cat = ps.chip.startsWith('cat:') ? Number(ps.chip.slice(4)) : 0;
-      const tpl = await api.post<Template>('/templates', { name: newName });
+      const tpl = await api.post<Template>('/templates', { name: newName, kind: newKind });
       if (cat) await api.patch(`/templates/${tpl.id}`, { category_id: cat });
       goto(`/templates/${tpl.id}`);
     } catch (err) {
       toast(errorText(err));
     }
   }
-  async function focusNew() {
-    await tick();
-    newInput?.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    newInput?.focus();
-  }
+  // "+ Template": dialog with name, type and category (preselected: the category chip)
+  let adding = $state(false);
+  const chipCategory = $derived(ps.chip.startsWith('cat:') ? Number(ps.chip.slice(4)) : 0);
 
   let menu = $state<{ template: TemplateSummary; x: number; y: number } | null>(null);
   function openMenu(e: MouseEvent, tpl: TemplateSummary, below = false) {
@@ -191,7 +189,7 @@
   let varEdit = $state<{ variable: TemplateVariable | null } | null>(null);
 
   const primary = $derived.by(() => {
-    if (view === 'library') return writer ? { label: t('ph.addTemplate'), onClick: focusNew } : undefined;
+    if (view === 'library') return writer ? { label: t('ph.addTemplate'), onClick: () => (adding = true) } : undefined;
     if (view === 'automations') return admin && templates?.length ? { label: t('auto.add'), onClick: () => (ruleEdit = { rule: null }) } : undefined;
     return admin ? { label: t('var.add'), onClick: () => (varEdit = { variable: null }) } : undefined;
   });
@@ -278,13 +276,13 @@
               oncontextmenu={(e) => openMenu(e, tpl)}
               data-testid="template-row">
               <span class="flex min-w-0 items-center gap-3 {categories.length ? 'pl-5' : ''}">
-                <span class="tpl-icon" style:--c={categoryHex(categories.find((c) => c.id === tpl.category_id))}><Icon name="fileText" size={16} /></span>
+                <span class="tpl-icon" style:--c={categoryHex(categories.find((c) => c.id === tpl.category_id))}><Icon name={tpl.kind === 'table' ? 'sheet' : 'fileText'} size={16} /></span>
                 <span class="min-w-0">
                   <a href="/templates/{tpl.id}" class="block truncate font-semibold hover:underline" onclick={(e) => e.stopPropagation()}>{tpl.name}</a>
                   {#if tpl.description && disp.description}<span class="block truncate text-[13px] text-zinc-500">{tpl.description}</span>{/if}
                 </span>
               </span>
-              <span class="text-sm max-md:hidden">{disp.items ? itemsText(tpl.item_count) : ''}</span>
+              <span class="text-sm max-md:hidden">{disp.items ? templateSizeText(tpl) : ''}</span>
               <span class="text-sm font-semibold tabular-nums max-md:hidden">{disp.used ? `${tpl.used_count ?? 0}×` : ''}</span>
               <span class="text-sm text-zinc-500 max-md:hidden">{disp.lastUsed ? lastUsedText(tpl.last_used) : ''}</span>
               <span class="flex items-center justify-end gap-1.5">
@@ -302,7 +300,12 @@
     {#if writer}
       <form onsubmit={create} class="flex items-center gap-2 px-4 py-2.5">
         <Icon name="plus" size={15} class="text-zinc-400" />
-        <input bind:this={newInput} class="flex-1 bg-transparent py-0.5 text-sm outline-none placeholder:text-zinc-400" placeholder={t('templates.new')} bind:value={newName} aria-label={t('templates.new')} />
+        <input class="flex-1 bg-transparent py-0.5 text-sm outline-none placeholder:text-zinc-400" placeholder={t('templates.new')} bind:value={newName} aria-label={t('templates.new')} />
+        <!-- checklist (items) or table (spreadsheet) -->
+        <select class="rounded-md bg-transparent py-0.5 text-sm text-zinc-500 outline-none hover:text-zinc-800 dark:hover:text-zinc-200" bind:value={newKind} aria-label={t('templates.kindLabel')} data-testid="template-kind">
+          <option value="checklist">{t('templates.kind.checklist')}</option>
+          <option value="table">{t('templates.kind.table')}</option>
+        </select>
         {#if newName.trim()}<button class="btn-primary py-1!" type="submit">{t('common.create')}</button>{/if}
       </form>
     {/if}
@@ -330,11 +333,14 @@
 {#if applying}
   <ApplyTemplateDialog template={applying} onclose={() => ((applying = null), loadTemplates())} />
 {/if}
+{#if adding}
+  <NewTemplateDialog {categories} categoryId={chipCategory} onclose={() => (adding = false)} />
+{/if}
 {#if managing}
   <CategoryDialog {categories} onchange={() => (loadCategories(), loadTemplates())} onclose={() => (managing = false)} />
 {/if}
 {#if ruleEdit}
-  <RuleDialog rule={ruleEdit.rule} templates={templates ?? []} onsaved={loadAutomations} onclose={() => (ruleEdit = null)} />
+  <RuleDialog rule={ruleEdit.rule} templates={(templates ?? []).filter((x) => x.kind !== 'table')} onsaved={loadAutomations} onclose={() => (ruleEdit = null)} />
 {/if}
 {#if varEdit}
   <VariableDialog variable={varEdit.variable} onsaved={loadVariables} onclose={() => (varEdit = null)} />

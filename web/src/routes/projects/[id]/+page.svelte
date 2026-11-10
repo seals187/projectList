@@ -1,6 +1,6 @@
 <script lang="ts">
   // Project page: header (breadcrumb, status, favorite, actions), progress with
-  // context, tabs (checklists, activity, files, notes) and on the right the
+  // context, tabs (checklists, tables, activity, files, notes) and on the right the
   // properties panel and the latest activity.
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
@@ -9,7 +9,10 @@
   import { untrack } from 'svelte';
   import { fmtDate, t, todayISO } from '$lib/i18n.svelte';
   import { reorder, sortable } from '$lib/sortable';
-  import type { ActivityEntry, Checklist, ChecklistSummary, Project, ProjectDetail, ProjectStatus } from '$lib/types';
+  import type { ActivityEntry, Checklist, ChecklistSummary, Project, ProjectDetail, ProjectStatus, Table } from '$lib/types';
+  import { relativeTime } from '$lib/activity';
+  import { sheetsText } from '$lib/templateText';
+  import { readXlsx, titleFromFile } from '$lib/xlsxImport';
   import { ALL_STATUSES, barCls, statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
   import { pct } from '$lib/overview';
   import { toDay } from '$lib/dates';
@@ -31,8 +34,8 @@
   import BackgroundPicker from '$lib/components/BackgroundPicker.svelte';
   import Icon from '$lib/components/Icon.svelte';
 
-  type Tab = 'checklists' | 'activity' | 'files' | 'notes';
-  const TABS: Tab[] = ['checklists', 'activity', 'files', 'notes'];
+  type Tab = 'checklists' | 'tables' | 'activity' | 'files' | 'notes';
+  const TABS: Tab[] = ['checklists', 'tables', 'activity', 'files', 'notes'];
 
   let data = $state<ProjectDetail | null>(null);
   let notFound = $state(false);
@@ -199,6 +202,75 @@
     }
   }
 
+  // ---- Tables ------------------------------------------------------------------------
+  let tableMode = $state<'none' | 'blank' | 'template'>('none');
+  let tableTitle = $state('');
+  let importing = $state(false);
+  let importInput = $state<HTMLInputElement>();
+
+  async function addTable(e: SubmitEvent) {
+    e.preventDefault();
+    if (!tableTitle.trim()) return;
+    try {
+      const tb = await api.post<Table>(`/projects/${id}/tables`, { title: tableTitle });
+      tableTitle = '';
+      refreshSidebar(0);
+      goto(`/tables/${tb.id}`);
+    } catch (err) {
+      toast(errorText(err));
+    }
+  }
+
+  function tableCreated(tb: Table) {
+    tableMode = 'none';
+    refreshSidebar(0);
+    goto(`/tables/${tb.id}`);
+  }
+
+  // Excel file → new table named after the file
+  async function importTable(file: File | undefined) {
+    if (!file) return;
+    importing = true;
+    try {
+      const sheets = await readXlsx(file);
+      if (!sheets) return;
+      const tb = await api.post<Table>(`/projects/${id}/tables`, { title: titleFromFile(file.name), data: sheets });
+      toast(t('table.imported', { name: tb.title }), 'info');
+      refreshSidebar(0);
+      goto(`/tables/${tb.id}`);
+    } catch (err) {
+      toast(errorText(err));
+    } finally {
+      importing = false;
+      if (importInput) importInput.value = '';
+    }
+  }
+
+  async function sortTables(ids: number[]) {
+    if (!data) return;
+    const prev = data.tables;
+    data.tables = reorder(prev, ids);
+    try {
+      await api.put(`/projects/${id}/tables/order`, { ids });
+      refreshSidebar(0);
+    } catch (e) {
+      data.tables = prev;
+      toast(errorText(e));
+    }
+  }
+
+  async function deleteTable(tableId: number) {
+    if (!data) return;
+    try {
+      await api.del(`/tables/${tableId}`);
+      data.tables = data.tables.filter((x) => x.id !== tableId);
+      refreshSidebar(0);
+      loadActivity();
+    } catch (e) {
+      toast(errorText(e));
+    }
+  }
+
   // ---- Actions -----------------------------------------------------------------------
   async function duplicate() {
     if (!data) return;
@@ -274,6 +346,7 @@
         <button type="button" role="tab" aria-selected={tab === tb} class={tabCls(tab === tb)} onclick={() => setTab(tb)}>
           {t(`project.tab.${tb}`)}
           {#if tb === 'checklists'}<span class="ml-0.5 text-zinc-400 tabular-nums">{d.checklists.length}</span>{/if}
+          {#if tb === 'tables' && d.tables.length}<span class="ml-0.5 text-zinc-400 tabular-nums">{d.tables.length}</span>{/if}
           {#if tb === 'files' && d.files_count}<span class="ml-0.5 text-zinc-400 tabular-nums">{d.files_count}</span>{/if}
         </button>
       {/each}
@@ -308,7 +381,11 @@
             aria-label={t('menu.actions')}>
             <Icon name="dots" size={16} />
           </button>
-          <button type="button" class="btn-primary" onclick={newChecklist}><Icon name="plus" size={15} /> {t('project.checklistShort')}</button>
+          {#if tab === 'tables'}
+            <button type="button" class="btn-primary" onclick={() => (tableMode = 'blank')}><Icon name="plus" size={15} /> {t('entity.table')}</button>
+          {:else}
+            <button type="button" class="btn-primary" onclick={newChecklist}><Icon name="plus" size={15} /> {t('project.checklistShort')}</button>
+          {/if}
         </div>
       {/if}
     </header>
@@ -398,12 +475,64 @@
               {:else if mode === 'template'}
                 <TemplatePicker projectId={id} oncreated={created} oncancel={() => (mode = 'none')} />
               {:else}
-                <p class="flex items-center gap-1.5 text-sm text-zinc-400">
-                  <Icon name="plus" size={14} />
-                  <button type="button" class="hover:text-zinc-700 dark:hover:text-zinc-200" onclick={() => (mode = 'blank')}>{t('project.addChecklist')}</button>
-                  {t('project.or')}
-                  <button type="button" class="hover:text-zinc-700 dark:hover:text-zinc-200" onclick={() => (mode = 'template')}>{t('project.fromTemplateLower')}</button>
-                </p>
+                <div class="flex flex-wrap items-center gap-2">
+                  <button type="button" class="btn-primary py-1.5!" onclick={() => (mode = 'blank')} data-testid="add-checklist"><Icon name="plus" size={15} />{t('project.checklistShort')}</button>
+                  <button type="button" class="btn-outline py-1.5!" onclick={() => (mode = 'template')}><Icon name="template" size={15} />{t('project.fromTemplateBtn')}</button>
+                </div>
+              {/if}
+            </div>
+          {/if}
+        </div>
+      {:else if tab === 'tables'}
+        <div class="surface overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800" data-testid="project-tables">
+          <ul use:sortable={{ onsort: sortTables, disabled: !editable }} class="divide-y divide-zinc-100 dark:divide-zinc-800">
+            {#each d.tables as tb (tb.id)}
+              <li data-id={tb.id} class="group relative flex items-center bg-white dark:bg-zinc-900 [&.dragging]:shadow-lg">
+                {#if editable}
+                  <button type="button" data-handle class="cursor-grab touch-none py-3 pr-1 pl-2.5 text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100" aria-label={t('checklist.drag')}>
+                    <Icon name="grip" size={14} />
+                  </button>
+                {/if}
+                <a href="/tables/{tb.id}" class="flex min-w-0 flex-1 items-center gap-3 py-3 pr-4 {editable ? 'pl-1' : 'pl-4'} hover:bg-zinc-50 dark:hover:bg-zinc-900/60">
+                  <EntityIcon type="table" size="sm" />
+                  <span class="min-w-0 flex-1 truncate font-medium">{tb.title}</span>
+                  <span class="hidden text-xs text-zinc-400 sm:inline">
+                    {sheetsText(tb.sheets)}{#if tb.updated_at && tb.updated_by_name}{' · '}{t('table.updated', { time: relativeTime(tb.updated_at), name: tb.updated_by_name })}{/if}
+                  </span>
+                </a>
+                {#if editable}
+                  <span class="min-w-9 shrink-0 pr-2 text-right whitespace-nowrap [@media(hover:hover)]:opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+                    <ConfirmButton class="btn-ghost px-1.5! text-zinc-400 hover:text-red-600" onconfirm={() => deleteTable(tb.id)} confirmLabel={t('table.deleteConfirm')} label={t('table.delete')}>
+                      <Icon name="trash" size={14} />
+                    </ConfirmButton>
+                  </span>
+                {/if}
+              </li>
+            {/each}
+          </ul>
+          {#if !d.tables.length && !editable}
+            <p class="px-4 py-4 text-sm text-zinc-400">{t('project.noTables')}</p>
+          {/if}
+          {#if editable}
+            <div class="border-t border-zinc-100 px-4 py-2.5 dark:border-zinc-800 {d.tables.length ? '' : 'border-t-0'}">
+              {#if tableMode === 'blank'}
+                <form onsubmit={addTable} class="flex gap-2">
+                  <!-- svelte-ignore a11y_autofocus -->
+                  <input class="input" placeholder={t('table.titlePlaceholder')} bind:value={tableTitle} autofocus onkeydown={(e) => e.key === 'Escape' && (tableMode = 'none')} />
+                  <button class="btn-primary" type="submit">{t('common.create')}</button>
+                  <button class="btn-ghost" type="button" onclick={() => (tableMode = 'none')}>{t('common.cancel')}</button>
+                </form>
+              {:else if tableMode === 'template'}
+                <TemplatePicker projectId={id} kind="table" oncreated={tableCreated} oncancel={() => (tableMode = 'none')} />
+              {:else}
+                <div class="flex flex-wrap items-center gap-2">
+                  <button type="button" class="btn-primary py-1.5!" onclick={() => (tableMode = 'blank')} data-testid="add-table"><Icon name="plus" size={15} />{t('entity.table')}</button>
+                  <button type="button" class="btn-outline py-1.5!" onclick={() => (tableMode = 'template')}><Icon name="template" size={15} />{t('project.fromTemplateBtn')}</button>
+                  <button type="button" class="btn-outline py-1.5!" disabled={importing} onclick={() => importInput?.click()} data-testid="import-table">
+                    <Icon name="download" size={15} class="rotate-180" />{importing ? t('table.importing') : t('project.importExcelBtn')}
+                  </button>
+                  <input bind:this={importInput} type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="hidden" onchange={(e) => importTable(e.currentTarget.files?.[0])} />
+                </div>
               {/if}
             </div>
           {/if}

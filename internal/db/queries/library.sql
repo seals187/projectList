@@ -36,10 +36,12 @@ UPDATE template_variables SET name = ?, description = ?, default_value = ?, sour
 DELETE FROM template_variables WHERE id = ?;
 
 -- name: ListAllTemplateTexts :many
--- name and items of all templates (to find the variables they use)
+-- name, items and table contents of all templates (to find the variables they use)
 SELECT t.id AS template_id, t.name AS text FROM checklist_templates t
 UNION ALL
-SELECT ti.template_id, ti.title || ' ' || ti.description FROM template_items ti;
+SELECT ti.template_id, ti.title || ' ' || ti.description FROM template_items ti
+UNION ALL
+SELECT t.id, t.sheet_data FROM checklist_templates t WHERE t.kind = 'table';
 
 -- name: VariableContext :one
 -- values for the system variables of a project

@@ -1,5 +1,5 @@
 <script lang="ts">
-  // Type icon (customer, project, checklist, template, saved view, favorites
+  // Type icon (customer, project, checklist, table, template, saved view, favorites
   // group): icon in a rounded box in the type colors (CSS variables, see
   // $lib/entityTypes and app.css). Sizes: sm 22 px, md 26 px, lg 32 px.
   import { ENTITY_SIZES, ENTITY_TYPES, type EntitySize, type EntityType } from '$lib/entityTypes';

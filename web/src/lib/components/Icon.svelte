@@ -44,6 +44,7 @@
     briefcase: 'M3 8h18v12H3zM9 8V5h6v3M3 13h18',
     board: 'M4 4h16v16H4zM9 8v8M14 8v4',
     grid: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
+    sheet: 'M4 4h16v16H4zM4 9.5h16M4 15h16M10 4v16',
     list: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',
     filter: 'M4 5h16l-6 7.5V19l-4-2v-4.5z',
     timeline: 'M4 4v16M8 7h7M11 12h8M7 17h6',

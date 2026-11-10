@@ -85,7 +85,7 @@ func (s *Server) loadProject(ctx context.Context, u authz.User, id int64) (sqlc.
 }
 
 // projectChecklists loads all checklists incl. items with exactly two queries.
-// getProject returns the project with its checklists; progress and
+// getProject returns the project with its checklists and tables; progress and
 // due date per checklist are aggregated in SQL (no items loaded).
 func (s *Server) getProject(w http.ResponseWriter, r *http.Request, u authz.User) error {
 	id, err := pathID(r, "id")
@@ -101,6 +101,10 @@ func (s *Server) getProject(w http.ResponseWriter, r *http.Request, u authz.User
 		return err
 	}
 	checklists, err := s.q.ListChecklistsByProject(r.Context(), id)
+	if err != nil {
+		return err
+	}
+	tables, err := s.q.ListTablesByProject(r.Context(), id)
 	if err != nil {
 		return err
 	}
@@ -134,6 +138,7 @@ func (s *Server) getProject(w http.ResponseWriter, r *http.Request, u authz.User
 		"project":     p,
 		"customer":    map[string]any{"id": customer.ID, "name": customer.Name},
 		"checklists":  checklists,
+		"tables":      tables,
 		"progress":    prog,
 		"tag_ids":     tagIDs,
 		"assignees":   assignees,

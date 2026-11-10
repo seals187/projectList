@@ -54,7 +54,7 @@ describe('applyNav', () => {
 
 describe('breadcrumb and history labels', () => {
   const customers = [
-    { id: 1, name: 'Kantonsspital Zug', projects: [{ id: 2, name: 'New OBP SRV', checklists: [{ id: 9, title: 'Installation' }] }] }
+    { id: 1, name: 'Kantonsspital Zug', projects: [{ id: 2, name: 'New OBP SRV', checklists: [{ id: 9, title: 'Installation' }], tables: [{ id: 7, title: 'Kalkulation' }] }] }
   ] as unknown as SidebarCustomer[];
   const templates = [{ id: 4, name: 'Server', description: '', item_count: 3 }] as TemplateSummary[];
   const data = { customers, templates };
@@ -81,6 +81,17 @@ describe('breadcrumb and history labels', () => {
       { label: 'New OBP SRV', type: 'project', href: '/projects/2' },
       { label: 'Installation', type: 'checklist' }
     ]);
+  });
+
+  it('table: like a checklist, below its project', () => {
+    expect(crumbsFor('/tables/7', '', data, tx)).toEqual([
+      home,
+      customersList,
+      { label: 'Kantonsspital Zug', type: 'customer', href: '/customers/1' },
+      { label: 'New OBP SRV', type: 'project', href: '/projects/2' },
+      { label: 'Kalkulation', type: 'table' }
+    ]);
+    expect(crumbsFor('/tables/99', '', data, tx)).toEqual([home, customersList, { label: '…', type: 'table' }]);
   });
 
   it('project and customer: below the customers list', () => {

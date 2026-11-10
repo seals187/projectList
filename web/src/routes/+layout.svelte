@@ -35,15 +35,15 @@
 
   let { children } = $props();
 
-  // Active background: project (also on its checklists), else its customer, else the user's own
+  // Active background: project (also on its checklists and tables), else its customer, else the user's own
   const bgCss = $derived.by(() => {
-    const m = page.url.pathname.match(/^\/(customers|projects|checklists)\/(\d+)/);
+    const m = page.url.pathname.match(/^\/(customers|projects|checklists|tables)\/(\d+)/);
     if (m) {
       const id = Number(m[2]);
       for (const c of sidebar.customers) {
         if (m[1] === 'customers' && c.id === id) return backgroundCss(c.background || userBackground());
         for (const p of c.projects)
-          if ((m[1] === 'projects' && p.id === id) || (m[1] === 'checklists' && p.checklists.some((cl) => cl.id === id)))
+          if ((m[1] === 'projects' && p.id === id) || (m[1] === 'checklists' && p.checklists.some((cl) => cl.id === id)) || (m[1] === 'tables' && (p.tables ?? []).some((tb) => tb.id === id)))
             return backgroundCss(p.background || c.background || userBackground());
       }
     }
@@ -55,8 +55,8 @@
   const dimAlpha = $derived(DIM_ALPHA[prefs.dimContent] ?? 0);
   // "Darken image" (Settings → Appearance): a dark veil over the background
   const bgImage = $derived(bgCss && prefs.dimBg ? `linear-gradient(rgb(0 0 0 / 0.35), rgb(0 0 0 / 0.35)), ${bgCss}` : bgCss);
-  // pages with free-flowing content (checklist/template editor, settings) on one panel
-  const panelPage = $derived(/^\/(checklists|templates\/\d|settings)/.test(page.url.pathname));
+  // pages with free-flowing content (checklist/table/template editor, settings) on one panel
+  const panelPage = $derived(/^\/(checklists|tables|templates\/\d|settings)/.test(page.url.pathname));
   // settings: own two-column shell (SettingsShell) that fills the panel without padding
   const settingsPage = $derived(page.url.pathname.startsWith('/settings'));
   // reachable without a session: sign-in and invitation / password links

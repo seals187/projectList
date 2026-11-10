@@ -68,6 +68,7 @@ html[data-accent='pink'] {
   --type-customer-bg: #ecfdf5; --type-customer-fg: #047857;
   --type-project-bg: #eff6ff; --type-project-fg: #1d4ed8;
   --type-checklist-bg: #f5f3ff; --type-checklist-fg: #6d28d9;
+  --type-table-bg: #ecfeff; --type-table-fg: #0e7490;
   --type-template-bg: #fff7ed; --type-template-fg: #c2410c;
   --type-saved-view-bg: transparent; --type-saved-view-fg: #9ca3af;
   --type-fav-group-bg: transparent; --type-fav-group-fg: #9ca3af;
@@ -76,6 +77,7 @@ html[data-accent='pink'] {
   --type-customer-bg: #0f2e27; --type-customer-fg: #6ee7b7;
   --type-project-bg: #172340; --type-project-fg: #93c5fd;
   --type-checklist-bg: #261a45; --type-checklist-fg: #c4b5fd;
+  --type-table-bg: #0c2a33; --type-table-fg: #67e8f9;
   --type-template-bg: #3a1d0c; --type-template-fg: #fdba74;
   --type-saved-view-bg: transparent; --type-saved-view-fg: #a1a1aa;
   --type-fav-group-bg: transparent; --type-fav-group-fg: #a1a1aa;
@@ -86,6 +88,7 @@ html[data-accent='pink'] {
   --type-customer-bg: rgb(110 231 183 / 0.14); --type-customer-fg: #a7f3d0;
   --type-project-bg: rgb(147 197 253 / 0.14); --type-project-fg: #bfdbfe;
   --type-checklist-bg: rgb(196 181 253 / 0.16); --type-checklist-fg: #ddd6fe;
+  --type-table-bg: rgb(103 232 249 / 0.14); --type-table-fg: #a5f3fc;
   --type-template-bg: rgb(253 186 116 / 0.14); --type-template-fg: #fed7aa;
 }
 

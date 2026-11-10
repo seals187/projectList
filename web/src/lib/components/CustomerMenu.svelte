@@ -22,6 +22,7 @@
     onclose,
     oncreate,
     onfilter,
+    ondelete,
     colorView = null
   }: {
     customer: SidebarCustomer;
@@ -33,7 +34,10 @@
     oncreate: () => void;
     onfilter?: (mode: 'only' | 'toggle' | 'all') => void; // overview only: customer filter
     colorView?: 'cards' | 'list' | null; // Cards / List: offer the personal card color of that view
+    ondelete?: () => void; // set by the caller for admins: "Delete customer" (two clicks)
   } = $props();
+  // first click arms (red, asks for confirmation), second click deletes
+  let deleteArmed = $state(false);
 
   // current values from the store (the overview may pass a copy)
   const c = $derived(sidebar.customers.find((x) => x.id === customer.id) ?? customer);
@@ -101,6 +105,20 @@
     </button>
     <button type="button" class={itemCls} role="menuitem" onclick={run(() => filter('all'))}>
       <Icon name="users" size={15} class="text-zinc-400" />{t('menu.allCustomers')}
+    </button>
+  {/if}
+  {#if ondelete}
+    {@const del = ondelete}
+    <div class="my-1 border-t border-zinc-100 dark:border-zinc-800"></div>
+    <button
+      type="button"
+      role="menuitem"
+      data-testid="customer-menu-delete"
+      class="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left {deleteArmed
+        ? 'bg-red-600 font-medium text-white hover:bg-red-700'
+        : 'text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/40'}"
+      onclick={() => (deleteArmed ? run(del)() : (deleteArmed = true))}>
+      <Icon name="trash" size={15} />{t(deleteArmed ? 'customer.deleteConfirm' : 'customer.delete')}
     </button>
   {/if}
 </ContextMenu>

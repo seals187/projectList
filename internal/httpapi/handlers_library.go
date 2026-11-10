@@ -298,6 +298,9 @@ func (s *Server) templateVariables(w http.ResponseWriter, r *http.Request, _ aut
 		return err
 	}
 	texts := []string{t.Name}
+	if t.Kind == service.KindTable {
+		texts = append(texts, t.SheetData)
+	}
 	for _, it := range items {
 		texts = append(texts, it.Title, it.Description)
 	}
@@ -421,8 +424,10 @@ func (s *Server) fillRule(ctx context.Context, v validator, req ruleReq, p *sqlc
 	if req.TemplateID != nil {
 		p.TemplateID = *req.TemplateID
 	}
-	if _, err := s.q.GetTemplate(ctx, p.TemplateID); err != nil {
+	if tmpl, err := s.q.GetTemplate(ctx, p.TemplateID); err != nil {
 		v["template_id"] = "required"
+	} else if tmpl.Kind != service.KindChecklist {
+		v["template_id"] = "invalid_value" // automations create checklists only
 	}
 	if req.TargetProjectID.Set {
 		p.TargetProjectID = nil

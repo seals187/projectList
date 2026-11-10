@@ -4,9 +4,9 @@
 // render types only through <EntityIcon> and entityLabel() – no hard-coded
 // icons or colors for these types elsewhere.
 
-export type EntityType = 'customer' | 'project' | 'checklist' | 'template' | 'savedView' | 'favGroup';
+export type EntityType = 'customer' | 'project' | 'checklist' | 'table' | 'template' | 'savedView' | 'favGroup';
 
-export type EntityIconName = 'building2' | 'folder' | 'listChecks' | 'fileText' | 'filter' | 'bookmark';
+export type EntityIconName = 'building2' | 'folder' | 'listChecks' | 'sheet' | 'fileText' | 'filter' | 'bookmark';
 
 export interface EntityTypeDef {
   icon: EntityIconName; // lucide shape (Icon.svelte)
@@ -18,6 +18,7 @@ export const ENTITY_TYPES: Record<EntityType, EntityTypeDef> = {
   customer: { icon: 'building2', css: 'customer' },
   project: { icon: 'folder', css: 'project' },
   checklist: { icon: 'listChecks', css: 'checklist', scale: 0.82 },
+  table: { icon: 'sheet', css: 'table', scale: 0.82 },
   template: { icon: 'fileText', css: 'template' },
   savedView: { icon: 'filter', css: 'saved-view' },
   favGroup: { icon: 'bookmark', css: 'fav-group' }
@@ -28,6 +29,7 @@ export const ENTITY_COLORS: Record<EntityType, { bg: string; fg: string; darkBg:
   customer: { bg: '#ecfdf5', fg: '#047857', darkBg: '#0f2e27', darkFg: '#6ee7b7' },
   project: { bg: '#eff6ff', fg: '#1d4ed8', darkBg: '#172340', darkFg: '#93c5fd' },
   checklist: { bg: '#f5f3ff', fg: '#6d28d9', darkBg: '#261a45', darkFg: '#c4b5fd' },
+  table: { bg: '#ecfeff', fg: '#0e7490', darkBg: '#0c2a33', darkFg: '#67e8f9' },
   template: { bg: '#fff7ed', fg: '#c2410c', darkBg: '#3a1d0c', darkFg: '#fdba74' },
   savedView: { bg: 'transparent', fg: '#9ca3af', darkBg: 'transparent', darkFg: '#a1a1aa' },
   favGroup: { bg: 'transparent', fg: '#9ca3af', darkBg: 'transparent', darkFg: '#a1a1aa' }

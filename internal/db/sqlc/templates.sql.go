@@ -10,7 +10,7 @@ import (
 )
 
 const createTemplate = `-- name: CreateTemplate :one
-INSERT INTO checklist_templates (name, description) VALUES (?, ?) RETURNING id, name, description, category_id
+INSERT INTO checklist_templates (name, description) VALUES (?, ?) RETURNING id, name, description, category_id, kind, sheet_data
 `
 
 type CreateTemplateParams struct {
@@ -26,6 +26,8 @@ func (q *Queries) CreateTemplate(ctx context.Context, arg CreateTemplateParams) 
 		&i.Name,
 		&i.Description,
 		&i.CategoryID,
+		&i.Kind,
+		&i.SheetData,
 	)
 	return i, err
 }
@@ -95,7 +97,7 @@ func (q *Queries) DeleteTemplateItem(ctx context.Context, id int64) error {
 }
 
 const getTemplate = `-- name: GetTemplate :one
-SELECT id, name, description, category_id FROM checklist_templates WHERE id = ?
+SELECT id, name, description, category_id, kind, sheet_data FROM checklist_templates WHERE id = ?
 `
 
 func (q *Queries) GetTemplate(ctx context.Context, id int64) (ChecklistTemplate, error) {
@@ -106,6 +108,8 @@ func (q *Queries) GetTemplate(ctx context.Context, id int64) (ChecklistTemplate,
 		&i.Name,
 		&i.Description,
 		&i.CategoryID,
+		&i.Kind,
+		&i.SheetData,
 	)
 	return i, err
 }
@@ -171,7 +175,7 @@ func (q *Queries) ListTemplateItems(ctx context.Context, templateID int64) ([]Te
 }
 
 const listTemplates = `-- name: ListTemplates :many
-SELECT t.id, t.name, t.description, t.category_id,
+SELECT t.id, t.name, t.description, t.category_id, t.kind,
        CAST((SELECT COUNT(*) FROM template_items ti WHERE ti.template_id = t.id AND ti.kind = 'item') AS INTEGER) AS item_count,
        CAST((SELECT COUNT(*) FROM template_uses u WHERE u.template_id = t.id) AS INTEGER) AS used_count,
        CAST((SELECT COALESCE(MAX(u.used_at), '') FROM template_uses u WHERE u.template_id = t.id) AS TEXT) AS last_used
@@ -184,6 +188,7 @@ type ListTemplatesRow struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	CategoryID  *int64 `json:"category_id"`
+	Kind        string `json:"kind"`
 	ItemCount   int64  `json:"item_count"`
 	UsedCount   int64  `json:"used_count"`
 	LastUsed    string `json:"last_used"`
@@ -203,6 +208,7 @@ func (q *Queries) ListTemplates(ctx context.Context) ([]ListTemplatesRow, error)
 			&i.Name,
 			&i.Description,
 			&i.CategoryID,
+			&i.Kind,
 			&i.ItemCount,
 			&i.UsedCount,
 			&i.LastUsed,
@@ -264,7 +270,7 @@ func (q *Queries) ShiftTemplateItemPositions(ctx context.Context, arg ShiftTempl
 }
 
 const updateTemplate = `-- name: UpdateTemplate :one
-UPDATE checklist_templates SET name = ?, description = ?, category_id = ? WHERE id = ? RETURNING id, name, description, category_id
+UPDATE checklist_templates SET name = ?, description = ?, category_id = ? WHERE id = ? RETURNING id, name, description, category_id, kind, sheet_data
 `
 
 type UpdateTemplateParams struct {
@@ -287,6 +293,8 @@ func (q *Queries) UpdateTemplate(ctx context.Context, arg UpdateTemplateParams) 
 		&i.Name,
 		&i.Description,
 		&i.CategoryID,
+		&i.Kind,
+		&i.SheetData,
 	)
 	return i, err
 }

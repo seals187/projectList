@@ -8,7 +8,7 @@ const block = (sel: string) => css.slice(css.indexOf(`${sel} {\n  --type-custome
 
 describe('entity types', () => {
   it('every type has an icon and a CSS stem', () => {
-    expect(Object.keys(ENTITY_TYPES).sort()).toEqual(['checklist', 'customer', 'favGroup', 'project', 'savedView', 'template']);
+    expect(Object.keys(ENTITY_TYPES).sort()).toEqual(['checklist', 'customer', 'favGroup', 'project', 'savedView', 'table', 'template']);
     expect(ENTITY_TYPES.customer.icon).toBe('building2');
     expect(ENTITY_TYPES.favGroup.icon).toBe('bookmark');
   });
