@@ -377,31 +377,35 @@ func (q *Queries) NextChecklistPosition(ctx context.Context, projectID int64) (i
 }
 
 const searchChecklists = `-- name: SearchChecklists :many
-SELECT c.id, c.title, c.project_id, p.name AS project_name, p.customer_id
+SELECT c.id, c.title, c.project_id, p.name AS project_name, p.customer_id, p.status AS project_status
 FROM checklists c
 JOIN projects p ON p.id = c.project_id
 WHERE instr(lower(c.title), lower(?1)) > 0
-  AND (?2 IS NULL
-       OR p.customer_id IN (SELECT m.customer_id FROM memberships m WHERE m.user_id = ?2))
-ORDER BY c.title COLLATE NOCASE
+  AND (?2 = '' OR (p.status = 'archived') = (?2 = 'archived'))
+  AND (?3 IS NULL
+       OR p.customer_id IN (SELECT m.customer_id FROM memberships m WHERE m.user_id = ?3))
+ORDER BY p.status = 'archived', c.title COLLATE NOCASE
 LIMIT 10
 `
 
 type SearchChecklistsParams struct {
 	Needle string      `json:"needle"`
+	Scope  interface{} `json:"scope"`
 	UserID interface{} `json:"user_id"`
 }
 
 type SearchChecklistsRow struct {
-	ID          int64  `json:"id"`
-	Title       string `json:"title"`
-	ProjectID   int64  `json:"project_id"`
-	ProjectName string `json:"project_name"`
-	CustomerID  int64  `json:"customer_id"`
+	ID            int64  `json:"id"`
+	Title         string `json:"title"`
+	ProjectID     int64  `json:"project_id"`
+	ProjectName   string `json:"project_name"`
+	CustomerID    int64  `json:"customer_id"`
+	ProjectStatus string `json:"project_status"`
 }
 
+// scope as in SearchProjects; checklists of archived projects come last.
 func (q *Queries) SearchChecklists(ctx context.Context, arg SearchChecklistsParams) ([]SearchChecklistsRow, error) {
-	rows, err := q.db.QueryContext(ctx, searchChecklists, arg.Needle, arg.UserID)
+	rows, err := q.db.QueryContext(ctx, searchChecklists, arg.Needle, arg.Scope, arg.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -415,6 +419,7 @@ func (q *Queries) SearchChecklists(ctx context.Context, arg SearchChecklistsPara
 			&i.ProjectID,
 			&i.ProjectName,
 			&i.CustomerID,
+			&i.ProjectStatus,
 		); err != nil {
 			return nil, err
 		}

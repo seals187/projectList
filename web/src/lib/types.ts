@@ -304,8 +304,21 @@ export interface Task {
 
 export interface SearchResult {
   customers: { id: number; name: string }[];
-  projects: { id: number; name: string; customer_id: number; customer_name: string }[];
-  checklists: { id: number; title: string; project_id: number; project_name: string; customer_id: number }[];
+  projects: { id: number; name: string; customer_id: number; customer_name: string; status: ProjectStatus; archived_at: string | null }[];
+  checklists: { id: number; title: string; project_id: number; project_name: string; customer_id: number; project_status: ProjectStatus }[];
+}
+
+/** One archived project (GET /api/archive); archived_at/by are null when unknown (archived before the activity log). */
+export interface ArchivedProject {
+  id: number;
+  customer_id: number;
+  name: string;
+  customer_name: string;
+  archived_at: string | null;
+  archived_by: number | null;
+  archived_by_name: string;
+  total: number;
+  done: number;
 }
 
 /** API operations the list editor uses for checklists or templates. */

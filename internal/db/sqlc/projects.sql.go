@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"database/sql"
 	"time"
 )
 
@@ -83,6 +84,78 @@ func (q *Queries) GetProject(ctx context.Context, id int64) (Project, error) {
 		&i.Background,
 	)
 	return i, err
+}
+
+const listArchivedProjects = `-- name: ListArchivedProjects :many
+SELECT p.id, p.customer_id, p.name, c.name AS customer_name,
+       a.created_at AS archived_at, a.user_id AS archived_by, u.name AS archived_by_name,
+       CAST((SELECT COUNT(*) FROM checklist_items i JOIN checklists cl ON cl.id = i.checklist_id
+             WHERE cl.project_id = p.id AND i.kind = 'item') AS INTEGER) AS total,
+       CAST((SELECT COUNT(i.done_at) FROM checklist_items i JOIN checklists cl ON cl.id = i.checklist_id
+             WHERE cl.project_id = p.id AND i.kind = 'item') AS INTEGER) AS done
+FROM projects p
+JOIN customers c ON c.id = p.customer_id
+LEFT JOIN project_activity a
+       ON a.id = (SELECT MAX(x.id) FROM project_activity x WHERE x.project_id = p.id AND x.kind = 'status' AND x.detail = 'archived')
+LEFT JOIN users u ON u.id = a.user_id
+WHERE p.status = 'archived'
+  AND (?1 IS NULL OR p.customer_id = ?1)
+  AND (?2 IS NULL
+       OR p.customer_id IN (SELECT m.customer_id FROM memberships m WHERE m.user_id = ?2))
+ORDER BY a.created_at IS NULL, a.created_at DESC, p.name COLLATE NOCASE
+`
+
+type ListArchivedProjectsParams struct {
+	CustomerID interface{} `json:"customer_id"`
+	UserID     interface{} `json:"user_id"`
+}
+
+type ListArchivedProjectsRow struct {
+	ID             int64          `json:"id"`
+	CustomerID     int64          `json:"customer_id"`
+	Name           string         `json:"name"`
+	CustomerName   string         `json:"customer_name"`
+	ArchivedAt     sql.NullTime   `json:"archived_at"`
+	ArchivedBy     *int64         `json:"archived_by"`
+	ArchivedByName sql.NullString `json:"archived_by_name"`
+	Total          int64          `json:"total"`
+	Done           int64          `json:"done"`
+}
+
+// Archive page / customer archive tab: archived projects incl. progress. When
+// and by whom comes from the latest "archived" status entry of the activity
+// log (NULL for projects archived before the log existed).
+func (q *Queries) ListArchivedProjects(ctx context.Context, arg ListArchivedProjectsParams) ([]ListArchivedProjectsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listArchivedProjects, arg.CustomerID, arg.UserID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListArchivedProjectsRow{}
+	for rows.Next() {
+		var i ListArchivedProjectsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.CustomerID,
+			&i.Name,
+			&i.CustomerName,
+			&i.ArchivedAt,
+			&i.ArchivedBy,
+			&i.ArchivedByName,
+			&i.Total,
+			&i.Done,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listProjectNextSteps = `-- name: ListProjectNextSteps :many
@@ -300,30 +373,38 @@ func (q *Queries) ListProjectsWithProgress(ctx context.Context, userID interface
 }
 
 const searchProjects = `-- name: SearchProjects :many
-SELECT p.id, p.name, p.customer_id, c.name AS customer_name
+SELECT p.id, p.name, p.customer_id, c.name AS customer_name, p.status, a.created_at AS archived_at
 FROM projects p
 JOIN customers c ON c.id = p.customer_id
+LEFT JOIN project_activity a ON p.status = 'archived'
+     AND a.id = (SELECT MAX(x.id) FROM project_activity x WHERE x.project_id = p.id AND x.kind = 'status' AND x.detail = 'archived')
 WHERE instr(lower(p.name), lower(?1)) > 0
-  AND (?2 IS NULL
-       OR p.customer_id IN (SELECT m.customer_id FROM memberships m WHERE m.user_id = ?2))
-ORDER BY p.name COLLATE NOCASE
+  AND (?2 = '' OR (p.status = 'archived') = (?2 = 'archived'))
+  AND (?3 IS NULL
+       OR p.customer_id IN (SELECT m.customer_id FROM memberships m WHERE m.user_id = ?3))
+ORDER BY p.status = 'archived', p.name COLLATE NOCASE
 LIMIT 10
 `
 
 type SearchProjectsParams struct {
 	Needle string      `json:"needle"`
+	Scope  interface{} `json:"scope"`
 	UserID interface{} `json:"user_id"`
 }
 
 type SearchProjectsRow struct {
-	ID           int64  `json:"id"`
-	Name         string `json:"name"`
-	CustomerID   int64  `json:"customer_id"`
-	CustomerName string `json:"customer_name"`
+	ID           int64        `json:"id"`
+	Name         string       `json:"name"`
+	CustomerID   int64        `json:"customer_id"`
+	CustomerName string       `json:"customer_name"`
+	Status       string       `json:"status"`
+	ArchivedAt   sql.NullTime `json:"archived_at"`
 }
 
+// scope: empty = all, 'active' = not archived, 'archived' = only archived.
+// Active projects first; archived ones carry the date of their archiving.
 func (q *Queries) SearchProjects(ctx context.Context, arg SearchProjectsParams) ([]SearchProjectsRow, error) {
-	rows, err := q.db.QueryContext(ctx, searchProjects, arg.Needle, arg.UserID)
+	rows, err := q.db.QueryContext(ctx, searchProjects, arg.Needle, arg.Scope, arg.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -336,6 +417,8 @@ func (q *Queries) SearchProjects(ctx context.Context, arg SearchProjectsParams) 
 			&i.Name,
 			&i.CustomerID,
 			&i.CustomerName,
+			&i.Status,
+			&i.ArchivedAt,
 		); err != nil {
 			return nil, err
 		}

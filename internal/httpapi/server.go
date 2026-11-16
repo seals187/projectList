@@ -209,6 +209,7 @@ func New(o Options) http.Handler {
 	// Miscellaneous
 	mux.Handle("GET /api/sidebar", s.authed(s.sidebar))
 	mux.Handle("GET /api/search", s.authed(s.search))
+	mux.Handle("GET /api/archive", s.authed(s.listArchive))
 	mux.Handle("GET /api/my-tasks", s.authed(s.myTasks))
 	mux.Handle("GET /api/my-checklists", s.authed(s.myChecklists))
 	mux.Handle("GET /api/overview", s.authed(s.overview))

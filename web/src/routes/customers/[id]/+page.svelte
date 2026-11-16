@@ -7,7 +7,7 @@
   import { api, errorText } from '$lib/api';
   import { canWrite, isAdmin, openNewProject, refreshSidebar, sidebar, toast } from '$lib/state.svelte';
   import { fmtDate, shortName, t, todayISO } from '$lib/i18n.svelte';
-  import type { Customer, CustomerPhone, Project, ProjectWithProgress, SidebarProject } from '$lib/types';
+  import type { ArchivedProject, Customer, CustomerPhone, Project, ProjectWithProgress, SidebarProject } from '$lib/types';
   import ProjectMenu from '$lib/components/ProjectMenu.svelte';
   import Editable from '$lib/components/Editable.svelte';
   import ConfirmButton from '$lib/components/ConfirmButton.svelte';
@@ -27,6 +27,9 @@
   import { setCustomerColors } from '$lib/projectActions';
   import CardColorPicker from '$lib/components/CardColorPicker.svelte';
   import Switch from '$lib/components/Switch.svelte';
+  import ArchiveTable from '$lib/components/ArchiveTable.svelte';
+  import SelectDropdown from '$lib/components/SelectDropdown.svelte';
+  import { ARCHIVE_SORTS, filterArchive, sortArchive, type ArchiveSort } from '$lib/archive';
 
   type Field = 'name' | 'notes' | 'location' | 'contact_name' | 'contact_email';
 
@@ -34,7 +37,6 @@
   let projects = $state<ProjectWithProgress[]>([]);
   let notFound = $state(false);
   let newProject = $state('');
-  let showArchived = $state(false);
   let editing = $state(false);
 
   const id = $derived(Number(page.params.id));
@@ -123,8 +125,37 @@
     }
   }
 
-  const visible = $derived(projects.filter((p) => showArchived || p.status !== 'archived'));
+  const visible = $derived(projects.filter((p) => p.status !== 'archived'));
   const archivedCount = $derived(projects.filter((p) => p.status === 'archived').length);
+
+  // Tabs "Projects" / "Archive" (?tab=archive, e.g. from the badge on the customers list)
+  const tab = $derived(page.url.searchParams.get('tab') === 'archive' ? 'archive' : 'projects');
+  function setTab(next: 'projects' | 'archive') {
+    const u = new URL(page.url);
+    if (next === 'archive') u.searchParams.set('tab', 'archive');
+    else u.searchParams.delete('tab');
+    goto(u.pathname + u.search, { replaceState: true, noScroll: true, keepFocus: true });
+  }
+
+  // Archive tab: archived projects of this customer, search, grouping, sorting
+  let archived = $state<ArchivedProject[]>([]);
+  let archiveQ = $state('');
+  let archiveGroup = $state<'year' | 'none'>('year');
+  let archiveSort = $state<ArchiveSort>('archived');
+  async function loadArchive(cid: number) {
+    try {
+      archived = await api.get<ArchivedProject[]>(`/archive?customer_id=${cid}`);
+    } catch (err) {
+      toast(errorText(err));
+    }
+  }
+  $effect(() => {
+    if (tab === 'archive') loadArchive(id);
+  });
+  const archivedShown = $derived(sortArchive(filterArchive(archived, { q: archiveQ, customers: null, period: 'all', incompleteOnly: false }, new Date()), archiveSort));
+  const archiveSortLabel = (s: ArchiveSort) => (s === 'archived' ? t('archive.sort.archived') : s === 'customer' ? t('archive.sort.customer') : t(`sort.${s}`));
+  // after restoring / deleting: archive tab and project list (counts)
+  const archiveChanged = () => (loadArchive(id), reloadProjects());
 
   const FIELDS = [
     ['location', 'customers.location'],
@@ -273,20 +304,47 @@
     </div>
   </HeaderBand>
 
-  <!-- Projects -->
+  <!-- Projects / Archive -->
   <section class="mt-8">
-    <div class="mb-2 flex items-center justify-between">
-      <h2 class="section-label flex items-center gap-2">
-        {t('customer.projects')}
-        <span class="rounded-md bg-zinc-100 px-1.5 text-[11px] font-semibold text-zinc-500 tabular-nums dark:bg-zinc-800">{visible.length}</span>
-      </h2>
-      {#if archivedCount}
-        <button type="button" class="text-xs text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200" onclick={() => (showArchived = !showArchived)}>
-          {showArchived ? t('customer.hideArchived') : t('customer.showArchived', { n: archivedCount })}
+    <div class="surface mb-3 flex items-center gap-1 border-b border-zinc-200 in-[.has-bg]:w-fit in-[.has-bg]:rounded-xl in-[.has-bg]:px-2 dark:border-zinc-800" role="tablist">
+      {#each [['projects', t('customer.tab.projects'), visible.length], ['archive', t('customer.tab.archive'), archivedCount]] as const as [key, label, n] (key)}
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === key}
+          class="-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm font-semibold {tab === key
+            ? 'border-accent-600 text-accent-700 dark:border-accent-400 dark:text-accent-400'
+            : 'border-transparent text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'}"
+          onclick={() => setTab(key)}
+          data-testid="customer-tab-{key}">
+          {label}<span class="font-normal tabular-nums opacity-70">· {n}</span>
         </button>
-      {/if}
+      {/each}
     </div>
 
+    {#if tab === 'archive'}
+      <div class="surface mb-3 flex flex-wrap items-center gap-2 in-[.has-bg]:w-fit in-[.has-bg]:rounded-xl in-[.has-bg]:p-1.5">
+        <label class="relative">
+          <Icon name="search" size={14} class="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-zinc-400" />
+          <input class="input w-72! pl-8!" placeholder={t('ph.search.archiveCustomer')} bind:value={archiveQ} aria-label={t('ph.search.archiveCustomer')} />
+        </label>
+        <SelectDropdown
+          label={t('archive.group')}
+          options={[
+            { value: 'year', label: t('archive.group.year') },
+            { value: 'none', label: t('archive.group.none') }
+          ]}
+          value={archiveGroup}
+          onchange={(v) => (archiveGroup = v)} />
+        <SelectDropdown
+          label={t('ph.sort')}
+          icon="arrowUpDown"
+          options={ARCHIVE_SORTS.filter((s) => s !== 'customer').map((s) => ({ value: s, label: archiveSortLabel(s) }))}
+          value={archiveSort}
+          onchange={(v) => (archiveSort = v)} />
+      </div>
+      <ArchiveTable rows={archivedShown} group={archiveGroup} empty={archived.length ? t('archive.noMatch') : t('archive.empty')} onchanged={archiveChanged} />
+    {:else}
     <div class="surface overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800">
       <div class="min-w-[56rem]">
         <div class="{cols} border-b border-zinc-200 px-4 py-2.5 text-[11px] font-semibold tracking-wider text-zinc-400 uppercase dark:border-zinc-800">
@@ -350,6 +408,7 @@
         {/if}
       </div>
     </div>
+    {/if}
   </section>
 
   {#if isAdmin()}

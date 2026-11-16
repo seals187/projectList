@@ -273,20 +273,28 @@ func (s *Server) search(w http.ResponseWriter, r *http.Request, u authz.User) er
 		writeJSON(w, http.StatusOK, map[string]any{"customers": []any{}, "projects": []any{}, "checklists": []any{}})
 		return nil
 	}
+	// scope: "" = everything, "active" = without archived projects, "archived" = only those
+	scope := r.URL.Query().Get("scope")
+	if scope != "" && scope != "active" && scope != "archived" {
+		return errBadRequest("invalid scope")
+	}
 	filter := u.VisibilityFilter()
-	customers, err := s.q.SearchCustomers(r.Context(), sqlc.SearchCustomersParams{Needle: q, UserID: filter})
+	customers := []sqlc.SearchCustomersRow{}
+	if scope != "archived" { // customers are never archived
+		var err error
+		if customers, err = s.q.SearchCustomers(r.Context(), sqlc.SearchCustomersParams{Needle: q, UserID: filter}); err != nil {
+			return err
+		}
+	}
+	projects, err := s.q.SearchProjects(r.Context(), sqlc.SearchProjectsParams{Needle: q, Scope: scope, UserID: filter})
 	if err != nil {
 		return err
 	}
-	projects, err := s.q.SearchProjects(r.Context(), sqlc.SearchProjectsParams{Needle: q, UserID: filter})
+	checklists, err := s.q.SearchChecklists(r.Context(), sqlc.SearchChecklistsParams{Needle: q, Scope: scope, UserID: filter})
 	if err != nil {
 		return err
 	}
-	checklists, err := s.q.SearchChecklists(r.Context(), sqlc.SearchChecklistsParams{Needle: q, UserID: filter})
-	if err != nil {
-		return err
-	}
-	writeJSON(w, http.StatusOK, map[string]any{"customers": customers, "projects": projects, "checklists": checklists})
+	writeJSON(w, http.StatusOK, map[string]any{"customers": customers, "projects": toSearchProjects(projects), "checklists": checklists})
 	return nil
 }
 

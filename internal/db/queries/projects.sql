@@ -41,14 +41,40 @@ RETURNING *;
 DELETE FROM projects WHERE id = ?;
 
 -- name: SearchProjects :many
-SELECT p.id, p.name, p.customer_id, c.name AS customer_name
+-- scope: empty = all, 'active' = not archived, 'archived' = only archived.
+-- Active projects first; archived ones carry the date of their archiving.
+SELECT p.id, p.name, p.customer_id, c.name AS customer_name, p.status, a.created_at AS archived_at
 FROM projects p
 JOIN customers c ON c.id = p.customer_id
+LEFT JOIN project_activity a ON p.status = 'archived'
+     AND a.id = (SELECT MAX(x.id) FROM project_activity x WHERE x.project_id = p.id AND x.kind = 'status' AND x.detail = 'archived')
 WHERE instr(lower(p.name), lower(sqlc.arg(needle))) > 0
+  AND (sqlc.arg(scope) = '' OR (p.status = 'archived') = (sqlc.arg(scope) = 'archived'))
   AND (sqlc.narg(user_id) IS NULL
        OR p.customer_id IN (SELECT m.customer_id FROM memberships m WHERE m.user_id = sqlc.narg(user_id)))
-ORDER BY p.name COLLATE NOCASE
+ORDER BY p.status = 'archived', p.name COLLATE NOCASE
 LIMIT 10;
+
+-- name: ListArchivedProjects :many
+-- Archive page / customer archive tab: archived projects incl. progress. When
+-- and by whom comes from the latest "archived" status entry of the activity
+-- log (NULL for projects archived before the log existed).
+SELECT p.id, p.customer_id, p.name, c.name AS customer_name,
+       a.created_at AS archived_at, a.user_id AS archived_by, u.name AS archived_by_name,
+       CAST((SELECT COUNT(*) FROM checklist_items i JOIN checklists cl ON cl.id = i.checklist_id
+             WHERE cl.project_id = p.id AND i.kind = 'item') AS INTEGER) AS total,
+       CAST((SELECT COUNT(i.done_at) FROM checklist_items i JOIN checklists cl ON cl.id = i.checklist_id
+             WHERE cl.project_id = p.id AND i.kind = 'item') AS INTEGER) AS done
+FROM projects p
+JOIN customers c ON c.id = p.customer_id
+LEFT JOIN project_activity a
+       ON a.id = (SELECT MAX(x.id) FROM project_activity x WHERE x.project_id = p.id AND x.kind = 'status' AND x.detail = 'archived')
+LEFT JOIN users u ON u.id = a.user_id
+WHERE p.status = 'archived'
+  AND (sqlc.narg(customer_id) IS NULL OR p.customer_id = sqlc.narg(customer_id))
+  AND (sqlc.narg(user_id) IS NULL
+       OR p.customer_id IN (SELECT m.customer_id FROM memberships m WHERE m.user_id = sqlc.narg(user_id)))
+ORDER BY a.created_at IS NULL, a.created_at DESC, p.name COLLATE NOCASE;
 
 -- name: ListProjectTeams :many
 -- Overview: everyone assigned to a checklist or an item of a project,

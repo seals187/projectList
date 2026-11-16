@@ -70,13 +70,15 @@ DELETE FROM checklists WHERE id = ?;
 UPDATE checklists SET position = ? WHERE id = ? AND project_id = ?;
 
 -- name: SearchChecklists :many
-SELECT c.id, c.title, c.project_id, p.name AS project_name, p.customer_id
+-- scope as in SearchProjects; checklists of archived projects come last.
+SELECT c.id, c.title, c.project_id, p.name AS project_name, p.customer_id, p.status AS project_status
 FROM checklists c
 JOIN projects p ON p.id = c.project_id
 WHERE instr(lower(c.title), lower(sqlc.arg(needle))) > 0
+  AND (sqlc.arg(scope) = '' OR (p.status = 'archived') = (sqlc.arg(scope) = 'archived'))
   AND (sqlc.narg(user_id) IS NULL
        OR p.customer_id IN (SELECT m.customer_id FROM memberships m WHERE m.user_id = sqlc.narg(user_id)))
-ORDER BY c.title COLLATE NOCASE
+ORDER BY p.status = 'archived', c.title COLLATE NOCASE
 LIMIT 10;
 
 -- name: SetChecklistAssignee :exec

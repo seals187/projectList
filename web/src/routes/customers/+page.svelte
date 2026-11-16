@@ -3,6 +3,7 @@
   // (PageHeader): search, status filter, chips all / active / critical / without
   // project, sorting, expand/collapse; state per user in localStorage and in the URL.
   import { page } from '$app/state';
+  import { goto } from '$app/navigation';
   import { api, errorText } from '$lib/api';
   import { canWrite, isAdmin, openNewProject, prefs, refreshSidebar, sidebar, toast } from '$lib/state.svelte';
   import { fmtDate, t, todayISO, withoutText } from '$lib/i18n.svelte';
@@ -124,7 +125,7 @@
   // Columns: customer | contact | projects | open | progress | next due date | status | menu
   const cols = 'grid items-center gap-x-4';
   const tpl = $derived(
-    ['minmax(14rem,1.6fr)', disp.contact ? 'minmax(11rem,1.3fr)' : null, '5.5rem', '4.5rem', '9.5rem', disp.due ? '8.5rem' : null, '7.5rem', '2rem'].filter(Boolean).join(' ')
+    ['minmax(14rem,1.6fr)', disp.contact ? 'minmax(11rem,1.3fr)' : null, '9rem', '4.5rem', '9.5rem', disp.due ? '8.5rem' : null, '7.5rem', '2rem'].filter(Boolean).join(' ')
   );
 </script>
 
@@ -165,6 +166,21 @@
   collapseDisabled={view !== 'list' || !expandable.length}
   displayOptions={Object.keys(DISPLAY).map((k) => ({ key: k, label: displayLabel(k), value: disp[k] }))}
   onDisplayChange={(k, v) => setDisplay(`customers.${view}`, k, v)} />
+
+<!-- "+n archived": opens the archive tab of the customer (inside the card link: no nested <a>) -->
+{#snippet archivedBadge(r: CustomerRow)}
+  {#if r.archived}
+    <button
+      type="button"
+      class="rounded-md bg-zinc-100 px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap text-zinc-500 hover:bg-zinc-200 hover:text-zinc-800 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
+      onclick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        goto(`/customers/${r.customer.id}?tab=archive`);
+      }}
+      data-testid="customer-archived-badge">{t('customer.archivedBadge', { n: r.archived })}</button>
+  {/if}
+{/snippet}
 
 {#snippet statusBadge(r: CustomerRow)}
   <span class="badge inline-flex items-center gap-1.5 {CUSTOMER_STATUS_BADGE[r.status].badge}">
@@ -235,6 +251,7 @@
         <div class="mt-3 flex items-center gap-4 text-sm">
           <span><span class="font-semibold tabular-nums">{r.projects.length}</span> <span class="text-zinc-500">{t('customers.col.projects')}</span></span>
           <span><span class="font-semibold tabular-nums">{r.open}</span> <span class="text-zinc-500">{t('customers.col.open')}</span></span>
+          <span class="ml-auto">{@render archivedBadge(r)}</span>
         </div>
         <div class="mt-3 flex items-center justify-between gap-2">
           <div>
@@ -293,7 +310,7 @@
                 {#if !r.info?.contact_name && !r.info?.contact_email}<span class="text-zinc-400">–</span>{/if}
               </div>
             {/if}
-            <span class="font-semibold tabular-nums">{r.projects.length}</span>
+            <span class="flex items-center gap-2"><span class="font-semibold tabular-nums">{r.projects.length}</span>{@render archivedBadge(r)}</span>
             <span class="font-semibold tabular-nums">{r.open}</span>
             <div>
               {@render progressBar(r.done, r.total)}

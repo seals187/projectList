@@ -8,6 +8,22 @@ Changes until the next release are collected under **Unreleased**.
 
 ## [Unreleased]
 
+## [0.2.1] – 2026-11-16
+
+### Added
+
+- **Archive** page (sidebar entry below *Templates*, with the number of archived projects): all archived projects of
+  all customers in one table – customer, date and person of archiving (from the activity log), checklist progress.
+  Search, filters customer and period (last 30 days / 6 / 12 months, older), chip *Only incomplete*, sorting
+  (archived, name, customer, progress), saved views. Per row (on hover) *Restore* and *Delete permanently*,
+  checkboxes for both as bulk actions
+- **Customer page**: tabs *Projects · n* and *Archive · n* (replaces "Show n archived"); the archive tab groups the
+  archived projects by year (collapsible), with search and sorting, restore and delete. The customer list shows a
+  "+n archived" badge that opens this tab directly
+- **Search** (Ctrl+K): filter *All / Active / Archived* (Tab switches it). Archived projects and checklists of
+  archived projects are listed after the active ones, greyed out, with "Archived dd.mm.yyyy" or "in archive";
+  active projects show their status
+
 ## [0.2.0] – 2026-11-10
 
 ### Added
@@ -593,7 +609,8 @@ First version.
   JetBrains Mono; no external requests
 - Checkbox left or right, square or round; code block background light grey, dark grey or black
 
-[Unreleased]: https://github.com/seals187/projectList/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/seals187/projectList/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/seals187/projectList/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/seals187/projectList/compare/v0.1.9...v0.2.0
 [0.1.9]: https://github.com/seals187/projectList/compare/v0.1.8...v0.1.9
 [0.1.8]: https://github.com/seals187/projectList/compare/v0.1.7...v0.1.8

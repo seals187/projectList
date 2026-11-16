@@ -45,7 +45,7 @@ export function backList(h: Hist, max = 8): { entry: HistEntry; delta: number }[
 
 // ---- Descriptions ------------------------------------------------------------------
 
-export type PageIcon = 'home' | 'tasks' | 'building2' | 'template' | 'chart' | 'settings' | 'grid' | 'columns' | 'list' | 'calendar' | 'timeline';
+export type PageIcon = 'home' | 'tasks' | 'building2' | 'template' | 'archive' | 'chart' | 'settings' | 'grid' | 'columns' | 'list' | 'calendar' | 'timeline';
 
 // overview: the view is shown by its icon (cards = default, not in the URL)
 const VIEW_ICON: Record<string, PageIcon> = { cards: 'grid', board: 'columns', list: 'list', calendar: 'calendar', timeline: 'timeline' };
@@ -65,6 +65,7 @@ export interface NavTexts {
   myTasks: string;
   customers: string;
   templates: string;
+  archive: string;
   reports: string;
   settings: string;
   settingsPage: (slug: string) => string | null;
@@ -100,7 +101,10 @@ function pageCrumbs(path: string, search: string, data: NavData, tx: NavTexts): 
     const customerCrumb = (c: SidebarCustomer) => ({ label: c.name, type: 'customer' as const, href: `/customers/${c.id}` });
     if (m[1] === 'customers') {
       const c = data.customers.find((x) => x.id === id);
-      return [customersCrumb, c ? { label: c.name, type: 'customer' } : { label: '…', type: 'customer' }];
+      const own = c ? { label: c.name, type: 'customer' as const } : { label: '…', type: 'customer' as const };
+      // archive tab of the customer: customers / customer / archive
+      if (new URLSearchParams(search).get('tab') === 'archive') return [customersCrumb, { ...own, href: `/customers/${id}` }, { label: tx.archive, icon: 'archive' }];
+      return [customersCrumb, own];
     }
     if (m[1] === 'projects') {
       const p = projects.get(id);
@@ -128,6 +132,8 @@ export function describe(path: string, search: string, data: NavData, tx: NavTex
   if (m) {
     const crumbs = pageCrumbs(path, search, data, tx);
     const last = crumbs[crumbs.length - 1];
+    // archive tab of a customer: "Customer · Archive"
+    if (last.icon === 'archive') return { label: `${crumbs[crumbs.length - 2].label} · ${last.label}`, type: 'customer' };
     return { label: last.label, type: last.type };
   }
   if (path === '/') {
@@ -138,6 +144,7 @@ export function describe(path: string, search: string, data: NavData, tx: NavTex
   if (path.startsWith('/tasks')) return { label: tx.myTasks, icon: 'tasks' };
   if (path.startsWith('/customers')) return { label: tx.customers, icon: 'building2' };
   if (path.startsWith('/templates')) return { label: tx.templates, icon: 'template' };
+  if (path.startsWith('/archive')) return { label: tx.archive, icon: 'archive' };
   if (path.startsWith('/reports')) return { label: tx.reports, icon: 'chart' };
   if (path.startsWith('/settings')) {
     const sub = tx.settingsPage(path.split('/')[2] ?? '');

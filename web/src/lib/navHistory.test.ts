@@ -64,6 +64,7 @@ describe('breadcrumb and history labels', () => {
     myTasks: 'Meine Aufgaben',
     customers: 'Kunden',
     templates: 'Templates',
+    archive: 'Archive',
     reports: 'Reporting',
     settings: 'Einstellungen',
     settingsPage: (s) => ({ appearance: 'Darstellung' })[s] ?? null
@@ -102,6 +103,17 @@ describe('breadcrumb and history labels', () => {
       { label: 'New OBP SRV', type: 'project' }
     ]);
     expect(crumbsFor('/customers/1', '', data, tx)).toEqual([home, customersList, { label: 'Kantonsspital Zug', type: 'customer' }]);
+  });
+
+  it('archive: page and archive tab of a customer', () => {
+    expect(crumbsFor('/archive', '', data, tx)).toEqual([home, { label: 'Archive', icon: 'archive' }]);
+    expect(crumbsFor('/customers/1', '?tab=archive', data, tx)).toEqual([
+      home,
+      customersList,
+      { label: 'Kantonsspital Zug', type: 'customer', href: '/customers/1' },
+      { label: 'Archive', icon: 'archive' }
+    ]);
+    expect(describeEntry('/customers/1', '?tab=archive', data, tx)).toEqual({ label: 'Kantonsspital Zug · Archive', type: 'customer' });
   });
 
   it('list pages and templates', () => {

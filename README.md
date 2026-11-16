@@ -141,6 +141,10 @@ the user interface translates them.
   properties panel (status, customer, person responsible, start/end, labels, watchers, Easy Redmine ticket) that is
   edited in place, plus the latest activity. "New project" in the overview can create the first checklist from a
   template right away
+- **Archive**: archived projects disappear from the overview, sidebar, my tasks and reporting. The *Archive* page
+  (sidebar) lists them across all customers (date and person of archiving, progress; filters, restore, delete
+  permanently); each customer has an *Archive* tab grouped by year. The search (Ctrl+K) can be limited to
+  *Active* or *Archived*
 - **Activity log** per project: checked-off items (grouped), checklists created/completed/deleted, tables created/deleted, status, dates,
   person responsible, labels, Redmine ticket and files
 - **Files** per project (upload by button or drag & drop, max. 25 MB per file); stored in the database, so they are

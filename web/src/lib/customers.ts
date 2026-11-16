@@ -21,6 +21,7 @@ export interface CustomerRow {
   info: CustomerListItem | undefined;
   projects: SidebarProject[]; // excluding archived
   activeProjects: number; // neither done nor archived
+  archived: number; // archived projects
   open: number; // open items across all projects
   done: number; // customer progress (included projects only)
   total: number;
@@ -46,6 +47,7 @@ export function buildCustomerRows(customers: SidebarCustomer[], infos: CustomerL
       info: byId.get(c.id),
       projects,
       activeProjects: running.length,
+      archived: c.projects.length - projects.length,
       open,
       done,
       total,

@@ -23,6 +23,7 @@
     myTasks: t('nav.myTasks'),
     customers: t('nav.customers'),
     templates: t('nav.templates'),
+    archive: t('nav.archive'),
     reports: t('nav.reports'),
     settings: t('nav.settings'),
     settingsPage: (slug) => {
