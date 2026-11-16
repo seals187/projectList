@@ -5,7 +5,7 @@
 export interface SettingsNavItem {
   id: string;
   href: string; // path, optionally with #anchor
-  icon: 'user' | 'palette' | 'type' | 'clipboard' | 'home' | 'tag' | 'users' | 'database' | 'info';
+  icon: 'user' | 'palette' | 'type' | 'clipboard' | 'home' | 'tag' | 'chart' | 'users' | 'database' | 'info';
   label: string; // i18n key
   keys: string[]; // i18n keys of further search terms
   admin?: boolean;
@@ -19,6 +19,7 @@ export const SETTINGS_NAV: readonly SettingsNavItem[] = [
   { id: 'checklists', href: '/settings/font#checklists', icon: 'clipboard', label: 'set.nav.checklists', keys: ['set.checkbox', 'set.dividers', 'set.codeBlock'] },
   { id: 'overview', href: '/settings/overview', icon: 'home', label: 'set.nav.overview', keys: ['settings.defaultView'] },
   { id: 'tags', href: '/settings/tags', icon: 'tag', label: 'set.nav.tags', keys: ['tags.title', 'tags.color'], admin: true },
+  { id: 'reporting', href: '/settings/reporting', icon: 'chart', label: 'set.nav.reporting', keys: ['set.rep.views', 'set.rep.period', 'set.rep.progress', 'set.rep.due', 'set.rep.dueSoon', 'set.rep.overload', 'set.rep.kpis', 'set.rep.mail'], admin: true },
   { id: 'users', href: '/settings/users', icon: 'users', label: 'set.nav.users', keys: ['common.role', 'set.users.invite', 'set.users.access', 'set.users.resetPassword'], admin: true },
   { id: 'backup', href: '/settings/backup', icon: 'database', label: 'set.nav.backup', keys: ['settings.backupDownload', 'set.restore.title'], admin: true },
   { id: 'about', href: '/settings/about', icon: 'info', label: 'set.nav.about', keys: ['set.about.version', 'set.about.source'], bottom: true }

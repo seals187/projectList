@@ -102,8 +102,6 @@
   }
 
   const path = $derived(page.url.pathname);
-  // archived projects of all visible customers (the sidebar data includes them)
-  const archivedCount = $derived(sidebar.customers.reduce((n, c) => n + c.projects.filter((p) => p.status === 'archived').length, 0));
   // Settings open and close with the user entry: a second click returns to the page before
   const inSettings = $derived(path.startsWith('/settings'));
   let lastPage = $state('/');
@@ -115,7 +113,7 @@
     { href: '/tasks', icon: 'tasks' as const, label: t('nav.myTasks'), on: path === '/tasks', badge: sidebar.myTasks },
     { href: '/customers', icon: 'building2' as const, label: t('nav.customers'), on: /^\/(customers|projects|checklists)(\/|$)/.test(path) },
     { href: '/templates', icon: 'template' as const, label: t('nav.templates'), on: path.startsWith('/templates') },
-    { href: '/archive', icon: 'archive' as const, label: t('nav.archive'), on: path.startsWith('/archive'), badge: archivedCount },
+    { href: '/archive', icon: 'archive' as const, label: t('nav.archive'), on: path.startsWith('/archive') },
     { href: '/reports', icon: 'chart' as const, label: t('nav.reports'), on: path.startsWith('/reports') }
   ]);
 

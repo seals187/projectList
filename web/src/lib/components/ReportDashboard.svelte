@@ -1,6 +1,7 @@
 <script lang="ts">
   // Reporting, view "Dashboard": key figures, completed vs. created items per
-  // week (line chart with hover), projects by status, due in the next 14 days.
+  // week (line chart with hover), projects by status, due soon. Key figures and
+  // the "due soon" window come from the reporting settings (report.config).
   import { t } from '$lib/i18n.svelte';
   import { ALL_STATUSES, statusDotCls, statusDotStyle, statusLabel } from '$lib/projectStatus';
   import { dayMonth, linePoints, niceMax, pctChange, signed, type Report } from '$lib/reporting';
@@ -10,6 +11,7 @@
   let { report, today }: { report: Report; today: string } = $props();
 
   const d = $derived(report.dashboard);
+  const kpis = $derived(report.config?.kpis ?? ['completed', 'open', 'overdue', 'projects_done']);
   const completedChange = $derived(pctChange(d.completed, d.completed_prev));
   const openChange = $derived(pctChange(d.open, d.open_prev));
 
@@ -30,24 +32,34 @@
   const statusTotal = $derived(statuses.reduce((s, x) => s + (d.status[x] ?? 0), 0));
 </script>
 
-<div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-  <KpiCard
-    label={t('rep.kpi.completed')}
-    value={d.completed}
-    note={completedChange === null ? '' : t('rep.vsPrev', { v: signed(completedChange, ' %') })}
-    tone={completedChange !== null && completedChange < 0 ? 'bad' : 'good'}
-    testid="kpi-completed" />
-  <KpiCard label={t('rep.kpi.open')} value={d.open} note={openChange === null ? '' : signed(openChange, ' %')} tone={openChange !== null && openChange > 0 ? 'bad' : 'good'} />
-  <KpiCard
-    label={t('rep.kpi.overdue')}
-    value={d.overdue}
-    valueTone={d.overdue ? 'bad' : null}
-    note={d.overdue !== d.overdue_prev ? signed(d.overdue - d.overdue_prev) : ''}
-    tone={d.overdue > d.overdue_prev ? 'bad' : 'good'} />
-  <KpiCard label={t('rep.kpi.projectsDone')} value={d.projects_done} note={t('rep.thisPeriod')} tone="good" />
-</div>
+<!-- key figures: selection and order from the settings -->
+{#if kpis.length}
+  <div class="grid grid-cols-2 gap-4 {kpis.length >= 4 ? 'lg:grid-cols-4' : kpis.length === 3 ? 'lg:grid-cols-3' : ''}">
+    {#each kpis as k (k)}
+      {#if k === 'completed'}
+        <KpiCard
+          label={t('rep.kpi.completed')}
+          value={d.completed}
+          note={completedChange === null ? '' : t('rep.vsPrev', { v: signed(completedChange, ' %') })}
+          tone={completedChange !== null && completedChange < 0 ? 'bad' : 'good'}
+          testid="kpi-completed" />
+      {:else if k === 'open'}
+        <KpiCard label={t('rep.kpi.open')} value={d.open} note={openChange === null ? '' : signed(openChange, ' %')} tone={openChange !== null && openChange > 0 ? 'bad' : 'good'} />
+      {:else if k === 'overdue'}
+        <KpiCard
+          label={t('rep.kpi.overdue')}
+          value={d.overdue}
+          valueTone={d.overdue ? 'bad' : null}
+          note={d.overdue !== d.overdue_prev ? signed(d.overdue - d.overdue_prev) : ''}
+          tone={d.overdue > d.overdue_prev ? 'bad' : 'good'} />
+      {:else}
+        <KpiCard label={t('rep.kpi.projectsDone')} value={d.projects_done} note={t('rep.thisPeriod')} tone="good" />
+      {/if}
+    {/each}
+  </div>
+{/if}
 
-<div class="mt-4 grid items-start gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,0.9fr)_minmax(0,1.2fr)]">
+<div class="{kpis.length ? 'mt-4' : ''} grid items-start gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,0.9fr)_minmax(0,1.2fr)]">
   <!-- completed vs. created per week -->
   <section class="surface rounded-xl border border-zinc-200 p-4 dark:border-zinc-800" data-testid="rep-chart">
     <h2 class="font-semibold">{t('rep.chart.title')} <span class="text-sm font-normal text-zinc-400">{t('rep.chart.perWeek')}</span></h2>
@@ -110,9 +122,9 @@
     {/if}
   </section>
 
-  <!-- due in the next 14 days -->
+  <!-- due soon (window of the settings) -->
   <section class="surface rounded-xl border border-zinc-200 p-4 dark:border-zinc-800" data-testid="rep-due">
-    <h2 class="font-semibold">{t('rep.due.title')}</h2>
+    <h2 class="font-semibold">{t('rep.due.title', { n: report.config?.due_soon_days ?? 14 })}</h2>
     <ul class="mt-2 divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
       {#each d.due ?? [] as x (x.kind + x.id)}
         <li>

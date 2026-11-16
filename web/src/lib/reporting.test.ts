@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dayMonth, linePoints, niceMax, pctChange, reportQuery, signed, swissDate, toCsv } from './reporting';
+import { dayMonth, linePoints, moveItem, niceMax, pctChange, pickPeriod, pickView, reportQuery, signed, swissDate, toCsv, type ReportView } from './reporting';
 
 describe('reporting helpers', () => {
   it('query string', () => {
@@ -30,5 +30,21 @@ describe('reporting helpers', () => {
     expect(niceMax(0)).toBe(4);
     expect(niceMax(7)).toBe(10);
     expect(niceMax(130)).toBe(200);
+  });
+});
+
+describe('reporting settings helpers', () => {
+  const cfg = { periods: [14, 60], default_period: 60, views: ['dashboard', 'workload'] as ReportView[], default_view: 'workload' as const };
+  it('falls back to the defaults of the settings', () => {
+    expect(pickPeriod('14', cfg)).toBe(14);
+    expect(pickPeriod('30', cfg)).toBe(60);
+    expect(pickPeriod('', cfg)).toBe(60);
+    expect(pickView('dashboard', cfg)).toBe('dashboard');
+    expect(pickView('customers', cfg)).toBe('workload');
+  });
+  it('moves entries up and down, not past the ends', () => {
+    expect(moveItem(['a', 'b', 'c'], 1, -1)).toEqual(['b', 'a', 'c']);
+    expect(moveItem(['a', 'b', 'c'], 1, 1)).toEqual(['a', 'c', 'b']);
+    expect(moveItem(['a', 'b'], 0, -1)).toEqual(['a', 'b']);
   });
 });

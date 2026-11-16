@@ -109,21 +109,24 @@ var texts = map[string]map[string]string{
 		"subject": "ProjectList – Bericht %s – %s", "hello": "Hallo %s,", "intro": "hier ist dein Bericht für %s – %s.",
 		"completed": "Erledigte Checklisten", "prev": "Vorperiode", "open": "Offene Checklisten", "overdue": "Überfällig",
 		"projectsDone": "Abgeschlossene Projekte", "customers": "Kunden", "custLine": "%d %% der Checklisten erledigt, %d offen, %d überfällig",
-		"due": "Fällig in den nächsten 14 Tagen", "mine": "Deine offenen Checklisten: %d (%d überfällig)", "link": "Zum Reporting:",
+		"custLineItems": "%d %% der Items erledigt, %d offene Checklisten, %d überfällig",
+		"due":           "Fällig in den nächsten %d Tagen", "mine": "Deine offenen Checklisten: %d (%d überfällig)", "link": "Zum Reporting:",
 		"none": "keine",
 	},
 	"en": {
 		"subject": "ProjectList – report %s – %s", "hello": "Hello %s,", "intro": "here is your report for %s – %s.",
 		"completed": "Completed checklists", "prev": "previous period", "open": "Open checklists", "overdue": "Overdue",
 		"projectsDone": "Projects done", "customers": "Customers", "custLine": "%d %% of checklists done, %d open, %d overdue",
-		"due": "Due in the next 14 days", "mine": "Your open checklists: %d (%d overdue)", "link": "Open the reporting:",
+		"custLineItems": "%d %% of items done, %d open checklists, %d overdue",
+		"due":           "Due in the next %d days", "mine": "Your open checklists: %d (%d overdue)", "link": "Open the reporting:",
 		"none": "none",
 	},
 	"fr": {
 		"subject": "ProjectList – rapport %s – %s", "hello": "Bonjour %s,", "intro": "voici votre rapport pour %s – %s.",
 		"completed": "Checklists terminées", "prev": "période précédente", "open": "Checklists ouvertes", "overdue": "En retard",
 		"projectsDone": "Projets terminés", "customers": "Clients", "custLine": "%d %% des checklists terminées, %d ouvertes, %d en retard",
-		"due": "Échéances des 14 prochains jours", "mine": "Vos checklists ouvertes : %d (%d en retard)", "link": "Ouvrir le reporting :",
+		"custLineItems": "%d %% des éléments terminés, %d checklists ouvertes, %d en retard",
+		"due":           "Échéances des %d prochains jours", "mine": "Vos checklists ouvertes : %d (%d en retard)", "link": "Ouvrir le reporting :",
 		"none": "aucune",
 	},
 }
@@ -145,20 +148,38 @@ func Text(lang, to, name string, userID int64, r *Report, appURL string) mail.Me
 	var b strings.Builder
 	fmt.Fprintf(&b, tx["hello"]+"\n\n"+tx["intro"]+"\n\n", name, from, until)
 	d := r.Dashboard
-	fmt.Fprintf(&b, "%s: %d (%s: %d)\n", tx["completed"], d.Completed, tx["prev"], d.CompletedPrev)
-	fmt.Fprintf(&b, "%s: %d\n%s: %d\n%s: %d\n\n", tx["open"], d.Open, tx["overdue"], d.Overdue, tx["projectsDone"], d.ProjectsDone)
-	if len(r.Customers) > 0 {
+	// key figures in the order of the settings
+	for _, k := range r.Config.KPIs {
+		switch k {
+		case "completed":
+			fmt.Fprintf(&b, "%s: %d (%s: %d)\n", tx["completed"], d.Completed, tx["prev"], d.CompletedPrev)
+		case "open":
+			fmt.Fprintf(&b, "%s: %d\n", tx["open"], d.Open)
+		case "overdue":
+			fmt.Fprintf(&b, "%s: %d\n", tx["overdue"], d.Overdue)
+		case "projects_done":
+			fmt.Fprintf(&b, "%s: %d\n", tx["projectsDone"], d.ProjectsDone)
+		}
+	}
+	if len(r.Config.KPIs) > 0 {
+		b.WriteString("\n")
+	}
+	if r.Config.HasView("customers") && len(r.Customers) > 0 {
+		line := tx["custLine"]
+		if r.Config.ProgressBasis == "items" {
+			line = tx["custLineItems"]
+		}
 		b.WriteString(tx["customers"] + ":\n")
 		for _, c := range r.Customers {
 			pct := 0
 			if c.Total > 0 {
 				pct = c.Done * 100 / c.Total
 			}
-			fmt.Fprintf(&b, "  %s: "+tx["custLine"]+"\n", c.Name, pct, c.Open, c.Overdue)
+			fmt.Fprintf(&b, "  %s: "+line+"\n", c.Name, pct, c.Open, c.Overdue)
 		}
 		b.WriteString("\n")
 	}
-	b.WriteString(tx["due"] + ":\n")
+	fmt.Fprintf(&b, tx["due"]+":\n", r.Config.DueSoonDays)
 	if len(d.Due) == 0 {
 		b.WriteString("  " + tx["none"] + "\n")
 	}

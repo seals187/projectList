@@ -3,6 +3,8 @@
 // projects – never single items: a checklist is done when all its items are
 // checked (done at = the last item), its due date is the latest due date of its
 // items, its person the checklist's assignee. Empty checklists are left out.
+// The reporting settings (Config, Settings → Reporting) can switch the progress
+// to items, the due date to the earliest open item, and more.
 // Everything is aggregated in Go: the data of a self-hosted instance is small.
 package report
 
@@ -26,13 +28,11 @@ type Filter struct {
 	Tags      []int64 `json:"tags"`
 }
 
-// Periods allowed for Filter.Days.
-var Periods = []int{7, 30, 90, 365}
-
-// Normalize sets a valid period.
+// Normalize resets an unknown period to 0 (= the default period of the
+// settings, see Config.period).
 func (f *Filter) Normalize() {
-	if !slices.Contains(Periods, f.Days) {
-		f.Days = 30
+	if !slices.Contains(AllPeriods, f.Days) {
+		f.Days = 0
 	}
 }
 
@@ -47,6 +47,7 @@ type Report struct {
 	Workload  Workload  `json:"workload"`
 	Templates Templates `json:"templates"`
 	Assignees []UserRef `json:"assignees"` // persons of checklists in the visible customers (filter)
+	Config    Config    `json:"config"`    // reporting settings the report was computed with
 }
 
 type UserRef struct {
@@ -116,6 +117,8 @@ type Person struct {
 	DueWeek int    `json:"due_week"` // of them due within 7 days
 	Overdue int    `json:"overdue"`  // of them overdue
 	Done    int    `json:"done"`     // completed in the period
+	// open checklists reach the overload threshold of the settings
+	Overloaded bool `json:"overloaded"`
 }
 
 type Unassigned struct {
@@ -171,6 +174,14 @@ type checklist struct {
 	Total, Done               int
 	LastDone                  time.Time
 	Due                       string // latest due date of the items, "" = none
+	OpenDue                   string // earliest due date of an open item, "" = none
+	items                     []itemDue
+}
+
+// itemDue: due date and completion of an item (for "overdue at the start of the period").
+type itemDue struct {
+	due  string
+	done *time.Time
 }
 
 func (c *checklist) complete() bool { return c.Total > 0 && c.Done == c.Total }
@@ -194,11 +205,57 @@ func aggregate(items []sqlc.ReportItemsRow) []*checklist {
 				c.LastDone = *it.DoneAt
 			}
 		}
-		if it.DueDate != nil && len(*it.DueDate) >= 10 && (*it.DueDate)[:10] > c.Due {
-			c.Due = (*it.DueDate)[:10]
+		if it.DueDate != nil && len(*it.DueDate) >= 10 {
+			due := (*it.DueDate)[:10]
+			if due > c.Due {
+				c.Due = due
+			}
+			if it.DoneAt == nil && (c.OpenDue == "" || due < c.OpenDue) {
+				c.OpenDue = due
+			}
+			c.items = append(c.items, itemDue{due: due, done: it.DoneAt})
 		}
 	}
 	return order
+}
+
+// dueOf: due date of a checklist by the settings (latest item or earliest open item).
+func (d *data) dueOf(c *checklist) string {
+	if d.cfg.DueBasis == "item" {
+		return c.OpenDue
+	}
+	return c.Due
+}
+
+// overdue: open checklist past its due date (today: YYYY-MM-DD).
+func (d *data) overdue(c *checklist, today string) bool {
+	due := d.dueOf(c)
+	return !c.complete() && due != "" && due < today
+}
+
+// overdueAt: was the checklist overdue at the start of a day (previous period)?
+func (d *data) overdueAt(c *checklist, day time.Time) bool {
+	dayStr := day.Format("2006-01-02")
+	if d.cfg.DueBasis == "item" {
+		for _, it := range c.items {
+			if it.due < dayStr && (it.done == nil || !it.done.Before(day)) {
+				return true
+			}
+		}
+		return false
+	}
+	return c.Due != "" && c.Due < dayStr
+}
+
+// progress of a checklist in the unit of the settings: (done, total).
+func (d *data) progress(c *checklist) (int, int) {
+	if d.cfg.ProgressBasis == "items" {
+		return c.Done, c.Total
+	}
+	if c.complete() {
+		return 1, 1
+	}
+	return 0, 1
 }
 
 // ---- helpers ---------------------------------------------------------------------------
@@ -243,6 +300,7 @@ type data struct {
 	lists     []*checklist // filtered, non-empty
 	names     map[int64]string
 	assignees []UserRef
+	cfg       Config
 }
 
 func load(ctx context.Context, q *sqlc.Queries, userFilter any, f Filter) (*data, error) {
@@ -266,7 +324,11 @@ func load(ctx context.Context, q *sqlc.Queries, userFilter any, f Filter) (*data
 	if err != nil {
 		return nil, err
 	}
-	d := &data{custName: map[int64]string{}, customers: customers, projects: projects, projOK: map[int64]sqlc.ReportProjectsRow{}, names: map[int64]string{}}
+	cfg, err := LoadConfig(ctx, q)
+	if err != nil {
+		return nil, err
+	}
+	d := &data{custName: map[int64]string{}, customers: customers, projects: projects, projOK: map[int64]sqlc.ReportProjectsRow{}, names: map[int64]string{}, cfg: cfg}
 	for _, u := range users {
 		d.names[u.ID] = u.Name
 	}
@@ -293,7 +355,8 @@ func load(ctx context.Context, q *sqlc.Queries, userFilter any, f Filter) (*data
 		if c.Assignee != nil {
 			seen[*c.Assignee] = true
 		}
-		if _, ok := d.projOK[c.ProjectID]; !ok {
+		p, ok := d.projOK[c.ProjectID]
+		if !ok || !d.counts(p) {
 			continue
 		}
 		if len(f.Assignees) > 0 && (c.Assignee == nil || !slices.Contains(f.Assignees, *c.Assignee)) {
@@ -310,6 +373,11 @@ func load(ctx context.Context, q *sqlc.Queries, userFilter any, f Filter) (*data
 	return d, nil
 }
 
+// counts: whether the checklists of a project count (settings: done projects).
+func (d *data) counts(p sqlc.ReportProjectsRow) bool {
+	return d.cfg.IncludeDone || p.Status != "done"
+}
+
 // Build computes the report for the visible customers (userFilter: nil = all,
 // otherwise the user ID; see authz.User.VisibilityFilter).
 func Build(ctx context.Context, q *sqlc.Queries, userFilter any, f Filter, now time.Time) (*Report, error) {
@@ -318,6 +386,7 @@ func Build(ctx context.Context, q *sqlc.Queries, userFilter any, f Filter, now t
 	if err != nil {
 		return nil, err
 	}
+	f.Days = d.cfg.period(f.Days)
 	loc := now.Location()
 	today := dayOf(now, loc)
 	start := today.AddDate(0, 0, -(f.Days - 1)) // period: [start, now]
@@ -326,9 +395,9 @@ func Build(ctx context.Context, q *sqlc.Queries, userFilter any, f Filter, now t
 	inPrev := func(t time.Time) bool { return !t.Before(prevStart) && t.Before(start) }
 	todayStr, startStr := today.Format("2006-01-02"), start.Format("2006-01-02")
 	weekEnd := today.AddDate(0, 0, 6).Format("2006-01-02")
-	overdue := func(c *checklist) bool { return !c.complete() && c.Due != "" && c.Due < todayStr }
+	overdue := func(c *checklist) bool { return d.overdue(c, todayStr) }
 
-	r := &Report{From: startStr, To: todayStr, Days: f.Days, Assignees: d.assignees}
+	r := &Report{From: startStr, To: todayStr, Days: f.Days, Assignees: d.assignees, Config: d.cfg}
 
 	// ---- dashboard
 	db := &r.Dashboard
@@ -349,7 +418,7 @@ func Build(ctx context.Context, q *sqlc.Queries, userFilter any, f Filter, now t
 		existed := !c.CreatedKnown || c.Created.Before(start)
 		if existed && (!c.complete() || !c.LastDone.Before(start)) {
 			db.OpenPrev++
-			if c.Due != "" && c.Due < startStr {
+			if d.overdueAt(c, start) {
 				db.OverduePrev++
 			}
 		}
@@ -401,7 +470,7 @@ func Build(ctx context.Context, q *sqlc.Queries, userFilter any, f Filter, now t
 	for _, p := range d.projOK {
 		db.Status[p.Status]++
 	}
-	limit := today.AddDate(0, 0, 14).Format("2006-01-02")
+	limit := today.AddDate(0, 0, d.cfg.DueSoonDays).Format("2006-01-02")
 	db.Due = []Due{}
 	for _, p := range d.projOK {
 		if p.DueDate != nil && p.Status != "done" && *p.DueDate <= limit {
@@ -409,8 +478,8 @@ func Build(ctx context.Context, q *sqlc.Queries, userFilter any, f Filter, now t
 		}
 	}
 	for _, c := range d.lists {
-		if !c.complete() && c.Due != "" && c.Due <= limit {
-			db.Due = append(db.Due, Due{Date: c.Due, Kind: "checklist", ID: c.ID, Title: c.Title, Customer: d.custName[c.CustomerID]})
+		if due := d.dueOf(c); !c.complete() && due != "" && due <= limit {
+			db.Due = append(db.Due, Due{Date: due, Kind: "checklist", ID: c.ID, Title: c.Title, Customer: d.custName[c.CustomerID]})
 		}
 	}
 	sort.Slice(db.Due, func(i, j int) bool {
@@ -432,7 +501,7 @@ func Build(ctx context.Context, q *sqlc.Queries, userFilter any, f Filter, now t
 		}
 	}
 	for _, p := range d.projects {
-		if _, ok := d.projOK[p.ID]; !ok {
+		if _, ok := d.projOK[p.ID]; !ok || !d.counts(p) {
 			continue
 		}
 		c := byCust[p.CustomerID]
@@ -446,23 +515,24 @@ func Build(ctx context.Context, q *sqlc.Queries, userFilter any, f Filter, now t
 		p := d.projOK[cl.ProjectID]
 		c := byCust[p.CustomerID]
 		cp := &c.Projects[projIdx[p.ID]]
-		cp.Total++
-		if p.IncludeInCustomerProgress {
-			c.Total++
+		// progress in checklists or items; projects outside the customer progress
+		// only count when the settings say so
+		done, total := d.progress(cl)
+		cp.Done += done
+		cp.Total += total
+		if p.IncludeInCustomerProgress || !d.cfg.RespectCustomerProgress {
+			c.Done += done
+			c.Total += total
 		}
 		if cl.complete() {
-			cp.Done++
-			if p.IncludeInCustomerProgress {
-				c.Done++
-			}
 			continue
 		}
 		c.Open++
 		if overdue(cl) {
 			c.Overdue++
 		}
-		if cl.Due != "" && (c.NextDue == "" || cl.Due < c.NextDue) {
-			c.NextDue = cl.Due
+		if due := d.dueOf(cl); due != "" && (c.NextDue == "" || due < c.NextDue) {
+			c.NextDue = due
 		}
 	}
 	r.Customers = []Cust{}
@@ -494,7 +564,7 @@ func Build(ctx context.Context, q *sqlc.Queries, userFilter any, f Filter, now t
 		}
 		if c.Assignee == nil {
 			r.Workload.Unassigned.Total++
-			r.Workload.Unassigned.Checklists = append(r.Workload.Unassigned.Checklists, d.brief(c, c.Due))
+			r.Workload.Unassigned.Checklists = append(r.Workload.Unassigned.Checklists, d.brief(c, d.dueOf(c)))
 			continue
 		}
 		p := person(*c.Assignee)
@@ -502,12 +572,13 @@ func Build(ctx context.Context, q *sqlc.Queries, userFilter any, f Filter, now t
 		switch {
 		case overdue(c):
 			p.Overdue++
-		case c.Due != "" && c.Due <= weekEnd:
+		case d.dueOf(c) != "" && d.dueOf(c) <= weekEnd:
 			p.DueWeek++
 		}
 	}
 	r.Workload.People = []Person{}
 	for _, p := range people {
+		p.Overloaded = d.cfg.OverloadThreshold > 0 && p.Open >= d.cfg.OverloadThreshold
 		r.Workload.People = append(r.Workload.People, *p)
 	}
 	sort.Slice(r.Workload.People, func(i, j int) bool {

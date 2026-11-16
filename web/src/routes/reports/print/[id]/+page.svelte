@@ -11,7 +11,9 @@
   let rep = $state<CustomerReport | null>(null);
   let error = $state('');
   const id = $derived(Number(page.params.id));
-  const period = $derived(Number(page.url.searchParams.get('period')) || 30);
+  // 0 = default period of the reporting settings
+  const period = $derived(Number(page.url.searchParams.get('period')) || 0);
+  const items = $derived(rep?.progress_basis === 'items'); // progress in items (settings)
 
   $effect(() => {
     api.get<CustomerReport>(`/reports/customers/${id}?period=${period}`).then(
@@ -74,7 +76,7 @@
       </header>
 
       <p class="mt-4 text-[14px]">
-        <b>{t('overview.nProjects', { n: rep.projects.length })}</b> · {t('rep.preview.done', { n: percent(rep.done, rep.total) })} ·
+        <b>{t('overview.nProjects', { n: rep.projects.length })}</b> · {t(items ? 'rep.preview.doneItems' : 'rep.preview.done', { n: percent(rep.done, rep.total) })} ·
         {t('rep.print.open', { n: rep.open.length })} · {t('rep.preview.overdue', { n: rep.overdue.length })}
       </p>
 
@@ -89,7 +91,7 @@
                 <td class="w-[45%] py-1.5 pr-3">
                   <div class="h-2 overflow-hidden rounded-full bg-zinc-200 print:border print:border-zinc-300"><div class="h-full rounded-full bg-zinc-800" style:width="{pc}%"></div></div>
                 </td>
-                <td class="w-40 py-1.5 text-right whitespace-nowrap tabular-nums">{pc}% · {t('rep.nLists', { done: p.done, total: p.total })}</td>
+                <td class="w-40 py-1.5 text-right whitespace-nowrap tabular-nums">{pc}% · {t(items ? 'rep.nItems' : 'rep.nLists', { done: p.done, total: p.total })}</td>
               </tr>
             {/each}
           </tbody>
@@ -97,7 +99,7 @@
       </section>
 
       {@render lines(t('rep.print.overdue'), rep.overdue, 'font-semibold text-red-700', true)}
-      {@render lines(t('rep.print.upcoming'), rep.upcoming, '', true)}
+      {@render lines(t('rep.print.upcoming', { n: rep.due_soon_days ?? 14 }), rep.upcoming, '', true)}
       {@render lines(t('rep.print.openLists'), rep.open, '', true)}
       {@render lines(t('rep.print.completed'), rep.completed)}
 

@@ -37,7 +37,10 @@
       {#each people as p (p.id)}
         {@const rest = p.open - p.due_week - p.overdue}
         <div class="{cols} border-b border-zinc-100 px-4 py-2.5 text-sm dark:border-zinc-800/70" data-testid="rep-person-row">
-          <span class="flex min-w-0 items-center gap-2.5"><Avatar name={p.name} id={p.id} size={28} /><span class="truncate font-semibold">{p.name}</span></span>
+          <span class="flex min-w-0 items-center gap-2.5">
+            <Avatar name={p.name} id={p.id} size={28} /><span class="truncate font-semibold">{p.name}</span>
+            {#if p.overloaded}<span class="shrink-0 rounded-md bg-red-50 px-1.5 py-0.5 text-[11px] font-semibold text-red-700 dark:bg-red-950/50 dark:text-red-300" data-testid="rep-overloaded">{t('rep.overloaded')}</span>{/if}
+          </span>
           <span class="flex h-2.5" style:width="{(p.open / maxOpen) * 100}%" title="{t('rep.legend.open')}: {rest} · {t('rep.legend.week')}: {p.due_week} · {t('rep.legend.overdue')}: {p.overdue}">
             {#if rest}<span class="h-full rounded-full border-r-2 border-white bg-[var(--accent-primary)] dark:border-zinc-900" style:flex-grow={rest}></span>{/if}
             {#if p.due_week}<span class="h-full rounded-full border-r-2 border-white bg-amber-500 dark:border-zinc-900" style:flex-grow={p.due_week}></span>{/if}

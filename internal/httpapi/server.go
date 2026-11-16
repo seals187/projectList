@@ -196,6 +196,8 @@ func New(o Options) http.Handler {
 	// Reporting (everybody, over the visible customers); report e-mails: admins and members
 	mux.Handle("GET /api/reports", s.authed(s.getReport))
 	mux.Handle("GET /api/reports/customers/{id}", s.authed(s.getCustomerReport))
+	mux.Handle("GET /api/reports/config", s.authed(s.getReportConfig))
+	mux.Handle("PUT /api/reports/config", s.admin(s.setReportConfig))
 	mux.Handle("GET /api/report-schedules", s.writer(s.listReportSchedules))
 	mux.Handle("POST /api/report-schedules", s.writer(s.createReportSchedule))
 	mux.Handle("PATCH /api/report-schedules/{id}", s.writer(s.updateReportSchedule))

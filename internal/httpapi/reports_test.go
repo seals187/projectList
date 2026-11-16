@@ -144,3 +144,136 @@ func TestScheduleDue(t *testing.T) {
 		t.Fatal("ScheduleDue")
 	}
 }
+
+// Reporting settings: defaults, validation, and the effect of each option on
+// the report, the customer report and the e-mail.
+func TestReportConfig(t *testing.T) {
+	fm := &fakeMailer{}
+	e := newEnvWith(t, func(o *httpapi.Options) { o.Mailer = fm })
+	admin := e.user("admin@example.com", "admin")
+	type idOnly struct {
+		ID int64 `json:"id"`
+	}
+	var cust, p1, p2, l1, l2 idOnly
+	admin.do("POST", "/api/customers", map[string]any{"name": "Kunde A"}, &cust)
+	member := e.user("member@example.com", "member", cust.ID)
+	admin.do("POST", fmt.Sprintf("/api/customers/%d/projects", cust.ID), map[string]any{"name": "P1"}, &p1)
+	admin.do("POST", fmt.Sprintf("/api/customers/%d/projects", cust.ID), map[string]any{"name": "P2"}, &p2)
+	var me struct {
+		User struct {
+			ID int64 `json:"id"`
+		} `json:"user"`
+	}
+	admin.do("GET", "/api/auth/me", nil, &me)
+	yesterday := time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+	in20 := time.Now().AddDate(0, 0, 20).Format("2006-01-02")
+	item := func(cl int64, due string, done bool) {
+		var it idOnly
+		admin.do("POST", fmt.Sprintf("/api/checklists/%d/items", cl), map[string]any{"title": "x"}, &it)
+		if due != "" {
+			admin.do("PATCH", fmt.Sprintf("/api/items/%d", it.ID), map[string]any{"due_date": due}, nil)
+		}
+		if done {
+			admin.do("POST", fmt.Sprintf("/api/items/%d/done", it.ID), map[string]bool{"done": true}, nil)
+		}
+	}
+	// L1 (P1): one item done, open items due yesterday and in 20 days
+	admin.do("POST", fmt.Sprintf("/api/projects/%d/checklists", p1.ID), map[string]any{"title": "L1"}, &l1)
+	admin.do("PATCH", fmt.Sprintf("/api/checklists/%d", l1.ID), map[string]any{"assignee_id": me.User.ID}, nil)
+	item(l1.ID, "", true)
+	item(l1.ID, yesterday, false)
+	item(l1.ID, in20, false)
+	item(l1.ID, "", false)
+	// L2 (P2, status done): one open item
+	admin.do("POST", fmt.Sprintf("/api/projects/%d/checklists", p2.ID), map[string]any{"title": "L2"}, &l2)
+	item(l2.ID, "", false)
+	admin.do("PATCH", fmt.Sprintf("/api/projects/%d", p2.ID), map[string]any{"status": "done"}, nil)
+
+	type cfgResp struct {
+		Config   report.Config `json:"config"`
+		Defaults report.Config `json:"defaults"`
+	}
+	var cr cfgResp
+	expect(t, "config lesen (member)", member.do("GET", "/api/reports/config", nil, &cr), 200)
+	if cr.Config.DefaultPeriod != 30 || cr.Config.DueSoonDays != 14 || cr.Config.ProgressBasis != "checklists" || !cr.Config.IncludeDone {
+		t.Fatalf("defaults: %+v", cr.Config)
+	}
+
+	// defaults = behavior so far: checklist due date (latest item) → not overdue, not due soon
+	var rep report.Report
+	admin.do("GET", "/api/reports?period=30", nil, &rep)
+	if rep.Dashboard.Open != 2 || rep.Dashboard.Overdue != 0 || len(rep.Dashboard.Due) != 0 || rep.Customers[0].Done != 0 || rep.Customers[0].Total != 2 {
+		t.Fatalf("standard: %+v %+v", rep.Dashboard, rep.Customers)
+	}
+
+	cfg := cr.Defaults
+	expect(t, "member darf nicht", member.do("PUT", "/api/reports/config", cfg, nil), 403)
+	bad := cfg
+	bad.Views = []string{}
+	expect(t, "keine ansicht", admin.do("PUT", "/api/reports/config", bad, nil), 400)
+	bad = cfg
+	bad.DefaultPeriod = 14 // not among the periods
+	expect(t, "standardzeitraum fehlt", admin.do("PUT", "/api/reports/config", bad, nil), 400)
+	bad = cfg
+	bad.DueSoonDays = 0
+	expect(t, "fenster 0", admin.do("PUT", "/api/reports/config", bad, nil), 400)
+
+	cfg.Periods = []int{60, 14}
+	cfg.DefaultPeriod = 60
+	cfg.ProgressBasis = "items"
+	cfg.DueBasis = "item"
+	cfg.DueSoonDays = 30
+	cfg.IncludeDone = false
+	cfg.OverloadThreshold = 1
+	cfg.Views = []string{"dashboard", "workload"}
+	cfg.KPIs = []string{"overdue"}
+	expect(t, "config speichern", admin.do("PUT", "/api/reports/config", cfg, &cr), 200)
+	if cr.Config.Periods[0] != 14 { // stored in ascending order
+		t.Fatalf("zeiträume: %+v", cr.Config.Periods)
+	}
+
+	admin.do("GET", "/api/reports?period=7", nil, &rep) // 7 is not selectable → default period
+	if rep.Days != 60 || rep.Config.DefaultPeriod != 60 {
+		t.Fatalf("zeitraum: %d", rep.Days)
+	}
+	// item basis: overdue (open item yesterday), due soon from the earliest open item;
+	// done project left out; progress in items (1 of 4)
+	if rep.Dashboard.Open != 1 || rep.Dashboard.Overdue != 1 || len(rep.Dashboard.Due) != 1 || rep.Dashboard.Due[0].Date != yesterday {
+		t.Fatalf("item-basis: %+v", rep.Dashboard)
+	}
+	if c := rep.Customers[0]; c.Done != 1 || c.Total != 4 || len(c.Projects) != 1 {
+		t.Fatalf("fortschritt items: %+v", c)
+	}
+	if p := rep.Workload.People; len(p) != 1 || !p[0].Overloaded {
+		t.Fatalf("überlastet: %+v", p)
+	}
+	// customer report: same rules (upcoming window 30 days from the earliest open item = overdue here)
+	var crep report.CustomerReport
+	admin.do("GET", fmt.Sprintf("/api/reports/customers/%d", cust.ID), nil, &crep)
+	if len(crep.Overdue) != 1 || len(crep.Open) != 1 || crep.DueSoonDays != 30 || crep.ProgressBasis != "items" {
+		t.Fatalf("kundenbericht: %+v", crep)
+	}
+
+	// customer progress: P1 excluded → only counts when the setting is off
+	admin.do("PATCH", fmt.Sprintf("/api/projects/%d", p1.ID), map[string]any{"include_in_customer_progress": false}, nil)
+	admin.do("GET", "/api/reports", nil, &rep)
+	if rep.Customers[0].Total != 0 {
+		t.Fatalf("ausgeschlossen: %+v", rep.Customers[0])
+	}
+	cfg.RespectCustomerProgress = false
+	admin.do("PUT", "/api/reports/config", cfg, nil)
+	admin.do("GET", "/api/reports", nil, &rep)
+	if rep.Customers[0].Total != 4 {
+		t.Fatalf("ausschluss ignoriert: %+v", rep.Customers[0])
+	}
+
+	// e-mail: only the chosen key figures, no customers section (view off), window 30
+	var sc idOnly
+	admin.do("POST", "/api/report-schedules", map[string]any{"freq": "weekly", "lang": "de", "filters": map[string]any{"period": 60}}, &sc)
+	expect(t, "senden", admin.do("POST", fmt.Sprintf("/api/report-schedules/%d/send", sc.ID), nil, nil), 204)
+	body := fm.last().Body
+	if !strings.Contains(body, "Überfällig: 1") || strings.Contains(body, "Erledigte Checklisten") || strings.Contains(body, "Kunden:") ||
+		!strings.Contains(body, "Fällig in den nächsten 30 Tagen") {
+		t.Fatalf("mail:\n%s", body)
+	}
+}

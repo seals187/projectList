@@ -11,16 +11,18 @@ import (
 // CustomerReport: status report of one customer (print view / PDF) – projects
 // and checklists, no single items.
 type CustomerReport struct {
-	Customer  CustInfo   `json:"customer"`
-	From      string     `json:"from"`
-	To        string     `json:"to"`
-	Projects  []CustProj `json:"projects"`
-	Done      int        `json:"done"`      // completed checklists (projects counting toward the customer)
-	Total     int        `json:"total"`     // checklists (…)
-	Completed []ClBrief  `json:"completed"` // checklists completed in the period (newest first)
-	Overdue   []ClBrief  `json:"overdue"`   // open checklists past their due date
-	Upcoming  []ClBrief  `json:"upcoming"`  // open checklists due in the next 14 days
-	Open      []ClBrief  `json:"open"`      // all open checklists (with progress)
+	Customer      CustInfo   `json:"customer"`
+	From          string     `json:"from"`
+	To            string     `json:"to"`
+	Projects      []CustProj `json:"projects"`
+	Done          int        `json:"done"`           // completed checklists (projects counting toward the customer)
+	Total         int        `json:"total"`          // checklists (…)
+	Completed     []ClBrief  `json:"completed"`      // checklists completed in the period (newest first)
+	Overdue       []ClBrief  `json:"overdue"`        // open checklists past their due date
+	Upcoming      []ClBrief  `json:"upcoming"`       // open checklists due within DueSoonDays
+	DueSoonDays   int        `json:"due_soon_days"`  // settings: window of "upcoming"
+	ProgressBasis string     `json:"progress_basis"` // settings: checklists | items
+	Open          []ClBrief  `json:"open"`           // all open checklists (with progress)
 }
 
 type CustInfo struct {
@@ -51,6 +53,7 @@ func Customer(ctx context.Context, q *sqlc.Queries, customerID int64, days int, 
 		Customer: CustInfo{ID: c.ID, Name: c.Name, Location: c.Location, Contact: c.ContactName, Notes: c.Notes},
 		From:     base.From, To: base.To, Projects: []CustProj{},
 		Completed: []ClBrief{}, Overdue: []ClBrief{}, Upcoming: []ClBrief{}, Open: []ClBrief{},
+		DueSoonDays: base.Config.DueSoonDays, ProgressBasis: base.Config.ProgressBasis,
 	}
 	if len(base.Customers) == 1 {
 		bc := base.Customers[0]
@@ -59,7 +62,7 @@ func Customer(ctx context.Context, q *sqlc.Queries, customerID int64, days int, 
 	loc := now.Location()
 	today := dayOf(now, loc)
 	todayStr := today.Format("2006-01-02")
-	limit := today.AddDate(0, 0, 14).Format("2006-01-02")
+	limit := today.AddDate(0, 0, d.cfg.DueSoonDays).Format("2006-01-02")
 	for _, cl := range d.lists {
 		if cl.complete() {
 			if done := cl.LastDone.In(loc).Format("2006-01-02"); done >= out.From {
@@ -67,13 +70,14 @@ func Customer(ctx context.Context, q *sqlc.Queries, customerID int64, days int, 
 			}
 			continue
 		}
-		b := d.brief(cl, cl.Due)
+		due := d.dueOf(cl)
+		b := d.brief(cl, due)
 		out.Open = append(out.Open, b)
 		switch {
-		case cl.Due == "":
-		case cl.Due < todayStr:
+		case due == "":
+		case due < todayStr:
 			out.Overdue = append(out.Overdue, b)
-		case cl.Due <= limit:
+		case due <= limit:
 			out.Upcoming = append(out.Upcoming, b)
 		}
 	}

@@ -58,7 +58,7 @@
         <p class="text-[17px] font-bold">{t('rep.preview.heading', { name: sel.name })}</p>
         <p class="text-xs text-zinc-500">{swissDate(report.from)} – {swissDate(report.to)} · {t('rep.preview.by', { name: session.user?.name ?? '' })}</p>
         <p class="mt-3 border-t border-zinc-100 pt-3 text-sm dark:border-zinc-800">
-          <b>{t('overview.nProjects', { n: sel.projects.length })}</b> · {t('rep.preview.done', { n: percent(sel.done, sel.total) })} · {t('rep.preview.overdue', { n: overdueTotal })}
+          <b>{t('overview.nProjects', { n: sel.projects.length })}</b> · {t(report.config?.progress_basis === 'items' ? 'rep.preview.doneItems' : 'rep.preview.done', { n: percent(sel.done, sel.total) })} · {t('rep.preview.overdue', { n: overdueTotal })}
         </p>
         <ul class="mt-2 space-y-1.5 text-sm">
           {#each sel.projects as p (p.id)}

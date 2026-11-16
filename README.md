@@ -253,6 +253,13 @@ sends the report weekly or monthly by e-mail (SMTP required); members schedule i
 any user. The reporting counts checklists as a whole (done when all items are checked; due date = the latest
 due date of its items) and projects, never single items. Durations need the creation time of checklists and items, which is recorded since version 0.1.7.
 
+Admins configure the reporting under **Settings → Reporting**, for everyone and alike for the page, the PDF and
+the e-mails: available views and the one that opens first, selectable periods and the default, progress in
+checklists or items, due date by the latest item or the earliest open item, the "due soon" window, whether done
+projects and projects excluded from the customer progress count, an overload threshold for the workload, the
+dashboard key figures (selection and order) and the scheduled report e-mails. The defaults are the behavior
+described above.
+
 ### Template library
 
 The templates page has three views:
@@ -398,7 +405,7 @@ All endpoints under `/api`, JSON. Writing requests need the header `X-CSRF-Token
 | Tags        | `POST /tags` (members), `PATCH/DELETE /tags/{id}`, `PUT /status-labels/{status}` (`label`, `color`, `wip_limit`; admin); catalog, status names, colors and WIP limits come with `GET /sidebar` |
 | Checklists  | `GET/POST /projects/{id}/checklists`, `POST /projects/{id}/checklists/from-template`, `PUT /projects/{id}/checklists/order`, `GET/PATCH/DELETE /checklists/{id}`, `POST /checklists/{id}/save-as-template` |
 | Items       | `POST /checklists/{id}/items`, `PUT /checklists/{id}/items/order`, `PATCH/DELETE /items/{id}`, `POST /items/{id}/done` |
-| Reporting   | `GET /reports` (`period`, `customers`, `assignees`, `tags`), `GET /reports/customers/{id}` (`period`), `GET/POST /report-schedules`, `PATCH/DELETE /report-schedules/{id}`, `POST /report-schedules/{id}/send` |
+| Reporting   | `GET /reports` (`period`, `customers`, `assignees`, `tags`), `GET /reports/customers/{id}` (`period`), `GET/PUT /reports/config` (PUT: admins), `GET/POST /report-schedules`, `PATCH/DELETE /report-schedules/{id}`, `POST /report-schedules/{id}/send` |
 | Templates   | `GET/POST /templates`, `GET/PATCH/DELETE /templates/{id}`, `POST /templates/{id}/items`, `PUT /templates/{id}/items/order`, `PATCH/DELETE /template-items/{id}`, `GET /templates/{id}/variables`, `GET/POST /template-categories`, `PATCH/DELETE /template-categories/{id}`, `GET/POST /template-variables`, `PATCH/DELETE /template-variables/{id}`, `GET/POST /automations`, `PATCH/DELETE /automations/{id}` |
 | Sidebar     | `PUT/DELETE /favorites/{kind}/{id}` (`kind` = customer, project, checklist or template), `PUT /favorites/order` (`groups`, `items` with `kind`, `id`, `group_id`), `POST /favorite-groups` (`name`), `PATCH/DELETE /favorite-groups/{id}` (`name`, `collapsed`), `PUT /board/order` (`status`, `ids`), `PUT /prefs/board-hidden` (`customer_ids`), `PUT /prefs/{overview,saved_views}` (any JSON, per user); favorites (`kind`, `id`, `group_id`, `position`), `favorite_groups` and settings come with `GET /sidebar` |
 | Other       | `GET /sidebar`, `GET /overview`, `GET /my-tasks`, `GET /my-checklists`, `GET /search?q=`, `GET /admin/backup`, `GET /healthz` |

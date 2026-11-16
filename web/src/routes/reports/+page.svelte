@@ -1,6 +1,7 @@
 <script lang="ts">
   // Reporting: dashboard, customers, workload and templates over the customers
-  // the user may see. Filters: period, customer, person, label (URL + per user);
+  // the user may see (views, periods and defaults: Settings → Reporting).
+  // Filters: period, customer, person, label (URL + per user);
   // "Export" = CSV of the current view, "PDF" = print view of a customer,
   // "Schedule e-mail" = report e-mails (admins and members).
   import { page } from '$app/state';
@@ -9,7 +10,7 @@
   import { t, type Key } from '$lib/i18n.svelte';
   import { addPageView } from '$lib/overviewFilter.svelte';
   import { pageState } from '$lib/pageState.svelte';
-  import { download, percent, PERIODS, reportQuery, toCsv, type Report, type ReportFilter } from '$lib/reporting';
+  import { download, percent, pickPeriod, pickView, reportQuery, toCsv, type Report, type ReportConfig, type ReportConfigResp, type ReportFilter, type ReportView } from '$lib/reporting';
   import type { TemplateCategory } from '$lib/types';
   import PageHeader, { type HeaderFilter } from '$lib/components/PageHeader.svelte';
   import ZoomArea from '$lib/components/ZoomArea.svelte';
@@ -20,20 +21,27 @@
   import ReportTemplates from '$lib/components/ReportTemplates.svelte';
   import ScheduleDialog from '$lib/components/ScheduleDialog.svelte';
 
-  type View = 'dashboard' | 'customers' | 'workload' | 'templates';
-  const VIEWS: View[] = ['dashboard', 'customers', 'workload', 'templates'];
+  // settings (Settings → Reporting): enabled views, periods and their defaults
+  let cfg = $state<ReportConfig | null>(null);
+  $effect(() => {
+    api.get<ReportConfigResp>('/reports/config').then(
+      (r) => (cfg = r.config),
+      (e) => toast(errorText(e))
+    );
+  });
+  const VIEW_ICON = { dashboard: 'chart', customers: 'users', workload: 'user', templates: 'fileText' } as const;
 
   const ps = pageState('reports', {
-    view: { def: 'dashboard' as string, url: 'str' },
-    period: { def: '30' as string, url: 'str' },
+    view: { def: '' as string, url: 'str' }, // '' = default view of the settings
+    period: { def: '' as string, url: 'str' }, // '' = default period of the settings
     cust: { def: null as FilterId[] | null, url: 'ids' },
     who: { def: null as FilterId[] | null, url: 'ids' },
     tag: { def: null as FilterId[] | null, url: 'ids' }
   });
-  const view = $derived<View>(VIEWS.includes(ps.view as View) ? (ps.view as View) : 'dashboard');
+  const view = $derived<ReportView>(cfg ? pickView(ps.view, cfg) : 'dashboard');
   const nums = (v: FilterId[] | null) => (v ?? []).map(Number).filter((n) => n > 0);
   const filter = $derived<ReportFilter>({
-    period: PERIODS.includes(Number(ps.period) as (typeof PERIODS)[number]) ? Number(ps.period) : 30,
+    period: cfg ? pickPeriod(ps.period, cfg) : 0,
     customers: nums(ps.cust),
     assignees: nums(ps.who),
     tags: nums(ps.tag)
@@ -43,6 +51,7 @@
   let categories = $state<TemplateCategory[]>([]);
   let scheduling = $state(false);
   $effect(() => {
+    if (!cfg) return; // wait for the settings (default period)
     const q = reportQuery(filter);
     api.get<Report>(`/reports?${q}`).then(
       (r) => (report = r),
@@ -60,9 +69,9 @@
     {
       key: 'period',
       label: t('rep.filter.period'),
-      options: PERIODS.map((p) => ({ value: String(p), label: t(`rep.period.${p}` as Key) })),
+      options: (cfg?.periods ?? []).map((p) => ({ value: String(p), label: t(`rep.period.${p}` as Key) })),
       value: String(filter.period),
-      defaultValue: '30',
+      defaultValue: String(cfg?.default_period ?? ''),
       onchange: (v: string) => (ps.period = v)
     },
     {
@@ -133,12 +142,7 @@
   icon="chart"
   title={t('nav.reports')}
   subtitle={t('rep.subtitle')}
-  views={[
-    { key: 'dashboard', label: t('rep.view.dashboard'), icon: 'chart' },
-    { key: 'customers', label: t('rep.view.customers'), icon: 'users' },
-    { key: 'workload', label: t('rep.view.workload'), icon: 'user' },
-    { key: 'templates', label: t('rep.view.templates'), icon: 'fileText' }
-  ]}
+  views={(cfg?.views ?? []).map((v) => ({ key: v, label: t(`rep.view.${v}`), icon: VIEW_ICON[v] }))}
   activeView={view}
   onViewChange={(v) => (ps.view = v)}
   primaryAction={{ label: t('rep.export'), onClick: exportCsv, icon: 'download' }}

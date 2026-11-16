@@ -73,6 +73,11 @@ func (s *Server) scheduleDTO(r *http.Request, sc sqlc.ReportSchedule) scheduleDT
 	d := scheduleDTO{ReportSchedule: sc}
 	_ = json.Unmarshal([]byte(sc.Filters), &d.Filters)
 	d.Filters.Normalize()
+	if d.Filters.Days == 0 { // default period of the settings
+		if cfg, err := report.LoadConfig(r.Context(), s.q); err == nil {
+			d.Filters.Days = cfg.DefaultPeriod
+		}
+	}
 	if u, err := s.q.GetUserByID(r.Context(), sc.RecipientID); err == nil {
 		d.RecipientName = u.Name
 	}
@@ -248,4 +253,36 @@ func (s *Server) sendReportSchedule(w http.ResponseWriter, r *http.Request, u au
 	}
 	w.WriteHeader(http.StatusNoContent)
 	return nil
+}
+
+// ---- settings --------------------------------------------------------------------------
+
+// GET /api/reports/config: reporting settings (everybody: the reporting page
+// needs the enabled views, periods and key figures), the defaults and the choices.
+func (s *Server) getReportConfig(w http.ResponseWriter, r *http.Request, _ authz.User) error {
+	cfg, err := report.LoadConfig(r.Context(), s.q)
+	if err != nil {
+		return err
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"config":   cfg,
+		"defaults": report.DefaultConfig(),
+		"choices":  map[string]any{"views": report.AllViews, "periods": report.AllPeriods, "kpis": report.AllKPIs},
+	})
+	return nil
+}
+
+// PUT /api/reports/config (admins): the complete settings.
+func (s *Server) setReportConfig(w http.ResponseWriter, r *http.Request, u authz.User) error {
+	var cfg report.Config
+	if err := decode(w, r, &cfg); err != nil {
+		return err
+	}
+	if bad := cfg.Validate(); len(bad) > 0 {
+		return &httpError{Status: http.StatusBadRequest, Msg: "validation", Fields: bad}
+	}
+	if err := report.SaveConfig(r.Context(), s.q, cfg); err != nil {
+		return err
+	}
+	return s.getReportConfig(w, r, u)
 }

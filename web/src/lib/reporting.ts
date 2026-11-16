@@ -3,12 +3,55 @@
 // (query string, changes vs. the previous period, CSV). Tested.
 
 export interface ReportFilter {
-  period: number; // days: 7, 30, 90, 365
+  period: number; // days, one of the periods of the settings
   customers: number[];
   assignees: number[];
   tags: number[];
 }
-export const PERIODS = [7, 30, 90, 365] as const;
+/** All periods an admin can offer (Settings → Reporting). */
+export const ALL_PERIODS = [7, 14, 30, 60, 90, 180, 365] as const;
+export type ReportView = 'dashboard' | 'customers' | 'workload' | 'templates';
+export type ReportKpi = 'completed' | 'open' | 'overdue' | 'projects_done';
+
+/** Reporting settings (GET/PUT /api/reports/config, internal/report/config.go). */
+export interface ReportConfig {
+  views: ReportView[];
+  default_view: ReportView;
+  periods: number[];
+  default_period: number;
+  progress_basis: 'checklists' | 'items';
+  due_basis: 'checklist' | 'item';
+  due_soon_days: number;
+  include_done: boolean;
+  respect_customer_progress: boolean;
+  overload_threshold: number; // 0 = off
+  kpis: ReportKpi[];
+}
+export interface ReportConfigResp {
+  config: ReportConfig;
+  defaults: ReportConfig;
+  choices: { views: ReportView[]; periods: number[]; kpis: ReportKpi[] };
+}
+
+/** Chosen period if the settings offer it, otherwise their default. */
+export function pickPeriod(chosen: string | number, cfg: Pick<ReportConfig, 'periods' | 'default_period'>): number {
+  const n = Number(chosen);
+  return cfg.periods.includes(n) ? n : cfg.default_period;
+}
+
+/** Chosen view if enabled, otherwise the default view. */
+export function pickView(chosen: string, cfg: Pick<ReportConfig, 'views' | 'default_view'>): ReportView {
+  return cfg.views.includes(chosen as ReportView) ? (chosen as ReportView) : cfg.default_view;
+}
+
+/** Moves an entry of a list one place up (-1) or down (+1). */
+export function moveItem<T>(list: readonly T[], i: number, dir: -1 | 1): T[] {
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= list.length) return [...list];
+  const out = [...list];
+  [out[i], out[j]] = [out[j], out[i]];
+  return out;
+}
 
 export interface Week {
   label: string;
@@ -47,6 +90,7 @@ export interface ReportPerson {
   due_week: number;
   overdue: number;
   done: number;
+  overloaded: boolean; // open checklists reach the overload threshold
 }
 export interface TplRow {
   id: number;
@@ -92,6 +136,7 @@ export interface Report {
     auto_warned: number;
   };
   assignees: { id: number; name: string }[];
+  config: ReportConfig;
 }
 /** A checklist in lists (date: due or completion date; done/total: its progress). */
 export interface ClBrief {
@@ -116,6 +161,8 @@ export interface CustomerReport {
   overdue: ClBrief[];
   upcoming: ClBrief[];
   open: ClBrief[];
+  due_soon_days: number;
+  progress_basis: 'checklists' | 'items';
 }
 export interface ReportSchedule {
   id: number;

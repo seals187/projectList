@@ -8,11 +8,31 @@ Changes until the next release are collected under **Unreleased**.
 
 ## [Unreleased]
 
+## [0.2.2] – 2026-11-16
+
+### Added
+
+- **Settings → Reporting** (admins): what the reporting shows and how it calculates, for everyone – reporting page,
+  PDF status report and report e-mails alike. Defaults reproduce the previous behavior.
+  - Views: which reports are available (dashboard, customers, workload, templates) and which one opens first
+  - Periods: which periods can be chosen (now also 14 and 60 days and 6 months) and the default period
+  - Calculation: progress in checklists or items; due date of a checklist by its latest item or its earliest
+    open item (overdue as soon as one open item is); "due soon" window (1–90 days, was fixed at 14); include
+    done projects; respect "counts towards customer progress"; workload overload threshold (people marked
+    *Overloaded*)
+  - Dashboard key figures: on/off and order (also in the e-mail)
+  - Report e-mails: all schedules with *Send now* and delete
+  - "Reset to defaults"
+
+### Changed
+
+- Sidebar: the *Archive* entry no longer shows the number of archived projects
+
 ## [0.2.1] – 2026-11-16
 
 ### Added
 
-- **Archive** page (sidebar entry below *Templates*, with the number of archived projects): all archived projects of
+- **Archive** page (sidebar entry below *Templates*): all archived projects of
   all customers in one table – customer, date and person of archiving (from the activity log), checklist progress.
   Search, filters customer and period (last 30 days / 6 / 12 months, older), chip *Only incomplete*, sorting
   (archived, name, customer, progress), saved views. Per row (on hover) *Restore* and *Delete permanently*,
@@ -609,7 +629,8 @@ First version.
   JetBrains Mono; no external requests
 - Checkbox left or right, square or round; code block background light grey, dark grey or black
 
-[Unreleased]: https://github.com/seals187/projectList/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/seals187/projectList/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/seals187/projectList/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/seals187/projectList/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/seals187/projectList/compare/v0.1.9...v0.2.0
 [0.1.9]: https://github.com/seals187/projectList/compare/v0.1.8...v0.1.9
