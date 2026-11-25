@@ -42,12 +42,7 @@ const (
 // logActivity records an entry in the project's activity log. A failure is
 // only logged: the change itself has already been saved.
 func (s *Server) logActivity(ctx context.Context, projectID, userID int64, kind, subject, detail string) {
-	err := s.q.AddProjectActivity(ctx, sqlc.AddProjectActivityParams{
-		ProjectID: projectID, UserID: &userID, Kind: kind, Subject: subject, Detail: detail, CreatedAt: time.Now().UTC(),
-	})
-	if err != nil {
-		s.log.Warn("aktivität nicht gespeichert", "project", projectID, "kind", kind, "err", err)
-	}
+	s.life.LogActivity(ctx, projectID, service.UserActor(userID, ""), kind, subject, detail)
 }
 
 const maxActivity = 200

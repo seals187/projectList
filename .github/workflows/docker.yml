@@ -1,6 +1,6 @@
 # CI and container image
 #
-# - Pull request: tests (go vet, go test, frontend build) inside the Docker build.
+# - Pull request: checks (gofmt, go vet, go test, svelte-check, vitest, frontend build) inside the Docker build.
 # - Push to main: tests, then publish the development state as :edge.
 # - Tag v* (e.g. v0.0.2): build the image for linux/amd64 and linux/arm64 and push it to
 #   ghcr.io/<owner>/projectlist – tags :0.0.2, :0.0 and :latest.
@@ -34,7 +34,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: docker/setup-buildx-action@v4
-      - name: go vet, go test and frontend build
+      - name: gofmt, go vet, go test, svelte-check, vitest and frontend build
         uses: docker/build-push-action@v7
         with:
           context: .

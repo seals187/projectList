@@ -10,8 +10,9 @@ WORKDIR /web
 COPY web/package.json web/package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm npm ci --no-audit --no-fund
 COPY web/ ./
-# frontend unit/component tests (Vitest); a failing test stops the build
-RUN npx svelte-kit sync && npm test
+# type check (also runs the type-level contract checks) and unit/component
+# tests (Vitest); a failure stops the build
+RUN npx svelte-kit sync && npm run check -- --threshold error && npm test
 RUN npm run build
 
 # ---- 2) Go build (no CGO, frontend embedded) -------------------------------
@@ -26,6 +27,7 @@ COPY --from=web /web/build ./web/build
 # Tests: docker build --target test .
 FROM build AS test
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
+    test -z "$(gofmt -l .)" || { echo "not gofmt-formatted:"; gofmt -l .; exit 1; }; \
     go vet ./... && go test ./...
 
 FROM build AS compile

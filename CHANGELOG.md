@@ -22,6 +22,8 @@ Changes until the next release are collected under **Unreleased**.
   sidebar data each moved into their own tested modules
 - The API's enums, error codes and main response shapes are generated as TypeScript (`go run ./cmd/gentypes`);
   a test fails when the generated file is out of date
+- CI (and every image build) now also runs `svelte-check` and `gofmt`; `scripts/test-go.sh` and
+  `scripts/test-web.sh` run the checks locally in Docker without a full image build
 
 ## [0.2.2] – 2026-11-16
 
