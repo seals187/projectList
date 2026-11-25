@@ -6,7 +6,7 @@
   import { goto } from '$app/navigation';
   import { untrack } from 'svelte';
   import { t, todayISO } from '$lib/i18n.svelte';
-  import { sidebar } from '$lib/state.svelte';
+  import { sidebar } from '$lib/workspace.svelte';
   import { closeTab, moveTab, openTab, pruneTabs } from '$lib/checklistTabs';
   import { checklistTabs, loadTabs, setTabs } from '$lib/checklistTabs.svelte';
   import ContextMenu from './ContextMenu.svelte';

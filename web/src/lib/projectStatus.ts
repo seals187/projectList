@@ -2,10 +2,11 @@
 // All classes written out so Tailwind finds them.
 import type { ProjectStatus } from './types';
 import { t } from './i18n.svelte';
-import { sidebar } from './state.svelte';
+import { sidebar } from './workspace.svelte';
+import { BOARD_STATUSES } from './projectQuery';
 
-/** Order of the columns on the board (without "archived"). */
-export const BOARD_STATUSES = ['planning', 'active', 'review', 'blocked', 'done'] as const satisfies readonly ProjectStatus[];
+/** Order of the columns on the board (without "archived"), defined in projectQuery. */
+export { BOARD_STATUSES };
 export const ALL_STATUSES: readonly ProjectStatus[] = [...BOARD_STATUSES, 'archived'];
 
 /** Display name of a status: custom name from the settings, otherwise the translation. */
@@ -39,8 +40,6 @@ export const statusColor = (s: ProjectStatus): string => sidebar.statusColors[s]
 // Dot: default classes, or an inline style for a custom color.
 export const statusDotCls = (s: ProjectStatus) => (statusColor(s) ? '' : STATUS_DOT[s]);
 export const statusDotStyle = (s: ProjectStatus) => (statusColor(s) ? `background-color:${statusColor(s)}` : undefined);
-// Badge: every status in the same style, tinted with its board color (custom or default).
-export const statusBadgeCls = (_s: ProjectStatus) => '';
 /** Background in the status color (lightened a little so black text stays readable), text always black. */
 export function statusBadgeStyle(s: ProjectStatus) {
   const c = statusColor(s) || STATUS_BASE[s];
@@ -50,33 +49,7 @@ export function statusBadgeStyle(s: ProjectStatus) {
 /** Progress bar: done = green, otherwise accent. */
 export const barCls = (done: number, total: number) => (total > 0 && done === total ? 'bg-emerald-500' : 'bg-accent-500');
 
-/** Days from today until the date (YYYY-MM-DD); negative = overdue. */
-export function daysUntil(iso: string, today: string): number {
-  return Math.round((Date.parse(iso + 'T00:00:00') - Date.parse(today + 'T00:00:00')) / 86_400_000);
-}
-
 /** Display name without code prefix: "(KA) Kunde-A" → "Kunde-A". */
 export function customerLabel(name: string): string {
   return name.replace(/^\s*\([^)]{1,4}\)\s*/, '') || name;
-}
-
-/**
- * Overall progress of a customer: done / all items, only across projects
- * that count toward the customer progress (include_in_customer_progress).
- * Archived projects never count. `excluded` = number of deliberately excluded projects.
- */
-export function customerProgress(projects: { status: ProjectStatus; done: number; total: number; include_in_customer_progress: boolean }[]) {
-  let done = 0,
-    total = 0,
-    excluded = 0;
-  for (const p of projects) {
-    if (p.status === 'archived') continue;
-    if (!p.include_in_customer_progress) {
-      excluded++;
-      continue;
-    }
-    done += p.done;
-    total += p.total;
-  }
-  return { done, total, excluded };
 }

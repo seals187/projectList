@@ -2,7 +2,7 @@
 // condition and schedule in the UI language.
 import type { ComponentProps } from 'svelte';
 import { t, type Key } from './i18n.svelte';
-import { sidebar } from './state.svelte';
+import { sidebar } from './workspace.svelte';
 import { statusLabel } from './projectStatus';
 import type { AutomationRule, AutomationSchedule, ProjectStatus } from './types';
 import type Icon from './components/Icon.svelte';

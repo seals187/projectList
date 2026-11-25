@@ -26,12 +26,12 @@ import (
 
 // Trigger kinds (automation_rules.trigger_kind).
 const (
-	ProjectCreated  = "project_created"  // fields: name, customer, status
-	ProjectTag      = "project_tag"      // a tag was added; fields: tag, name, customer, status
-	ProjectStatus   = "project_status"   // the status changed; fields: status, name, customer
-	Scheduled       = "schedule"         // calendar (rule.schedule), in rule.target_project_id
-	ExternalProject = "external_project" // integration: new project in the external system
-	ExternalTicket  = "external_ticket"  // integration: new ticket in the external system
+	ProjectCreated  = service.EventProjectCreated // fields: name, customer, status
+	ProjectTag      = service.EventProjectTag     // a tag was added; fields: tag, name, customer, status
+	ProjectStatus   = service.EventProjectStatus  // the status changed; fields: status, name, customer
+	Scheduled       = "schedule"                  // calendar (rule.schedule), in rule.target_project_id
+	ExternalProject = "external_project"          // integration: new project in the external system
+	ExternalTicket  = "external_ticket"           // integration: new ticket in the external system
 )
 
 // SourceApp: events from ProjectList itself.
@@ -226,30 +226,26 @@ func (e *Engine) RunSchedules(ctx context.Context) {
 func (e *Engine) apply(ctx context.Context, r sqlc.AutomationRule, projectID int64, given map[string]string, ref string) {
 	now := e.Now()
 	pid := projectID
-	vals, err := service.ResolveValues(ctx, e.Q, projectID, "Automation", given, now)
+	ruleID := r.ID
+	life := service.Lifecycle{DB: e.DB, Q: e.Q, Log: e.Log, Now: e.Now}
+	inst, err := life.Instantiate(ctx, service.Automation, service.InstantiateReq{
+		ProjectID: projectID, TemplateID: r.TemplateID, Kind: service.KindChecklist, // automations create checklists only
+		Title: r.ChecklistTitle, Values: given, RuleID: &ruleID,
+	})
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			e.logRun(ctx, r, nil, nil, "warning", "no_project", ref)
-			return
+			if _, perr := e.Q.GetProject(ctx, projectID); errors.Is(perr, sql.ErrNoRows) {
+				e.logRun(ctx, r, nil, nil, "warning", "no_project", ref)
+				return
+			}
 		}
-		e.logRun(ctx, r, &pid, nil, "error", "failed", err.Error())
-		return
-	}
-	ruleID := r.ID
-	cl, err := service.ApplyTemplate(ctx, e.DB, projectID, r.TemplateID, r.ChecklistTitle, service.ApplyOptions{Values: vals, RuleID: &ruleID, Now: now})
-	if err != nil {
 		e.logRun(ctx, r, &pid, nil, "error", "failed", err.Error())
 		return
 	}
 	if err := e.Q.MarkRuleRun(ctx, sqlc.MarkRuleRunParams{LastRunOn: now.Format("2006-01-02"), ID: r.ID}); err != nil {
 		e.Log.Warn("automation nicht markiert", "rule", r.ID, "err", err)
 	}
-	if err := e.Q.AddProjectActivity(ctx, sqlc.AddProjectActivityParams{
-		ProjectID: projectID, Kind: "checklist_created", Subject: cl.Title, Detail: "automation", CreatedAt: now.UTC(),
-	}); err != nil {
-		e.Log.Warn("aktivität nicht gespeichert", "project", projectID, "err", err)
-	}
-	clID := cl.ID
+	clID := inst.Checklist.ID
 	e.logRun(ctx, r, &pid, &clID, "ok", "created", ref)
 }
 

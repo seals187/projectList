@@ -4,7 +4,7 @@
   // ("Back to"), which can also be used with the arrow keys and Enter.
   import { page } from '$app/state';
   import { t } from '$lib/i18n.svelte';
-  import { sidebar } from '$lib/state.svelte';
+  import { sidebar } from '$lib/workspace.svelte';
   import { backList, crumbsFor, describe, type Described, type NavTexts } from '$lib/navHistory';
   import { clearNav, navHist } from '$lib/navHistory.svelte';
   import { ensureTemplates, templatesIndex } from '$lib/templatesIndex.svelte';

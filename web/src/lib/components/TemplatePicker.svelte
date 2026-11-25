@@ -1,7 +1,7 @@
 <script lang="ts" generics="K extends TemplateKind = 'checklist'">
   // "New checklist / table from template" with a preview (items or sheets).
   import { api, errorText } from '$lib/api';
-  import { toast } from '$lib/state.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { t } from '$lib/i18n.svelte';
   import { htmlToText } from '$lib/rich';
   import { sheetsText } from '$lib/templateText';

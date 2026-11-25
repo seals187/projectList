@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { saveState } from '$lib/state.svelte';
+  import { saveState } from '$lib/saveState.svelte';
   import { t } from '$lib/i18n.svelte';
 
   const state = $derived(saveState.pending > 0 ? 'saving' : saveState.error ? 'error' : saveState.saved ? 'saved' : 'idle');

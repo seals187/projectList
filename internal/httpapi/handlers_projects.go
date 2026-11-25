@@ -1,11 +1,9 @@
 package httpapi
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/seals187/projectList/internal/authz"
-	"github.com/seals187/projectList/internal/automation"
 	"github.com/seals187/projectList/internal/db/sqlc"
 )
 
@@ -65,23 +63,12 @@ func (s *Server) createProject(w http.ResponseWriter, r *http.Request, u authz.U
 	if err := v.err(); err != nil {
 		return err
 	}
-	pr, err := s.q.CreateProject(r.Context(), p)
+	pr, err := s.life.CreateProject(r.Context(), actor(u), p)
 	if err != nil {
 		return err
 	}
-	s.logActivity(r.Context(), pr.ID, u.ID, actProjectCreated, "", "")
-	s.fire(r.Context(), automation.ProjectCreated, pr, nil)
 	writeJSON(w, http.StatusCreated, pr)
 	return nil
-}
-
-// loadProject loads a project and checks access.
-func (s *Server) loadProject(ctx context.Context, u authz.User, id int64) (sqlc.Project, error) {
-	p, err := s.q.GetProject(ctx, id)
-	if err != nil {
-		return p, err
-	}
-	return p, s.requireCustomer(ctx, u, p.CustomerID)
 }
 
 // projectChecklists loads all checklists incl. items with exactly two queries.
@@ -201,52 +188,12 @@ func (s *Server) updateProject(w http.ResponseWriter, r *http.Request, u authz.U
 	if err := v.err(); err != nil {
 		return err
 	}
-	prev := p
-	p, err = s.q.UpdateProject(r.Context(), up)
+	p, err = s.life.UpdateProject(r.Context(), actor(u), p, up)
 	if err != nil {
 		return err
 	}
-	if !samePtr(p.OwnerID, prev.OwnerID) {
-		// the new person responsible takes over the checklists without a person and those of the previous one
-		if err := s.q.AssignChecklistsToOwner(r.Context(), sqlc.AssignChecklistsToOwnerParams{NewOwner: p.OwnerID, ProjectID: p.ID, OldOwner: prev.OwnerID}); err != nil {
-			return err
-		}
-	}
-	s.logProjectChanges(r.Context(), u, prev, p)
-	if p.Status != prev.Status {
-		s.fire(r.Context(), automation.ProjectStatus, p, nil)
-	}
 	writeJSON(w, http.StatusOK, p)
 	return nil
-}
-
-// logProjectChanges writes the changed properties into the activity log.
-func (s *Server) logProjectChanges(ctx context.Context, u authz.User, prev, p sqlc.Project) {
-	if p.Name != prev.Name {
-		s.logActivity(ctx, p.ID, u.ID, actRenamed, prev.Name, p.Name)
-	}
-	if p.Status != prev.Status {
-		s.logActivity(ctx, p.ID, u.ID, actStatus, prev.Status, p.Status)
-	}
-	if dateOrEmpty(p.StartDate) != dateOrEmpty(prev.StartDate) || dateOrEmpty(p.DueDate) != dateOrEmpty(prev.DueDate) {
-		s.logActivity(ctx, p.ID, u.ID, actDates, dateOrEmpty(p.StartDate), dateOrEmpty(p.DueDate))
-	}
-	if !samePtr(p.OwnerID, prev.OwnerID) {
-		name := ""
-		if p.OwnerID != nil {
-			if o, err := s.q.GetUserByID(ctx, *p.OwnerID); err == nil {
-				name = o.Name
-			}
-		}
-		s.logActivity(ctx, p.ID, u.ID, actOwner, "", name)
-	}
-	if p.RedmineTicket != prev.RedmineTicket {
-		s.logActivity(ctx, p.ID, u.ID, actRedmine, "", p.RedmineTicket)
-	}
-}
-
-func samePtr[T comparable](a, b *T) bool {
-	return (a == nil && b == nil) || (a != nil && b != nil && *a == *b)
 }
 
 func (s *Server) deleteProject(w http.ResponseWriter, r *http.Request, u authz.User) error {

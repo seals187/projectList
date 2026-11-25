@@ -3,7 +3,8 @@
   // shared by all users; larger images are scaled down to max. 5 MB before upload).
   import { api, errorText } from '$lib/api';
   import { t } from '$lib/i18n.svelte';
-  import { isAdmin, session, toast } from '$lib/state.svelte';
+  import { isAdmin, session } from '$lib/session.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { backgroundCss, GRADIENTS, prepareBackground, type BackgroundImage } from '$lib/backgrounds';
   import Icon from './Icon.svelte';
 

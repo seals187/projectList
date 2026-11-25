@@ -5,7 +5,11 @@
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { api } from '$lib/api';
-  import { canWrite, openNewProject, overviewView, palette, session, setTheme, sidebar, theme, toggleSidebar } from '$lib/state.svelte';
+  import { overviewView, toggleSidebar } from '$lib/state.svelte';
+  import { canWrite, session } from '$lib/session.svelte';
+  import { sidebar } from '$lib/workspace.svelte';
+  import { setTheme, theme } from '$lib/theme.svelte';
+  import { openNewProject, palette } from '$lib/dialogs.svelte';
   import { t } from '$lib/i18n.svelte';
   import { migrateLocalFavorites } from '$lib/navMemory.svelte';
   import { applySavedView, isActivePageView, isActiveView, removeSavedView, renameSavedView, resetFilters, savedViews } from '$lib/overviewFilter.svelte';

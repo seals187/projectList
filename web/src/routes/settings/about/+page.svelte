@@ -4,7 +4,7 @@
   // build reports a different version (e.g. "dev" for a local build), it is shown too.
   import { version as appVersion } from '../../../../package.json';
   import { t } from '$lib/i18n.svelte';
-  import { session } from '$lib/state.svelte';
+  import { session } from '$lib/session.svelte';
   import SettingsShell from '$lib/components/SettingsShell.svelte';
   import SetCard from '$lib/components/SetCard.svelte';
   import SetRow from '$lib/components/SetRow.svelte';

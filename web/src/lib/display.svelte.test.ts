@@ -11,7 +11,8 @@ vi.mock('./api', () => ({
     }
   }
 }));
-vi.mock('./state.svelte', () => ({ session: { user: { id: 3 } }, sidebar: { get prefs() { return srv.prefs; } } }));
+vi.mock('./session.svelte', () => ({ session: { user: { id: 3 } } }));
+vi.mock('./workspace.svelte', () => ({ sidebar: { get prefs() { return srv.prefs; } } }));
 const mem = new Map<string, string>();
 vi.stubGlobal('localStorage', {
   getItem: (k: string) => mem.get(k) ?? null,

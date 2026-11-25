@@ -2,7 +2,8 @@
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { api, errorText } from '$lib/api';
-  import { canWrite, toast } from '$lib/state.svelte';
+  import { canWrite } from '$lib/session.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { t } from '$lib/i18n.svelte';
   import type { Ops, Template, TemplateItem } from '$lib/types';
   import DetailHeader from '$lib/components/DetailHeader.svelte';

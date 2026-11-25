@@ -3,7 +3,8 @@
   // Used by the tag picker (project page) and the project context menu.
   import { api, errorText } from '$lib/api';
   import { t } from '$lib/i18n.svelte';
-  import { sidebar, toast } from '$lib/state.svelte';
+  import { sidebar } from '$lib/workspace.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { TAG_PRESETS, tagStyle } from '$lib/tags';
   import type { Tag } from '$lib/types';
   import Icon from './Icon.svelte';

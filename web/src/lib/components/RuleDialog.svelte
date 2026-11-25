@@ -4,7 +4,8 @@
   // integrations (Easy Redmine, OTOBO) are shown but not available yet.
   import { untrack } from 'svelte';
   import { api, errorText } from '$lib/api';
-  import { sidebar, toast } from '$lib/state.svelte';
+  import { sidebar } from '$lib/workspace.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { locale, t, type Key } from '$lib/i18n.svelte';
   import { ALL_STATUSES, statusLabel } from '$lib/projectStatus';
   import { APP_TRIGGERS, EXTERNAL_TRIGGERS, INTEGRATIONS, sourceLabel } from '$lib/automationText';

@@ -10,7 +10,6 @@ import (
 	"slices"
 
 	"github.com/seals187/projectList/internal/authz"
-	"github.com/seals187/projectList/internal/db"
 	"github.com/seals187/projectList/internal/db/sqlc"
 )
 
@@ -46,15 +45,7 @@ func (s *Server) orderBoard(w http.ResponseWriter, r *http.Request, u authz.User
 			return err
 		}
 	}
-	err := db.WithTx(ctx, s.db, func(q *sqlc.Queries) error {
-		for i, id := range req.IDs {
-			if err := q.SetProjectBoardPlace(ctx, sqlc.SetProjectBoardPlaceParams{Status: req.Status, BoardPosition: int64(i), ID: id}); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	if err != nil {
+	if err := s.life.MoveOnBoard(ctx, actor(u), req.Status, req.IDs); err != nil {
 		return err
 	}
 	w.WriteHeader(http.StatusNoContent)

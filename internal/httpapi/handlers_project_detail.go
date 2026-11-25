@@ -15,9 +15,9 @@ import (
 	"unicode"
 
 	"github.com/seals187/projectList/internal/authz"
-	"github.com/seals187/projectList/internal/automation"
 	"github.com/seals187/projectList/internal/db"
 	"github.com/seals187/projectList/internal/db/sqlc"
+	"github.com/seals187/projectList/internal/service"
 )
 
 // Project page extras: activity log, files, watchers, duplicating a project
@@ -27,21 +27,16 @@ import (
 
 // Activity kinds (also used by the web app for the texts).
 const (
-	actProjectCreated   = "project_created"
-	actRenamed          = "renamed"
-	actStatus           = "status"
-	actDates            = "dates"
-	actOwner            = "owner"
-	actTags             = "tags"
-	actRedmine          = "redmine"
-	actChecklistCreated = "checklist_created"
-	actChecklistDone    = "checklist_completed"
-	actChecklistDeleted = "checklist_deleted"
-	actItemDone         = "item_done"
-	actFileAdded        = "file_added"
-	actFileDeleted      = "file_deleted"
-	actTableCreated     = "table_created"
-	actTableDeleted     = "table_deleted"
+	actProjectCreated   = service.ActProjectCreated
+	actStatus           = service.ActStatus
+	actChecklistCreated = service.ActChecklistCreated
+	actChecklistDone    = service.ActChecklistDone
+	actChecklistDeleted = service.ActChecklistDeleted
+	actItemDone         = service.ActItemDone
+	actFileAdded        = service.ActFileAdded
+	actFileDeleted      = service.ActFileDeleted
+	actTableCreated     = service.ActTableCreated
+	actTableDeleted     = service.ActTableDeleted
 )
 
 // logActivity records an entry in the project's activity log. A failure is
@@ -178,16 +173,6 @@ func (s *Server) uploadProjectFile(w http.ResponseWriter, r *http.Request, u aut
 	s.logActivity(r.Context(), id, u.ID, actFileAdded, name, "")
 	writeJSON(w, http.StatusCreated, map[string]any{"id": fileID, "name": name, "mime": ctype, "size": len(data)})
 	return nil
-}
-
-// loadFile loads a file and checks access via its project.
-func (s *Server) loadFile(ctx context.Context, u authz.User, id int64) (sqlc.ProjectFile, error) {
-	f, err := s.q.GetProjectFile(ctx, id)
-	if err != nil {
-		return f, err
-	}
-	_, err = s.loadProject(ctx, u, f.ProjectID)
-	return f, err
 }
 
 // GET /api/files/{id}: download. Always as attachment and with a sandbox
@@ -328,69 +313,10 @@ func (s *Server) duplicateProject(w http.ResponseWriter, r *http.Request, u auth
 	if r := []rune(name); len(r) > 200 {
 		name = string(r[:200])
 	}
-	var p sqlc.Project
-	err = db.WithTx(ctx, s.db, func(q *sqlc.Queries) error {
-		p, err = q.CreateProject(ctx, sqlc.CreateProjectParams{CustomerID: src.CustomerID, Name: name, Description: src.Description, Status: "planning"})
-		if err != nil {
-			return err
-		}
-		p, err = q.UpdateProject(ctx, sqlc.UpdateProjectParams{
-			ID: p.ID, Name: p.Name, Description: p.Description, Status: p.Status, IncludeInCustomerProgress: src.IncludeInCustomerProgress,
-			OwnerID: src.OwnerID, RedmineTicket: "",
-		})
-		if err != nil {
-			return err
-		}
-		tagIDs, err := q.ListTagIDsByProject(ctx, id)
-		if err != nil {
-			return err
-		}
-		for _, t := range tagIDs {
-			if err := q.AddProjectTag(ctx, sqlc.AddProjectTagParams{ProjectID: p.ID, TagID: t}); err != nil {
-				return err
-			}
-		}
-		checklists, err := q.ListChecklistsByProject(ctx, id)
-		if err != nil {
-			return err
-		}
-		for _, c := range checklists {
-			cl, err := q.CreateChecklist(ctx, sqlc.CreateChecklistParams{ProjectID: p.ID, Title: c.Title, TemplateID: c.TemplateID, Position: c.Position})
-			if err != nil {
-				return err
-			}
-			items, err := q.ListItemsByChecklist(ctx, c.ID)
-			if err != nil {
-				return err
-			}
-			for _, it := range items {
-				if _, err := q.CreateItem(ctx, sqlc.CreateItemParams{
-					ChecklistID: cl.ID, Kind: it.Kind, Title: it.Title, Description: it.Description, NoteColor: it.NoteColor,
-					BgColor: it.BgColor, Indent: it.Indent, Lang: it.Lang, Position: it.Position, AssigneeID: it.AssigneeID,
-				}); err != nil {
-					return err
-				}
-			}
-		}
-		tables, err := q.ListTableDataByProject(ctx, id)
-		if err != nil {
-			return err
-		}
-		now := s.stamp()
-		for _, t := range tables {
-			if _, err := q.CreateTable(ctx, sqlc.CreateTableParams{
-				ProjectID: p.ID, Title: t.Title, TemplateID: t.TemplateID, Position: t.Position, Data: t.Data, CreatedAt: now, UpdatedAt: now, UpdatedBy: &u.ID,
-			}); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
+	p, err := s.life.Duplicate(ctx, actor(u), src, name)
 	if err != nil {
 		return err
 	}
-	s.logActivity(ctx, p.ID, u.ID, actProjectCreated, src.Name, "copy")
-	s.fire(ctx, automation.ProjectCreated, p, nil)
 	writeJSON(w, http.StatusCreated, p)
 	return nil
 }
@@ -419,12 +345,4 @@ func (s *Server) redmineURL(ctx context.Context) (string, error) {
 		return "", nil
 	}
 	return v, err
-}
-
-// dateOrEmpty formats an optional date for the activity log.
-func dateOrEmpty(d *string) string {
-	if d == nil {
-		return ""
-	}
-	return *d
 }

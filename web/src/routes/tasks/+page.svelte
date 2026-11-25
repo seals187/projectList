@@ -7,10 +7,29 @@
   //  Header (PageHeader): search, filters customer / due date, chips open / today / done,
   //  sorting, expand/collapse; state per user in localStorage and in the URL.
   import { api, errorText } from '$lib/api';
-  import { canWrite, openNewProject, refreshSidebar, session, sidebar, toast } from '$lib/state.svelte';
+  import { canWrite, session } from '$lib/session.svelte';
+  import { refreshSidebar, sidebar } from '$lib/workspace.svelte';
+  import { toast } from '$lib/toasts.svelte';
+  import { openNewProject } from '$lib/dialogs.svelte';
   import { locale, t, todayISO, withoutText } from '$lib/i18n.svelte';
-  import { barCls, customerLabel, customerProgress, daysUntil, statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
-  import { pct } from '$lib/overview';
+  import { barCls, customerLabel, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
+  import {
+    checklistOpen,
+    customerProgress,
+    DUE_BUCKETS,
+    isOwner,
+    myCustomers,
+    pct,
+    personalSource,
+    personalTasks,
+    TASK_CHIPS,
+    TASK_SORTS,
+    taskGroups,
+    type TaskChip,
+    type TaskQuery,
+    type TaskSort
+  } from '$lib/projectQuery';
+  import { daysUntil } from '$lib/dates';
   import { addPageView } from '$lib/overviewFilter.svelte';
   import { allCollapsed } from '$lib/pageStateCore';
   import { pageState } from '$lib/pageState.svelte';
@@ -31,12 +50,10 @@
   import { page } from '$app/state';
 
   type Tab = 'customers' | 'personal';
-  type Filter = 'open' | 'today' | 'done';
-  const FILTERS: Filter[] = ['open', 'today', 'done'];
-  type Due = 'overdue' | 'today' | 'week' | 'later' | 'none';
-  const DUES: Due[] = ['overdue', 'today', 'week', 'later', 'none'];
-  type Sort = 'due' | 'name' | 'progress';
-  const SORTS: Sort[] = ['due', 'name', 'progress'];
+  type Filter = TaskChip;
+  const FILTERS = TASK_CHIPS;
+  type Sort = TaskSort;
+  const SORTS = TASK_SORTS;
 
   const today = todayISO();
   const ps = pageState('tasks', {
@@ -81,80 +98,19 @@
       );
   });
 
-  // ---- Due date buckets (filter "Due") -----------------------------------------------
-  function bucket(d: string | null | undefined): Due {
-    if (!d) return 'none';
-    const n = daysUntil(d, today);
-    return n < 0 ? 'overdue' : n === 0 ? 'today' : n <= 6 ? 'week' : 'later';
-  }
-  /** Earliest due date of a project: its open checklists or the project itself. */
-  const projectDue = (p: SidebarProject) =>
-    [...p.checklists.filter((c) => clOpen(c) && c.next_due).map((c) => c.next_due), p.status !== 'done' ? (p.due_date ?? '') : ''].filter(Boolean).sort()[0] ?? '';
-  const dueOk = (d: string | null | undefined) => ps.due === null || ps.due.includes(bucket(d));
-  const custOk = (id: number) => ps.cust === null || ps.cust.includes(id);
-  const hit = (...s: (string | undefined | null)[]) => {
-    const q = ps.q.trim().toLowerCase();
-    return !q || s.some((x) => x?.toLowerCase().includes(q));
-  };
-
-  // ---- Customer view -----------------------------------------------------------
-  // mine: I am responsible for the project, or something in it is assigned to me
-  const isOwner = (p: SidebarProject) => !!session.user && p.owner_id === session.user.id;
-  const isMine = (p: SidebarProject) => isOwner(p) || !!extra[p.id]?.team.some((m) => m.id === session.user?.id);
-  const clOpen = (cl: SidebarChecklist) => cl.total === 0 || cl.done < cl.total;
-  const clDueToday = (cl: SidebarChecklist) => !!cl.next_due && cl.next_due <= today;
-  function matches(p: SidebarProject): boolean {
-    if (filter === 'done') return p.status === 'done' || (p.total > 0 && p.done === p.total);
-    if (p.status === 'done') return false;
-    if (filter === 'today') return p.checklists.some(clDueToday);
-    return p.total === 0 || p.done < p.total || p.checklists.some(clOpen);
-  }
-
-  interface Group {
-    customer: SidebarCustomer;
-    projects: SidebarProject[];
-    checklists: number;
-  }
-  const byName = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: 'base' });
-  const ratio = (p: { done: number; total: number }) => (p.total ? p.done / p.total : -1);
-  const projCmp: Record<Sort, (a: SidebarProject, b: SidebarProject) => number> = {
-    due: (a, b) => (projectDue(a) || '9999').localeCompare(projectDue(b) || '9999') || byName(a.name, b.name),
-    name: (a, b) => byName(a.name, b.name),
-    progress: (a, b) => ratio(b) - ratio(a) || byName(a.name, b.name)
-  };
+  // ---- Customer view (filtering, due buckets, sorting: projectQuery) -------------
+  // "due" here is the next due date (open checklists, else the project), see nextDue
+  const userId = $derived(session.user?.id ?? null);
+  const query = $derived<TaskQuery>({ cust: ps.cust, due: ps.due, q: ps.q, sort, today });
   // customers with my projects (before the header filters: customer filter entries)
-  const mine = $derived(
-    sidebar.customers
-      .map((c) => ({ customer: c, projects: c.projects.filter((p) => p.status !== 'archived' && isMine(p) && matches(p)) }))
-      .filter((g) => g.projects.length > 0)
-  );
-  const groups = $derived.by((): Group[] => {
-    const list = mine
-      .filter((g) => custOk(g.customer.id))
-      .map((g) => {
-        const projects = g.projects
-          .filter((p) => dueOk(projectDue(p)) && (hit(g.customer.name, p.name) || p.checklists.some((c) => hit(c.title))))
-          .sort(projCmp[sort]);
-        return { customer: g.customer, projects, checklists: projects.reduce((s, p) => s + p.checklists.length, 0) };
-      })
-      .filter((g) => g.projects.length > 0);
-    const first = (g: Group) => g.projects[0];
-    return list.sort((a, b) => projCmp[sort](first(a), first(b)) || byName(a.customer.name, b.customer.name));
-  });
+  const mine = $derived(myCustomers(sidebar.customers, { userId, extra, chip: filter, today }));
+  const groups = $derived(taskGroups(mine, query));
 
   // ---- Personal ------------------------------------------------------------------
   let personal = $state<Task[]>([]);
-  const personalSrc = $derived.by(() => {
-    const src = filter === 'done' ? (doneTasks ?? []) : (openTasks ?? []);
-    return filter === 'today' ? src.filter((x) => x.due_date && x.due_date <= today) : src;
-  });
+  const personalSrc = $derived(personalSource(filter === 'done' ? (doneTasks ?? []) : (openTasks ?? []), filter, today));
   $effect(() => {
-    const list = personalSrc.filter(
-      (x) => custOk(x.customer_id) && dueOk(x.due_date) && hit(x.title, x.project_name, x.customer_name, x.checklist_title)
-    );
-    if (sort === 'due') list.sort((a, b) => (a.due_date ?? '9999').localeCompare(b.due_date ?? '9999'));
-    if (sort === 'name') list.sort((a, b) => byName(a.title, b.title));
-    personal = list;
+    personal = personalTasks(personalSrc, query);
   });
   const personalCount = $derived(personalSrc.length);
 
@@ -171,7 +127,7 @@
       value: ps.cust,
       onchange: (v: FilterId[] | null) => (ps.cust = v)
     },
-    { key: 'due', label: t('filter.due'), items: DUES.map((d) => ({ id: d, label: t(`filter.due.${d}`) })), value: ps.due, onchange: (v: FilterId[] | null) => (ps.due = v) }
+    { key: 'due', label: t('filter.due'), items: DUE_BUCKETS.map((d) => ({ id: d, label: t(`filter.due.${d}`) })), value: ps.due, onchange: (v: FilterId[] | null) => (ps.due = v) }
   ]);
   const assigned = $derived(groups.reduce((s, g) => s + g.checklists, 0));
   // "Display" options (per user and view)
@@ -303,8 +259,8 @@
                     <span class="flex min-w-0 items-center gap-2">
                       <EntityIcon type="project" size="sm" />
                       <span class="truncate font-semibold {muted ? 'text-zinc-400 dark:text-zinc-500' : ''}">{p.name}</span>
-                      <span class="badge shrink-0 {statusBadgeCls(p.status)}" style={statusBadgeStyle(p.status)}>{statusLabel(p.status)}</span>
-                      {#if isOwner(p)}
+                      <span class="badge shrink-0" style={statusBadgeStyle(p.status)}>{statusLabel(p.status)}</span>
+                      {#if isOwner(p, userId)}
                         <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent-50 px-2 py-px text-[11px] font-medium text-accent-700 dark:bg-accent-950/60 dark:text-accent-400" title={t('tasks.ownerHint')}>
                           <Icon name="user" size={11} />{t('project.owner')}
                         </span>
@@ -327,7 +283,7 @@
                   {#if pOpen}
                     <ul class="mb-1 ml-9 space-y-0.5">
                       {#each p.checklists as cl (cl.id)}
-                        {@const due = cl.next_due && clOpen(cl) ? dueLabel(cl.next_due) : null}
+                        {@const due = cl.next_due && checklistOpen(cl) ? dueLabel(cl.next_due) : null}
                         <li>
                           <a href="/checklists/{cl.id}" oncontextmenu={(e) => openMenu(e, { t: 'checklist', project: p, checklist: cl })} data-testid="task-checklist-row" class="{rowCols} rounded-lg px-1 py-1.5 text-sm hover:bg-accent-50/60 dark:hover:bg-accent-950/30">
                             <EntityIcon type="checklist" size="xs" class="justify-self-center" />

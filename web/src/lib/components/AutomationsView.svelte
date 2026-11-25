@@ -2,7 +2,7 @@
   // Templates page, view "Automations": rules (trigger → template, runs,
   // on/off) and the latest runs. Admins edit (click on a rule, switch).
   import { api, errorText } from '$lib/api';
-  import { toast } from '$lib/state.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { locale, t } from '$lib/i18n.svelte';
   import { triggerDetail, triggerIcon, triggerTitle } from '$lib/automationText';
   import { categoryHex } from '$lib/templateLibrary';

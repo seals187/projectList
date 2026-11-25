@@ -1,8 +1,7 @@
 // Backgrounds: gradient presets and uploaded images. A value is '' (none),
 // 'g<n>' (gradient preset) or 'img:<id>' (uploaded image). The most specific
 // one applies: project, then customer, then the user's own background.
-import { api } from './api';
-import { sidebar } from './state.svelte';
+import { syncedPref } from './syncedPref.svelte';
 
 export const GRADIENTS: { id: string; css: string }[] = [
   ['#b5d34f', '#6d8f1f'],
@@ -39,19 +38,14 @@ export function backgroundCss(value: string | undefined | null): string {
   return GRADIENTS.find((g) => g.id === value)?.css ?? '';
 }
 
-/** The user's own background (synced pref). */
-export const userBackground = (): string => (typeof sidebar.prefs.background === 'string' ? sidebar.prefs.background : '');
+// The user's own background (synced pref): saved immediately, rolled back and
+// rejected on failure (the caller shows the error).
+const bgPref = syncedPref<string>('background', { parse: (v) => (typeof v === 'string' ? v : ''), debounce: 0, rollback: true, onError: 'reject' });
 
-export async function setUserBackground(value: string) {
-  const prev = sidebar.prefs.background;
-  sidebar.prefs.background = value;
-  try {
-    await api.put('/prefs/background', value);
-  } catch (e) {
-    sidebar.prefs.background = prev;
-    throw e;
-  }
-}
+/** The user's own background (synced pref). */
+export const userBackground = (): string => bgPref.value;
+
+export const setUserBackground = (value: string): Promise<void> => bgPref.set(value);
 
 export interface BackgroundImage {
   id: number;

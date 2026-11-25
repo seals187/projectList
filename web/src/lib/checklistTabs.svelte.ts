@@ -1,5 +1,5 @@
 // Open checklist tabs of the signed-in user, kept in localStorage (per browser).
-import { session } from './state.svelte';
+import { session } from './session.svelte';
 
 export const checklistTabs = $state<{ ids: number[]; loadedFor: number | null }>({ ids: [], loadedFor: null });
 

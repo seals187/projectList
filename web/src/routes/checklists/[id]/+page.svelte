@@ -3,7 +3,10 @@
   import { goto } from '$app/navigation';
   import { tick } from 'svelte';
   import { api, errorText } from '$lib/api';
-  import { canWrite, current, refreshSidebar, toast } from '$lib/state.svelte';
+  import { current } from '$lib/state.svelte';
+  import { canWrite } from '$lib/session.svelte';
+  import { workspace } from '$lib/workspace.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { fmtDate, t } from '$lib/i18n.svelte';
   import { computeSections, countProgress } from '$lib/blocks';
   import type { ChecklistDetail, Item, Ops, Template } from '$lib/types';
@@ -67,9 +70,8 @@
   };
 
   async function rename(title: string) {
-    await api.patch(`/checklists/${id}`, { title });
+    await workspace.renameChecklist(id, title);
     if (data) data.checklist.title = title;
-    refreshSidebar(0);
   }
 
   async function assign(assigneeId: number | null) {
@@ -78,7 +80,7 @@
     data.checklist.assignee_id = assigneeId;
     data.checklist.assignee_name = data.assignees.find((a) => a.id === assigneeId)?.name ?? null;
     try {
-      await api.patch(`/checklists/${id}`, { assignee_id: assigneeId });
+      await workspace.assignChecklist(id, assigneeId);
     } catch (err) {
       data.checklist.assignee_id = prev.id;
       data.checklist.assignee_name = prev.name;
@@ -101,8 +103,7 @@
     if (!data) return;
     const projectId = data.project.id;
     try {
-      await api.del(`/checklists/${id}`);
-      refreshSidebar(0);
+      await workspace.deleteChecklist(id);
       goto(`/projects/${projectId}`);
     } catch (e) {
       toast(errorText(e));
@@ -154,7 +155,7 @@
   {/if}
 
   {#key data.checklist.id}
-    <BlockEditor bind:items={data.checklist.items} {ops} {editable} collapseKey="checklist:{id}" assignees={data.assignees} onchange={() => refreshSidebar()} onerror={() => load(id)} />
+    <BlockEditor bind:items={data.checklist.items} {ops} {editable} collapseKey="checklist:{id}" assignees={data.assignees} onchange={() => workspace.invalidate(400)} onerror={() => load(id)} />
   {/key}
 
   {#if editable}

@@ -7,7 +7,9 @@
   import { goto } from '$app/navigation';
   import { api, errorText } from '$lib/api';
   import { i18n, locale, t } from '$lib/i18n.svelte';
-  import { isAdmin, session, sidebar, toast } from '$lib/state.svelte';
+  import { isAdmin, session } from '$lib/session.svelte';
+  import { sidebar } from '$lib/workspace.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { relTime } from '$lib/relTime';
   import type { AdminUser, Role } from '$lib/types';
   import SettingsShell from '$lib/components/SettingsShell.svelte';

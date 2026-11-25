@@ -6,9 +6,9 @@
   // Right click on a project or the customer opens the same menus as on the board.
   import { t } from '$lib/i18n.svelte';
   import { openCustomers, toggleCustomer } from '$lib/overviewOpen.svelte';
-  import { statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
-  import { dueUrgent, pct, type OvCustomer, type OvProject } from '$lib/overview';
-  import { setBoardHidden, sidebar } from '$lib/state.svelte';
+  import { statusBadgeStyle, statusLabel } from '$lib/projectStatus';
+  import { customerCards, dueUrgent, pct, type OvCustomer, type OvProject } from '$lib/projectQuery';
+  import { applyCustomerFilter, boardHidden } from '$lib/overviewFilter.svelte';
   import { tagsByIds } from '$lib/tags';
   import type { SidebarCustomer } from '$lib/types';
   import TeamAvatars from './TeamAvatars.svelte';
@@ -50,37 +50,13 @@
     menu = { kind: 'customer', customer, x: e.clientX, y: e.clientY };
   }
   // customer filter (shared with all overview views)
-  const hidden = $derived(new Set(sidebar.boardHidden));
-  function customerFilter(id: number, mode: 'only' | 'toggle' | 'all') {
-    const all = sidebar.customers.map((c) => c.id);
-    if (mode === 'all') setBoardHidden([]);
-    else if (mode === 'only') setBoardHidden(all.filter((x) => x !== id));
-    else setBoardHidden(hidden.has(id) ? [...hidden].filter((x) => x !== id) : [...hidden, id]);
-  }
+  const hidden = $derived(new Set(boardHidden.value));
 
   const MAX_ROWS = 6; // further projects: "+N more" (link to the customer)
   const shortDate = dayMonth; // dd.mm.
 
-  const overdueOf = (p: OvProject) => Object.values(p.clExtra).reduce((n, c) => n + c.overdue, 0);
-
-  // per customer: overdue and open items, next due date (open items or project), team
-  const cards = $derived(
-    groups
-      .map((g) => {
-        const overdue = g.projects.reduce((n, p) => n + overdueOf(p), 0);
-        const open = g.projects.reduce((n, p) => n + (p.total - p.done), 0);
-        const dates = g.projects
-          .filter((p) => p.status !== 'done')
-          .flatMap((p) => [...p.checklists.map((c) => c.next_due), p.due_date ?? ''])
-          .filter((d) => d && d >= today)
-          .sort();
-        const team = new Map<number, { id: number; name: string }>();
-        for (const p of g.projects) for (const m of p.team) team.set(m.id, m);
-        return { ...g, overdue, open, next: dates[0] ?? '', team: [...team.values()] };
-      })
-      // overdue first, then customers with projects, then empty ones; otherwise the existing order (name)
-      .sort((a, b) => Number(b.overdue > 0) - Number(a.overdue > 0) || Number(b.projects.length > 0) - Number(a.projects.length > 0))
-  );
+  // per customer: overdue and open items, next due date, team; overdue first (projectQuery)
+  const cards = $derived(customerCards(groups, today));
 </script>
 
 <div class="grid grid-cols-[repeat(auto-fill,minmax(21rem,1fr))] items-start gap-4">
@@ -127,7 +103,7 @@
                 <span class="flex items-start gap-2">
                   <EntityIcon type="project" size="xs" class="mt-px" />
                   <span class="line-clamp-2 min-w-0 flex-1 text-sm leading-snug font-bold break-words" title={p.name}>{p.name}</span>
-                  <span class="badge shrink-0 rounded-full! px-2.5! whitespace-nowrap {statusBadgeCls(p.status)}" style={statusBadgeStyle(p.status)}>{statusLabel(p.status)}</span>
+                  <span class="badge shrink-0 rounded-full! px-2.5! whitespace-nowrap" style={statusBadgeStyle(p.status)}>{statusLabel(p.status)}</span>
                 </span>
                 <!-- "…": on hover over the status (devices with a mouse), always visible without a mouse -->
                 <button
@@ -203,6 +179,6 @@
     {canCreate}
     onclose={() => (menu = null)}
     oncreate={() => oncreate(m.customer.id)}
-    onfilter={(mode) => customerFilter(m.customer.id, mode)}
+    onfilter={(mode) => applyCustomerFilter(m.customer.id, mode)}
     colorView="cards" />
 {/if}

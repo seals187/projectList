@@ -7,7 +7,7 @@
   import type { Snippet } from 'svelte';
   import { page } from '$app/state';
   import { t } from '$lib/i18n.svelte';
-  import { isAdmin } from '$lib/state.svelte';
+  import { isAdmin } from '$lib/session.svelte';
   import { activeNav, filterNav, SETTINGS_NAV } from '$lib/settingsNav';
   import Icon from './Icon.svelte';
 

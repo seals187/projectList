@@ -3,7 +3,9 @@
 // (sidebar.favorites, sidebar.favoriteGroups). Changes are shown immediately
 // and saved in the background; on errors the previous state comes back.
 import { api, errorText } from './api';
-import { refreshSidebar, session, sidebar, toast } from './state.svelte';
+import { session } from './session.svelte';
+import { sidebar, workspace } from './workspace.svelte';
+import { toast } from './toasts.svelte';
 import type { Favorite, FavoriteGroup, FavoriteKind } from './types';
 import { favoritesLayout, layoutToOrder } from './favoritesModel';
 import type { FavLayout } from './favLayout';
@@ -141,5 +143,5 @@ export async function migrateLocalFavorites() {
       }
     }
   }
-  if (added) refreshSidebar(0);
+  if (added) workspace.invalidate();
 }

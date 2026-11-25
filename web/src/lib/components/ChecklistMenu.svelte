@@ -4,7 +4,9 @@
   import { goto } from '$app/navigation';
   import { api, errorText } from '$lib/api';
   import { t, type Key } from '$lib/i18n.svelte';
-  import { canWrite, refreshSidebar, sidebar, toast } from '$lib/state.svelte';
+  import { canWrite } from '$lib/session.svelte';
+  import { workspace } from '$lib/workspace.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { isFavorite, toggleFavorite } from '$lib/navMemory.svelte';
   import type { SidebarChecklist, Template } from '$lib/types';
   import ContextMenu from './ContextMenu.svelte';
@@ -26,8 +28,7 @@
   } = $props();
 
   // current values from the store (the page may pass a copy)
-  const storeChecklist = () => sidebar.customers.flatMap((c) => c.projects).flatMap((p) => p.checklists).find((c) => c.id === checklist.id);
-  const cl = $derived(storeChecklist() ?? checklist);
+  const cl = $derived(workspace.findChecklist(checklist.id) ?? checklist);
   const editable = canWrite();
   const fav = $derived(isFavorite('checklist', cl.id));
 
@@ -47,10 +48,7 @@
     const title = name.trim();
     if (!title || title === cl.title) return;
     try {
-      await api.patch(`/checklists/${cl.id}`, { title });
-      const s = storeChecklist();
-      if (s) s.title = title;
-      refreshSidebar(0);
+      await workspace.renameChecklist(cl.id, title);
       section = null;
     } catch (err) {
       toast(errorText(err));
@@ -73,9 +71,7 @@
   async function remove() {
     busy = true;
     try {
-      await api.del(`/checklists/${cl.id}`);
-      for (const c of sidebar.customers) for (const p of c.projects) p.checklists = p.checklists.filter((x) => x.id !== cl.id);
-      refreshSidebar(0);
+      await workspace.deleteChecklist(cl.id);
       toast(t('checklist.deleted', { name: cl.title }), 'info');
       onclose();
     } catch (err) {

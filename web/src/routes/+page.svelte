@@ -3,24 +3,15 @@
   // calendar or timeline. Filters (customer, label, person responsible) apply
   // to all views and can be saved as views (sidebar). Header: PageHeader.
   import { api, errorText } from '$lib/api';
-  import {
-    canWrite,
-    isAdmin,
-    openNewProject,
-    OVERVIEW_VIEWS,
-    overviewView,
-    refreshSidebar,
-    session,
-    setBoardHidden,
-    setOverviewView,
-    sidebar,
-    toast,
-    type OverviewView
-  } from '$lib/state.svelte';
+  import { OVERVIEW_VIEWS, overviewView, setOverviewView, type OverviewView } from '$lib/state.svelte';
+  import { canWrite, isAdmin, session } from '$lib/session.svelte';
+  import { refreshSidebar, sidebar, workspace } from '$lib/workspace.svelte';
+  import { toast } from '$lib/toasts.svelte';
+  import { openNewProject } from '$lib/dialogs.svelte';
   import { locale, t, todayISO } from '$lib/i18n.svelte';
-  import { buildOverview, OVERVIEW_SORTS, searchOverview, sortOverview, type OverviewSort, type OvProject } from '$lib/overview';
+  import { buildOverview, effectiveHidden, OVERVIEW_SORTS, queryOverview, type OverviewSort, type OvProject } from '$lib/projectQuery';
   import { openCustomers, setAllCustomers } from '$lib/overviewOpen.svelte';
-  import { addSavedView, BOARD_GROUPS, filter, matchesFilter, NO_OWNER, resetFilters, setFilter, type BoardGroup } from '$lib/overviewFilter.svelte';
+  import { addSavedView, BOARD_GROUPS, boardHidden, filter, NO_OWNER, resetFilters, setBoardHidden, setFilter, type BoardGroup } from '$lib/overviewFilter.svelte';
   import { allCollapsed } from '$lib/pageStateCore';
   import { pageState } from '$lib/pageState.svelte';
   import { displayLabel, displayOf, setDisplay } from '$lib/display.svelte';
@@ -62,7 +53,7 @@
       },
       tags: { def: [], url: 'ids', get: () => filter.tags, set: (v: number[]) => setFilter({ tags: ids(v) }) },
       owners: { def: [], url: 'ids', get: () => filter.owners, set: (v: number[]) => setFilter({ owners: ids(v) }) },
-      hide: { def: [], url: 'ids', get: () => sidebar.boardHidden, set: (v: number[]) => setBoardHidden(ids(v)) },
+      hide: { def: [], url: 'ids', get: () => boardHidden.value, set: (v: number[]) => setBoardHidden(ids(v)) },
       group: { def: 'status', url: 'str', get: () => filter.group, set: (v: string) => BOARD_GROUPS.includes(v as BoardGroup) && setFilter({ group: v as BoardGroup }) }
     }
   );
@@ -75,22 +66,9 @@
 
   // ---- Filters (all views) -----------------------------------------------------
   // hidden customers; IDs of deleted customers are ignored
-  const hidden = $derived(new Set(sidebar.boardHidden.filter((id) => groups.some((g) => g.customer.id === id))));
-  const projectFilter = $derived(filter.tags.length > 0 || filter.owners.length > 0);
-  // visible customers with their matching projects; with a label/person filter,
-  // customers without a matching project are left out; then search and sorting
-  const shown = $derived(
-    sortOverview(
-      searchOverview(
-        groups
-          .filter((g) => !hidden.has(g.customer.id))
-          .map((g) => ({ ...g, projects: g.projects.filter(matchesFilter) }))
-          .filter((g) => !projectFilter || g.projects.length > 0),
-        ps.q
-      ),
-      sort
-    )
-  );
+  const hidden = $derived(effectiveHidden(groups, boardHidden.value));
+  // visible customers with their matching projects, then search and sorting (projectQuery)
+  const shown = $derived(queryOverview(groups, { hidden: boardHidden.value, tags: filter.tags, owners: filter.owners, q: ps.q, sort }));
 
   const customerItems = $derived<FilterItem[]>(
     groups.map((g) => ({ id: g.customer.id, label: g.customer.name, entity: 'customer' as const }))
@@ -153,22 +131,11 @@
   // Board: drag & drop changes the column (status) and/or the order within it
   // (show immediately, revert on error). ids = new order of the target column.
   async function move(p: OvProject, status: ProjectStatus, order: number[]) {
-    const all = sidebar.customers.flatMap((c) => c.projects);
-    const touched = all.filter((x) => order.includes(x.id));
-    const prev = touched.map((x) => ({ x, status: x.status, pos: x.board_position }));
     const moved = p.status !== status;
-    for (const x of touched) {
-      x.status = status;
-      x.board_position = order.indexOf(x.id);
-    }
     try {
-      await api.put('/board/order', { status, ids: order });
+      await workspace.moveProject(status, order);
       if (moved) toast(t('overview.moved', { name: p.name, status: statusLabel(status) }), 'info');
     } catch (e) {
-      for (const o of prev) {
-        o.x.status = o.status;
-        o.x.board_position = o.pos;
-      }
       toast(errorText(e));
     }
   }

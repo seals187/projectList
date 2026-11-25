@@ -4,7 +4,8 @@
   import { goto } from '$app/navigation';
   import { page } from '$app/state';
   import { api, errorText, setCsrf } from '$lib/api';
-  import { refreshSidebar, session } from '$lib/state.svelte';
+  import { session } from '$lib/session.svelte';
+  import { refreshSidebar } from '$lib/workspace.svelte';
   import { i18n, LANGS, setLang, t } from '$lib/i18n.svelte';
   import type { User } from '$lib/types';
 

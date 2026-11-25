@@ -2,7 +2,6 @@ package httpapi
 
 import (
 	"bytes"
-	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -94,15 +93,6 @@ func toTableDTO(t sqlc.ProjectTable, updatedBy string) tableDTO {
 	}
 }
 
-// loadTable loads a table and checks access via the customer.
-func (s *Server) loadTable(ctx context.Context, u authz.User, id int64) (sqlc.GetTableWithCustomerRow, error) {
-	t, err := s.q.GetTableWithCustomer(ctx, id)
-	if err != nil {
-		return t, err
-	}
-	return t, s.requireCustomer(ctx, u, t.CustomerID)
-}
-
 // GET /api/projects/{id}/tables
 func (s *Server) listTables(w http.ResponseWriter, r *http.Request, u authz.User) error {
 	id, err := pathID(r, "id")
@@ -162,47 +152,6 @@ func (s *Server) createTable(w http.ResponseWriter, r *http.Request, u authz.Use
 	return nil
 }
 
-// POST /api/projects/{id}/tables/from-template {template_id, title, values}
-func (s *Server) createTableFromTemplate(w http.ResponseWriter, r *http.Request, u authz.User) error {
-	projectID, err := pathID(r, "id")
-	if err != nil {
-		return err
-	}
-	if _, err := s.loadProject(r.Context(), u, projectID); err != nil {
-		return err
-	}
-	var req struct {
-		TemplateID int64             `json:"template_id"`
-		Title      string            `json:"title"`
-		Values     map[string]string `json:"values"`
-	}
-	if err := decode(w, r, &req); err != nil {
-		return err
-	}
-	v := validator{}
-	title := v.text("title", req.Title, 0, 200)
-	if req.TemplateID <= 0 {
-		v["template_id"] = "required"
-	}
-	if err := v.err(); err != nil {
-		return err
-	}
-	if len(req.Values) > 100 {
-		return errBadRequest("too_many_values")
-	}
-	vals, err := service.ResolveValues(r.Context(), s.q, projectID, u.Name, req.Values, s.now())
-	if err != nil {
-		return err
-	}
-	t, err := service.ApplyTableTemplate(r.Context(), s.db, projectID, req.TemplateID, title, &u.ID, service.ApplyOptions{Values: vals, Now: s.now()})
-	if err != nil {
-		return err
-	}
-	s.logActivity(r.Context(), projectID, u.ID, actTableCreated, t.Title, "")
-	writeJSON(w, http.StatusCreated, toTableDTO(t, u.Name))
-	return nil
-}
-
 // PUT /api/projects/{id}/tables/order {ids}
 func (s *Server) orderTables(w http.ResponseWriter, r *http.Request, u authz.User) error {
 	projectID, err := pathID(r, "id")
@@ -219,19 +168,7 @@ func (s *Server) orderTables(w http.ResponseWriter, r *http.Request, u authz.Use
 	if err := req.validate(); err != nil {
 		return err
 	}
-	err = db.WithTx(r.Context(), s.db, func(q *sqlc.Queries) error {
-		for i, id := range req.IDs {
-			n, err := q.SetTablePosition(r.Context(), sqlc.SetTablePositionParams{Position: int64(i), ID: id, ProjectID: projectID})
-			if err != nil {
-				return err
-			}
-			if n != 1 {
-				return errBadRequest("invalid_order")
-			}
-		}
-		return nil
-	})
-	if err != nil {
+	if err := service.Reorder(r.Context(), s.db, service.TablesOfProject, projectID, req.IDs); err != nil {
 		return err
 	}
 	w.WriteHeader(http.StatusNoContent)

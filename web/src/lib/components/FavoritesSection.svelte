@@ -9,7 +9,7 @@
   import { goto } from '$app/navigation';
   import { api } from '$lib/api';
   import { t } from '$lib/i18n.svelte';
-  import { sidebar } from '$lib/state.svelte';
+  import { sidebar } from '$lib/workspace.svelte';
   import { entityLabelKey, entitySubtitle } from '$lib/entityTypes';
   import { moveNode, type DropTarget, type FavRef } from '$lib/favLayout';
   import { favKey, favoritesLayout, groupKey, resolveFavorites, type FavDisplay } from '$lib/favoritesModel';

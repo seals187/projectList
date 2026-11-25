@@ -3,7 +3,8 @@
   // for everyone. Empty name / no color / limit 0 = default.
   import { api, errorText } from '$lib/api';
   import { t } from '$lib/i18n.svelte';
-  import { sidebar, toast } from '$lib/state.svelte';
+  import { sidebar } from '$lib/workspace.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { statusColor, statusDotCls, statusDotStyle } from '$lib/projectStatus';
   import type { ProjectStatus } from '$lib/types';
   import ContextMenu from './ContextMenu.svelte';

@@ -1,10 +1,10 @@
 <script lang="ts">
   // "Calendar" overview: month grid with the projects on their due date.
   // Writers move a project to another day via drag & drop (changes the due date).
-  import { canWrite } from '$lib/state.svelte';
+  import { canWrite } from '$lib/session.svelte';
   import { locale, t } from '$lib/i18n.svelte';
   import { statusDotCls, statusDotStyle } from '$lib/projectStatus';
-  import { dueUrgent, type OvCustomer, type OvProject } from '$lib/overview';
+  import { calendarDays, dueUrgent, type OvCustomer, type OvProject } from '$lib/projectQuery';
   import { patchProject } from '$lib/projectActions';
   import { addMonths, dayOfMonth, fromDay, isoWeek, mondayOf, monthLabel, monthStart, toDay, weekday, weekdayNames } from '$lib/dates';
   import ProjectMenu from './ProjectMenu.svelte';
@@ -18,17 +18,10 @@
   let month = $state(monthStart(toDay(today))); // first day of the shown month
 
   const projects = $derived(groups.flatMap((g) => g.projects));
-  const byDay = $derived.by(() => {
-    const m = new Map<number, OvProject[]>();
-    for (const p of projects) {
-      if (!p.due_date) continue;
-      const d = toDay(p.due_date);
-      if (!m.has(d)) m.set(d, []);
-      m.get(d)!.push(p);
-    }
-    return m;
-  });
-  const undated = $derived(projects.filter((p) => !p.due_date));
+  // projects per due day and without due date (projectQuery)
+  const cal = $derived(calendarDays(projects));
+  const byDay = $derived(cal.byDay);
+  const undated = $derived(cal.undated);
 
   // 6 weeks from the Monday before the first of the month (complete weeks)
   const days = $derived.by(() => {

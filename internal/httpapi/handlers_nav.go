@@ -3,6 +3,7 @@ package httpapi
 import (
 	"context"
 	"net/http"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
@@ -47,9 +48,10 @@ func toFavoriteGroupDTOs(rows []sqlc.ListFavoriteGroupsRow) []favoriteGroupDTO {
 	return out
 }
 
-func validFavoriteKind(kind string) bool {
-	return kind == "customer" || kind == "project" || kind == "checklist" || kind == "template"
-}
+// favoriteKinds: what can be marked as favorite.
+var favoriteKinds = []string{"customer", "project", "checklist", "template"}
+
+func validFavoriteKind(kind string) bool { return slices.Contains(favoriteKinds, kind) }
 
 // favoriteTarget reads {kind}/{id} from the path and checks that the target
 // exists and the user may see it (404 otherwise).
@@ -65,18 +67,10 @@ func (s *Server) favoriteTarget(ctx context.Context, r *http.Request, u authz.Us
 	if !check {
 		return kind, id, nil
 	}
-	switch kind {
-	case "customer":
-		if _, err := s.q.GetCustomer(ctx, id); err != nil {
-			return "", 0, err
-		}
-		err = s.requireCustomer(ctx, u, id)
-	case "project":
-		_, err = s.loadProject(ctx, u, id)
-	case "checklist":
-		_, err = s.loadChecklist(ctx, u, id)
-	case "template": // templates are visible to every signed-in user
+	if kind == "template" { // templates are visible to every signed-in user
 		_, err = s.q.GetTemplate(ctx, id)
+	} else {
+		err = s.requireScope(ctx, u, kind, id)
 	}
 	return kind, id, err
 }

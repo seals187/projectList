@@ -4,7 +4,7 @@
   import { untrack } from 'svelte';
   import { goto } from '$app/navigation';
   import { api, errorText } from '$lib/api';
-  import { toast } from '$lib/state.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { t } from '$lib/i18n.svelte';
   import { readXlsx, titleFromFile } from '$lib/xlsxImport';
   import type { Template, TemplateCategory, TemplateKind } from '$lib/types';

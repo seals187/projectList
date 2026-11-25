@@ -16,6 +16,7 @@ import (
 	"github.com/seals187/projectList/internal/automation"
 	"github.com/seals187/projectList/internal/db/sqlc"
 	"github.com/seals187/projectList/internal/mail"
+	"github.com/seals187/projectList/internal/service"
 )
 
 type Server struct {
@@ -32,6 +33,7 @@ type Server struct {
 	now           func() time.Time
 	redmineClient *http.Client // nil = default (tests may replace)
 	auto          *automation.Engine
+	life          *service.Lifecycle // project changes with side effects (activity log, automation)
 }
 
 type Options struct {
@@ -83,6 +85,7 @@ func New(o Options) http.Handler {
 		s.auto = automation.New(o.DB, o.Logger)
 		s.auto.Now = s.now
 	}
+	s.life = &service.Lifecycle{DB: o.DB, Q: s.q, Log: o.Logger, Now: s.now, Emit: s.fire}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.healthz)
@@ -284,19 +287,6 @@ func (s *Server) writer(h handlerFunc) http.Handler {
 		}
 		return h(w, r, u)
 	})
-}
-
-// requireCustomer checks access to a customer. If read permission is missing,
-// 404 is returned (do not reveal existence).
-func (s *Server) requireCustomer(ctx context.Context, u authz.User, customerID int64) error {
-	ok, err := authz.CanAccessCustomer(ctx, s.q, u, customerID)
-	if err != nil {
-		return err
-	}
-	if !ok {
-		return errNotFound()
-	}
-	return nil
 }
 
 // ---- Middleware --------------------------------------------------------------

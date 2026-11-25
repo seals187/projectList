@@ -1,8 +1,7 @@
 // Customer overview: metrics and status per customer, computed from the
 // sidebar tree (projects, checklists, progress) and /api/customers.
 import type { CustomerListItem, SidebarCustomer, SidebarProject } from './types';
-import { dueUrgent } from './overview';
-import { customerProgress } from './projectStatus';
+import { customerProgress, dueUrgent } from './projectQuery';
 
 /** new = no projects yet, critical = blocked or (nearly) overdue, done = everything finished */
 export type CustomerStatus = 'new' | 'onTrack' | 'critical' | 'done';

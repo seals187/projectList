@@ -7,7 +7,7 @@ import { untrack } from 'svelte';
 import { page } from '$app/state';
 import { replaceState } from '$app/navigation';
 import { syncCurrentUrl } from './navHistory.svelte';
-import { session } from './state.svelte';
+import { session } from './session.svelte';
 import { defaults, fromQuery, initial, normQuery, toQuery, type Spec, type UrlKind, type Values } from './pageStateCore';
 
 export interface ExtField {

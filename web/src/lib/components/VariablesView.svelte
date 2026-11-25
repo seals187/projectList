@@ -2,7 +2,7 @@
   // Templates page, view "Variables": system and custom variables ({{name}})
   // with source, description, example / value and usage. Click on a variable
   // copies "{{name}}"; admins edit custom variables (click on the row).
-  import { toast } from '$lib/state.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { t, type Key } from '$lib/i18n.svelte';
   import type { TemplateVariable } from '$lib/types';
 

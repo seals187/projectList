@@ -10,15 +10,6 @@ import (
 	"github.com/seals187/projectList/internal/service"
 )
 
-// loadChecklist loads a checklist and checks access via the customer.
-func (s *Server) loadChecklist(ctx context.Context, u authz.User, id int64) (sqlc.GetChecklistWithCustomerRow, error) {
-	c, err := s.q.GetChecklistWithCustomer(ctx, id)
-	if err != nil {
-		return c, err
-	}
-	return c, s.requireCustomer(ctx, u, c.CustomerID)
-}
-
 func checklistFromRow(c sqlc.GetChecklistWithCustomerRow) sqlc.Checklist {
 	return sqlc.Checklist{ID: c.ID, ProjectID: c.ProjectID, Title: c.Title, TemplateID: c.TemplateID, Position: c.Position, AssigneeID: c.AssigneeID}
 }
@@ -87,50 +78,6 @@ func (s *Server) createChecklist(w http.ResponseWriter, r *http.Request, u authz
 	return nil
 }
 
-func (s *Server) createChecklistFromTemplate(w http.ResponseWriter, r *http.Request, u authz.User) error {
-	projectID, err := pathID(r, "id")
-	if err != nil {
-		return err
-	}
-	if _, err := s.loadProject(r.Context(), u, projectID); err != nil {
-		return err
-	}
-	var req struct {
-		TemplateID int64             `json:"template_id"`
-		Title      string            `json:"title"`
-		Values     map[string]string `json:"values"` // custom variables ({{key}})
-	}
-	if err := decode(w, r, &req); err != nil {
-		return err
-	}
-	v := validator{}
-	title := v.text("title", req.Title, 0, 200)
-	if req.TemplateID <= 0 {
-		v["template_id"] = "required"
-	}
-	if err := v.err(); err != nil {
-		return err
-	}
-	if len(req.Values) > 100 {
-		return errBadRequest("too_many_values")
-	}
-	vals, err := service.ResolveValues(r.Context(), s.q, projectID, u.Name, req.Values, s.now())
-	if err != nil {
-		return err
-	}
-	cl, err := service.ApplyTemplate(r.Context(), s.db, projectID, req.TemplateID, title, service.ApplyOptions{Values: vals, Now: s.now()})
-	if err != nil {
-		return err
-	}
-	s.logActivity(r.Context(), projectID, u.ID, actChecklistCreated, cl.Title, "")
-	dto, err := s.checklistDTO(r.Context(), cl)
-	if err != nil {
-		return err
-	}
-	writeJSON(w, http.StatusCreated, dto)
-	return nil
-}
-
 func (s *Server) orderChecklists(w http.ResponseWriter, r *http.Request, u authz.User) error {
 	projectID, err := pathID(r, "id")
 	if err != nil {
@@ -146,19 +93,7 @@ func (s *Server) orderChecklists(w http.ResponseWriter, r *http.Request, u authz
 	if err := req.validate(); err != nil {
 		return err
 	}
-	err = db.WithTx(r.Context(), s.db, func(q *sqlc.Queries) error {
-		for i, id := range req.IDs {
-			n, err := q.SetChecklistPosition(r.Context(), sqlc.SetChecklistPositionParams{Position: int64(i), ID: id, ProjectID: projectID})
-			if err != nil {
-				return err
-			}
-			if n != 1 {
-				return errBadRequest("invalid_order")
-			}
-		}
-		return nil
-	})
-	if err != nil {
+	if err := service.Reorder(r.Context(), s.db, service.ChecklistsOfProject, projectID, req.IDs); err != nil {
 		return err
 	}
 	w.WriteHeader(http.StatusNoContent)

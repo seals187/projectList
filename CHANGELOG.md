@@ -8,6 +8,21 @@ Changes until the next release are collected under **Unreleased**.
 
 ## [Unreleased]
 
+### Fixed
+
+- Moving a project card into another column on the board now records the status change in the project's activity
+  log and runs the automations for status changes, as changing the status in the project already did
+- Error messages for "too many entries", "too many variable values" and invalid data are now translated
+
+### Changed
+
+- Internal restructuring for testability (no visible change): project changes with side effects (status, tags,
+  duplicating, creating from templates, ordering) live in one place; the customer access check for every entity
+  is shared; the block editor's editing model, the overview's filtering/sorting, the synced preferences and the
+  sidebar data each moved into their own tested modules
+- The API's enums, error codes and main response shapes are generated as TypeScript (`go run ./cmd/gentypes`);
+  a test fails when the generated file is out of date
+
 ## [0.2.2] – 2026-11-16
 
 ### Added

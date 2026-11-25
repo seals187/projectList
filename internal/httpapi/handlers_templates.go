@@ -227,22 +227,7 @@ func (s *Server) createTemplateItem(w http.ResponseWriter, r *http.Request, _ au
 	if err := v.err(); err != nil {
 		return err
 	}
-	var it sqlc.TemplateItem
-	err = db.WithTx(r.Context(), s.db, func(q *sqlc.Queries) error {
-		next, err := q.NextTemplateItemPosition(r.Context(), templateID)
-		if err != nil {
-			return err
-		}
-		p.Position = next
-		if req.Position != nil && *req.Position < next {
-			p.Position = *req.Position
-			if err := q.ShiftTemplateItemPositions(r.Context(), sqlc.ShiftTemplateItemPositionsParams{TemplateID: templateID, Position: p.Position}); err != nil {
-				return err
-			}
-		}
-		it, err = q.CreateTemplateItem(r.Context(), p)
-		return err
-	})
+	it, err := service.InsertTemplateItem(r.Context(), s.db, p, req.Position)
 	if err != nil {
 		return err
 	}
@@ -311,19 +296,7 @@ func (s *Server) orderTemplateItems(w http.ResponseWriter, r *http.Request, _ au
 	if err := req.validate(); err != nil {
 		return err
 	}
-	err = db.WithTx(r.Context(), s.db, func(q *sqlc.Queries) error {
-		for i, id := range req.IDs {
-			n, err := q.SetTemplateItemPosition(r.Context(), sqlc.SetTemplateItemPositionParams{Position: int64(i), ID: id, TemplateID: templateID})
-			if err != nil {
-				return err
-			}
-			if n != 1 {
-				return errBadRequest("invalid_order")
-			}
-		}
-		return nil
-	})
-	if err != nil {
+	if err := service.Reorder(r.Context(), s.db, service.ItemsOfTemplate, templateID, req.IDs); err != nil {
 		return err
 	}
 	w.WriteHeader(http.StatusNoContent)

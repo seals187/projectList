@@ -1,39 +1,16 @@
-import type { Favorite, FavoriteGroup, ProjectStatus, SidebarCustomer, Tag, User } from './types';
+// UI state of this browser (Svelte 5 runes): sidebar chrome (collapsed,
+// width, mobile drawer), the open checklist's sections, personal view prefs
+// and the overview view. Other global state has its own module: session
+// (session.svelte), read model + writes (workspace.svelte), theme
+// (theme.svelte), toasts (toasts.svelte), dialogs (dialogs.svelte), save
+// indicator (saveState.svelte), zoom steps (zoom.ts).
 import { applyFonts, DEFAULT_FONT, FONT_IDS, type FontId, type HeadingFont } from './fonts';
 import { CUSTOMER_SORTS, type CustomerSort } from './customers';
-import { parsePageZoom, stepPageZoom, withPageZoom, type PageZoom, type ZoomPage } from './pageZoom';
-import { applyAppearance, parseTheme, readAppearance, UI_PREF_KEYS, type Accent, type Density, type DimContent, type ThemeChoice, type UiPrefKey } from './appearance';
+import { parsePageZoom, type PageZoom } from './pageZoom';
+import { applyAppearance, readAppearance, UI_PREF_KEYS, type Accent, type Density, type DimContent, type UiPrefKey } from './appearance';
 
-// Global state (Svelte 5 runes).
-
-export const session = $state<{ user: User | null; ready: boolean; subtitle: string; version: string }>({ user: null, ready: false, subtitle: '', version: '' });
-
-export const sidebar = $state<{
-  customers: SidebarCustomer[];
-  myTasks: number;
-  favorites: Favorite[]; // customers, projects, checklists, templates (DB, per user)
-  favoriteGroups: FavoriteGroup[]; // user-defined favorites groups (DB, per user)
-  tags: Tag[]; // tag catalog (global)
-  statusLabels: Partial<Record<ProjectStatus, string>>; // custom status names (global, set by admins)
-  statusColors: Partial<Record<ProjectStatus, string>>; // custom status colors #rrggbb (global, set by admins)
-  statusWip: Partial<Record<ProjectStatus, number>>; // WIP limit per board column (global, set by admins)
-  prefs: { overview?: unknown; saved_views?: unknown; background?: unknown; display?: unknown; ui?: unknown; fav_layout?: unknown; views_layout?: unknown; card_colors?: unknown }; // synced personal settings (DB, per user)
-  loaded: boolean; // first /sidebar response arrived
-  boardHidden: number[]; // customers hidden on the board (DB, per user, synced across devices)
-  open: boolean;
-  collapsed: boolean;
-}>({
-  customers: [],
-  myTasks: 0,
-  favorites: [],
-  favoriteGroups: [],
-  tags: [],
-  statusLabels: {},
-  statusColors: {},
-  statusWip: {},
-  prefs: {},
-  loaded: false,
-  boardHidden: [],
+/** Sidebar chrome: mobile drawer shown, desktop collapsed (remembered per browser). */
+export const sidebarUi = $state<{ open: boolean; collapsed: boolean }>({
   open: false, // mobile: shown
   collapsed: readCollapsed() // desktop: collapsed (remembered per browser)
 });
@@ -46,8 +23,8 @@ function readCollapsed(): boolean {
   }
 }
 
-export function toggleSidebar(collapsed = !sidebar.collapsed) {
-  sidebar.collapsed = collapsed;
+export function toggleSidebar(collapsed = !sidebarUi.collapsed) {
+  sidebarUi.collapsed = collapsed;
   try {
     if (collapsed) localStorage.setItem('sidebar-collapsed', '1');
     else localStorage.removeItem('sidebar-collapsed');
@@ -83,17 +60,6 @@ export function setSidebarWidth(px: number, save = true) {
   }
 }
 
-export const palette = $state({ open: false });
-
-/** "New project" dialog (sidebar, overview); null = closed. */
-export const newProject = $state<{ value: { customerId: number | null; status: ProjectStatus } | null }>({ value: null });
-export function openNewProject(customerId: number | null = null, status: ProjectStatus = 'planning') {
-  newProject.value = { customerId, status };
-}
-
-/** Save status for the "saved" indicator. */
-export const saveState = $state({ pending: 0, saved: false, error: false });
-
 /** Sections of the currently open checklist (for the sidebar). */
 export interface Section {
   id: number;
@@ -108,111 +74,8 @@ export const current = $state<{ checklistId: number | null; projectId: number | 
   sections: []
 });
 
-export function canWrite() {
-  return session.user?.role === 'admin' || session.user?.role === 'member';
-}
-
-export function isAdmin() {
-  return session.user?.role === 'admin';
-}
-
-let refreshTimer: ReturnType<typeof setTimeout> | undefined;
-
-/** Reloads the sidebar (debounced so rapid click sequences trigger only one request). */
-export function refreshSidebar(delay = 400) {
-  clearTimeout(refreshTimer);
-  refreshTimer = setTimeout(async () => {
-    const { api } = await import('./api');
-    try {
-      const r = await api.get<{
-        customers: SidebarCustomer[];
-        my_tasks: number;
-        favorites: Favorite[];
-        favorite_groups?: FavoriteGroup[];
-        tags: Tag[];
-        status_labels: Partial<Record<ProjectStatus, string>>;
-        status_colors?: Partial<Record<ProjectStatus, string>>;
-        status_wip?: Partial<Record<ProjectStatus, number>>;
-        prefs?: { overview?: unknown; saved_views?: unknown; background?: unknown };
-        board_hidden: number[];
-      }>('/sidebar');
-      sidebar.customers = r.customers;
-      sidebar.myTasks = r.my_tasks;
-      sidebar.favorites = r.favorites ?? [];
-      sidebar.favoriteGroups = r.favorite_groups ?? [];
-      sidebar.tags = r.tags ?? [];
-      sidebar.statusLabels = r.status_labels ?? {};
-      sidebar.statusColors = r.status_colors ?? {};
-      sidebar.statusWip = r.status_wip ?? {};
-      sidebar.prefs = r.prefs ?? {};
-      sidebar.loaded = true;
-      // do not overwrite a filter change that is still being saved
-      if (!boardHiddenTimer) sidebar.boardHidden = r.board_hidden ?? [];
-    } catch {
-      /* errors become visible on the next load */
-    }
-  }, delay);
-}
-
-// Board customer filter: show immediately, save debounced (rapid clicks = one request).
-let boardHiddenTimer: ReturnType<typeof setTimeout> | undefined;
-export function setBoardHidden(ids: number[]) {
-  sidebar.boardHidden = ids;
-  clearTimeout(boardHiddenTimer);
-  boardHiddenTimer = setTimeout(async () => {
-    const { api, errorText } = await import('./api');
-    try {
-      await api.put('/prefs/board-hidden', { customer_ids: sidebar.boardHidden });
-    } catch (e) {
-      toast(errorText(e));
-    } finally {
-      boardHiddenTimer = undefined;
-    }
-  }, 400);
-}
-
-// ---- Theme ----------------------------------------------------------------------
-
-// Light, dark or like the operating system ("system", also without a stored
-// choice; the old value "dim" = dark). `dark` is the effective result.
-export type Theme = ThemeChoice;
-
-function readTheme(): Theme {
-  try {
-    return parseTheme(localStorage.getItem('theme'));
-  } catch {
-    return 'system';
-  }
-}
-const osDark = () => typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches;
-const initialTheme = readTheme();
-
-export const theme = $state<{ value: Theme; dark: boolean }>({ value: initialTheme, dark: initialTheme === 'system' ? osDark() : initialTheme === 'dark' });
-
-function applyTheme() {
-  theme.dark = theme.value === 'system' ? osDark() : theme.value === 'dark';
-  if (typeof document !== 'undefined') document.documentElement.classList.toggle('dark', theme.dark);
-}
-// follow OS changes while "system" is selected
-if (typeof matchMedia === 'function') {
-  matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', () => {
-    if (theme.value === 'system') applyTheme();
-  });
-}
-
 /** Hooks for settings that sync across devices (set by uiSync.svelte.ts). */
 export const uiHooks: { changed: () => void } = { changed: () => {} };
-
-export function setTheme(value: Theme, sync = true) {
-  theme.value = value;
-  try {
-    localStorage.setItem('theme', value);
-  } catch {
-    /* ignore */
-  }
-  applyTheme();
-  if (sync) uiHooks.changed();
-}
 
 // ---- Checklist display ----------------------------------------------------------
 // Personal view settings (per browser, like the theme).
@@ -312,39 +175,8 @@ export function applyUiPrefs(values: Partial<Record<UiPrefKey, unknown>>) {
   }
 }
 
-/** Change the checklist size by one step (dir = +1 / -1); 0 resets to 100 %. */
-export function stepZoom(dir: -1 | 0 | 1) {
-  const i = ZOOM_STEPS.indexOf(prefs.zoom);
-  const next = dir === 0 ? 1 : ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, Math.max(0, (i < 0 ? ZOOM_STEPS.indexOf(1) : i) + dir))];
-  setPref('zoom', next);
-}
-
-/** Content size of a main page one step smaller / bigger (dir ±1), 0 = 100 %. */
-export function stepPageZoomOf(page: ZoomPage, dir: -1 | 0 | 1) {
-  setPref('pageZoom', withPageZoom(prefs.pageZoom, page, stepPageZoom(prefs.pageZoom[page] ?? 1, dir)));
-}
-
 /** Classes for the checkbox shape. */
 export const checkRadius = () => (prefs.checkShape === 'round' ? 'rounded-full' : 'rounded-[4px]');
-
-// ---- Toasts -------------------------------------------------------------------
-
-export interface Toast {
-  id: number;
-  text: string;
-  kind: 'error' | 'info';
-}
-
-export const toasts = $state<{ list: Toast[] }>({ list: [] });
-let toastId = 0;
-
-export function toast(text: string, kind: Toast['kind'] = 'error') {
-  const id = ++toastId;
-  toasts.list.push({ id, text, kind });
-  setTimeout(() => {
-    toasts.list = toasts.list.filter((t) => t.id !== id);
-  }, 4500);
-}
 
 // ---- Overview view --------------------------------------------------------------
 // During the session (tab) the last selected view is kept
@@ -383,3 +215,4 @@ export function setOverviewDefault(v: OverviewView | 'last') {
   }
   overviewView.value = startView();
 }
+

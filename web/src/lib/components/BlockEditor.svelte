@@ -2,29 +2,28 @@
   // Block editor for checklists and templates.
   //
   // Each block is a row (its own DB row) with a contenteditable title and
-  // a note in the right column. Local state is authoritative; all
-  // writes run sequentially through a queue so that
-  // positions and newly created IDs stay consistent. New blocks get
-  // a negative local ID immediately (focus/typing without waiting); the
-  // server ID is filled in later in realIds.
+  // a note in the right column. This component only translates DOM and
+  // keyboard events into edits of the block list model ($lib/blockListModel),
+  // which owns the edits, undo/redo and the sequential server sync, and
+  // renders the rows.
   import { tick } from 'svelte';
   import { errorText } from '$lib/api';
-  import { checkRadius, NOTE_MAX, NOTE_MIN, prefs, session, setPref, toast } from '$lib/state.svelte';
+  import { checkRadius, NOTE_MAX, NOTE_MIN, prefs, setPref } from '$lib/state.svelte';
+  import { session } from '$lib/session.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { fmtDate, fmtDateTime, shortName, t, tMaybe, todayISO } from '$lib/i18n.svelte';
   import { sortable } from '$lib/sortable';
-  import { History } from '$lib/history.svelte';
+  import { BlockListModel, type Field } from '$lib/blockListModel';
   import { SvelteSet } from 'svelte/reactivity';
   import { colorLabel, HUES, ROW_BG, SHADES, SWATCH } from '$lib/palette';
-  import { filterKinds, headingLevel, headingStats, hiddenBlocks, isHeading, sectionColors, isTextual, nextKind, numbering, SHORTCUTS } from '$lib/blocks';
+  import { filterKinds, headingLevel, headingStats, hiddenBlocks, isHeading, sectionColors, isTextual, numbering, SHORTCUTS } from '$lib/blocks';
   import {
     caretAtEnd,
     caretAtStart,
     caretOnFirstLine,
     caretOnLastLine,
     clearFormatting,
-    escapeHtml,
     extractAfterCaret,
-    htmlToText,
     insertPlainText,
     notifyInput,
     placeCaret,
@@ -42,7 +41,6 @@
   import Icon from './Icon.svelte';
 
   type Blk = T & Partial<Item>;
-  type Field = 'title' | 'description';
 
   let {
     items = $bindable(),
@@ -65,7 +63,6 @@
 
   const isChecklist = $derived(!!ops.toggle);
   const today = todayISO();
-  const history = new History();
 
   const blocks = $derived(items as Blk[]);
   const nums = $derived(numbering(items));
@@ -207,7 +204,7 @@
         groups.set(b.id, cur);
       } else cur.push(b.id);
     }
-    reorder(visible.flatMap((id) => groups.get(id) ?? []));
+    model.reorder(visible.flatMap((id) => groups.get(id) ?? []));
   }
 
   // ---- State ------------------------------------------------------------------
@@ -256,233 +253,45 @@
   const titleEls = new Map<number, HTMLElement>();
   const noteEls = new Map<number, HTMLElement>();
   const codeEls = new Map<number, HTMLTextAreaElement>();
-  const realIds = new Map<number, number>();
-  const saved = new Map<string, string>(); // last saved text per key:field
-  const timers = new Map<string, ReturnType<typeof setTimeout>>();
-  let tempKey = -1;
   let savedRange: Range | null = null;
 
   const slashList = $derived(slash ? filterKinds(slash.query, t) : []);
 
-  // ---- Queue & server ---------------------------------------------------------
+  // ---- Model (edits, history, server sync) --------------------------------------
 
-  let queue: Promise<unknown> = Promise.resolve();
-  function enqueue(fn: () => Promise<unknown>) {
-    queue = queue.then(fn).catch((e) => {
+  const model = new BlockListModel<T>({
+    items: () => items,
+    setItems: (next) => (items = next),
+    ops: () => ops,
+    user: () => session.user,
+    onChange: () => onchange?.(),
+    onError: (e) => {
       toast(errorText(e));
       onerror?.();
-    });
-  }
+    },
+    onRemove: (key) => {
+      if (slash?.key === key) slash = null;
+    }
+  });
 
-  function sid(key: number): number | undefined {
-    return realIds.get(key) ?? (key > 0 ? key : undefined);
-  }
-
+  const sid = (key: number) => model.serverId(key);
   const find = (key: number) => blocks.find((b) => b.id === key);
   const indexOf = (key: number) => blocks.findIndex((b) => b.id === key);
 
-  /** Applies server-computed fields (names, timestamps), never the text. */
-  function mergeServer(key: number, res: Partial<Item>) {
-    const b = find(key);
-    if (!b) return;
-    for (const f of ['assignee_id', 'assignee_name', 'due_date', 'done_at', 'done_by', 'done_by_name'] as const) {
-      if (f in res) (b as unknown as Record<string, unknown>)[f] = res[f];
-    }
-  }
-
-  function persist(key: number, body: Record<string, unknown>) {
-    enqueue(async () => {
-      const id = sid(key);
-      if (id == null || !find(key)) return;
-      mergeServer(key, (await ops.patch(id, body)) as Partial<Item>);
-    });
-  }
-
-  // ---- Text -------------------------------------------------------------------
-
+  /** Text input from the DOM; titles also drive the slash menu and Markdown shortcuts. */
   function onText(key: number, field: Field, value: string, el?: HTMLElement) {
-    const b = find(key);
-    if (!b) return;
-    b[field] = value;
-    const k = `${key}:${field}`;
-    clearTimeout(timers.get(k));
-    timers.set(k, setTimeout(() => commitText(key, field), 700));
-    if (field === 'title' && el) afterTitleInput(b, el);
+    const b = model.text(key, field, value);
+    if (b && field === 'title' && el) afterTitleInput(b, el);
   }
 
-  function commitText(key: number, field: Field) {
-    const k = `${key}:${field}`;
-    clearTimeout(timers.get(k));
-    timers.delete(k);
-    const b = find(key);
-    if (!b) return;
-    const before = saved.get(k) ?? '';
-    const after = b[field];
-    if (before === after) return;
-    saved.set(k, after);
-    history.push({ mergeKey: k, undo: () => setText(key, field, before), redo: () => setText(key, field, after) });
-    persist(key, { [field]: after });
-  }
-
-  function setText(key: number, field: Field, value: string) {
-    const b = find(key);
-    if (!b) return;
-    b[field] = value;
-    saved.set(`${key}:${field}`, value);
-    persist(key, { [field]: value });
-    onchange?.();
-  }
-
-  function flushAll() {
-    for (const k of [...timers.keys()]) {
-      const [key, field] = k.split(':');
-      commitText(Number(key), field as Field);
-    }
-  }
-
-  // ---- Block operations (with undo) -------------------------------------------
-
-  function updateBlock(key: number, patch: Partial<Blk>, record = true) {
-    const b = find(key);
-    if (!b) return;
-    for (const f of ['title', 'description'] as const) {
-      if (f in patch) {
-        clearTimeout(timers.get(`${key}:${f}`));
-        timers.delete(`${key}:${f}`);
-      } else commitText(key, f);
-    }
-    const before: Record<string, unknown> = {};
-    for (const k of Object.keys(patch)) before[k] = (b as unknown as Record<string, unknown>)[k];
-    Object.assign(b, patch);
-    for (const f of ['title', 'description'] as const) if (f in patch) saved.set(`${key}:${f}`, b[f]);
-    if (record) history.push({ undo: () => updateBlock(key, before as Partial<Blk>, false), redo: () => updateBlock(key, patch, false) });
-    persist(key, patch as Record<string, unknown>);
-    onchange?.();
-  }
-
-  function snapshot(b: Blk) {
-    return {
-      kind: b.kind, title: b.title, description: b.description, note_color: b.note_color, bg_color: b.bg_color ?? '', indent: b.indent, lang: b.lang,
-      assignee_id: b.assignee_id ?? null, assignee_name: b.assignee_name ?? null, due_date: b.due_date ?? null,
-      done_at: b.done_at ?? null, done_by: b.done_by ?? null, done_by_name: b.done_by_name ?? null, status: b.status ?? ''
-    } as Partial<Blk>;
-  }
-
-  /** Inserts a block after afterKey (null = at the start) and returns the local ID. */
-  function insertBlock(afterKey: number | null, data: Partial<Blk>, opts: { key?: number; record?: boolean; focus?: 'start' | 'end' } = {}) {
-    const key = opts.key ?? tempKey--;
-    const ai = afterKey == null ? -1 : indexOf(afterKey);
-    const after = ai >= 0 ? blocks[ai] : null;
-    const position = after ? after.position + 1 : (blocks[0]?.position ?? 0);
-    for (const b of blocks) if (b.position >= position) b.position++;
-    const blk = {
-      id: key, kind: 'text', title: '', description: '', note_color: '', bg_color: '', indent: 0, lang: '', position,
-      assignee_id: null, assignee_name: null, due_date: null, done_at: null, done_by: null, done_by_name: null, status: '',
-      ...data
-    } as unknown as T;
-    items.splice(ai + 1, 0, blk);
-    saved.set(`${key}:title`, blk.title);
-    saved.set(`${key}:description`, blk.description);
-
-    const body: Record<string, unknown> = {
-      kind: blk.kind, title: blk.title, description: blk.description, note_color: blk.note_color, bg_color: blk.bg_color ?? '',
-      indent: blk.indent, lang: blk.lang, position
-    };
-    const d = data as Partial<Item>;
-    if (isChecklist && d.assignee_id) body.assignee_id = d.assignee_id;
-    if (isChecklist && d.due_date) body.due_date = d.due_date;
-    if (isChecklist && d.status) body.status = d.status;
-    enqueue(async () => {
-      const res = await ops.create(body);
-      realIds.set(key, res.id);
-      if (d.done_at && ops.toggle) mergeServer(key, (await ops.toggle(res.id, true)) as Partial<Item>);
-    });
-
-    if (opts.record !== false) {
-      let snap: { after: number | null; data: Partial<Blk> } | null = null;
-      history.push({
-        undo: () => {
-          const b = find(key);
-          if (!b) return;
-          const i = indexOf(key);
-          snap = { after: i > 0 ? blocks[i - 1].id : null, data: snapshot(b) };
-          deleteBlock(key, false);
-        },
-        redo: () => {
-          if (snap) insertBlock(snap.after, snap.data, { key, record: false });
-        }
-      });
-    }
-    if (opts.focus) focusBlock(key, opts.focus);
-    onchange?.();
+  function insertBlock(afterKey: number | null, data: Partial<Blk>, focus?: 'start' | 'end') {
+    const key = model.insert(afterKey, data);
+    if (focus) focusBlock(key, focus);
     return key;
   }
 
-  function deleteBlock(key: number, record = true) {
-    const i = indexOf(key);
-    if (i < 0) return;
-    for (const f of ['title', 'description'] as const) {
-      clearTimeout(timers.get(`${key}:${f}`));
-      timers.delete(`${key}:${f}`);
-    }
-    const b = blocks[i];
-    const afterKey = i > 0 ? blocks[i - 1].id : null;
-    const data = snapshot(b);
-    items.splice(i, 1);
-    if (slash?.key === key) slash = null;
-    enqueue(async () => {
-      const id = sid(key);
-      realIds.delete(key);
-      if (id != null) await ops.remove(id);
-    });
-    if (record)
-      history.push({
-        undo: () => {
-          insertBlock(afterKey, data, { key, record: false });
-        },
-        redo: () => deleteBlock(key, false)
-      });
-    onchange?.();
-  }
-
-  function reorder(keys: number[], record = true) {
-    const prev = blocks.map((b) => b.id);
-    const byKey = new Map(items.map((b) => [b.id, b]));
-    const next = keys.map((k) => byKey.get(k)).filter((b): b is T => !!b);
-    if (next.length !== items.length) return;
-    next.forEach((b, i) => (b.position = i));
-    items = next;
-    enqueue(async () => {
-      const ids = keys.map(sid);
-      if (ids.some((id) => id == null)) return;
-      await ops.reorder(ids as number[]);
-    });
-    if (record) history.push({ undo: () => reorder(prev, false), redo: () => reorder(keys, false) });
-  }
-
-  function setDone(key: number, done: boolean, record = true) {
-    const b = find(key);
-    if (!b || !ops.toggle || b.kind !== 'item') return;
-    if (!!b.done_at === done) return;
-    b.done_at = done ? new Date().toISOString() : null;
-    b.done_by = done ? (session.user?.id ?? null) : null;
-    b.done_by_name = done ? (session.user?.name ?? null) : null;
-    enqueue(async () => {
-      const id = sid(key);
-      if (id != null) mergeServer(key, (await ops.toggle!(id, done)) as Partial<Item>);
-    });
-    if (record) history.push({ undo: () => setDone(key, !done, false), redo: () => setDone(key, done, false) });
-    onchange?.();
-  }
-
-  async function undo() {
-    flushAll();
-    await history.undo();
-  }
-  async function redo() {
-    flushAll();
-    await history.redo();
-  }
+  const undo = () => model.undo();
+  const redo = () => model.redo();
 
   // ---- Focus & navigation -----------------------------------------------------
 
@@ -544,11 +353,11 @@
       splitBlock(b, el);
     } else if (e.key === 'Backspace' && caretAtStart(el) && selectionIn(el)?.collapsed) {
       e.preventDefault();
-      backspaceAtStart(b);
+      const to = model.backspaceAtStart(key);
+      if (to) focusBlock(to.key, to.at);
     } else if (e.key === 'Tab') {
       e.preventDefault();
-      const indent = Math.max(0, Math.min(4, b.indent + (e.shiftKey ? -1 : 1)));
-      if (indent !== b.indent) updateBlock(key, { indent } as Partial<Blk>);
+      model.indent(key, e.shiftKey ? -1 : 1);
     } else if (e.key === 'ArrowUp' && caretOnFirstLine(el)) {
       const p = neighbour(key, -1);
       if (p) {
@@ -572,53 +381,16 @@
     const listy = b.kind === 'item' || b.kind === 'bullet' || b.kind === 'numbered' || b.kind === 'quote';
     if (listy && !el.textContent) {
       // Empty list item + Enter → leave the list
-      if (b.indent > 0) updateBlock(key, { indent: b.indent - 1 } as Partial<Blk>);
-      else updateBlock(key, { kind: 'text' } as Partial<Blk>);
+      model.exitList(key);
       return;
     }
     if (caretAtStart(el) && el.textContent) {
-      const i = indexOf(key);
-      insertBlock(i > 0 ? blocks[i - 1].id : null, { kind: nextKind(b.kind), indent: b.indent } as Partial<Blk>);
+      model.insertAbove(key);
       return;
     }
-    history.group(() => {
-      const after = extractAfterCaret(el);
-      onText(key, 'title', sanitizeHtml(el.innerHTML));
-      commitText(key, 'title');
-      insertBlock(key, { kind: nextKind(b.kind), title: after, indent: b.indent } as Partial<Blk>, { focus: 'start' });
-    });
-  }
-
-  function backspaceAtStart(b: Blk) {
-    const key = b.id;
-    if (b.kind !== 'text') {
-      updateBlock(key, { kind: 'text' } as Partial<Blk>);
-      return;
-    }
-    if (b.indent > 0) {
-      updateBlock(key, { indent: b.indent - 1 } as Partial<Blk>);
-      return;
-    }
-    const i = indexOf(key);
-    if (i <= 0) return;
-    const prev = blocks[i - 1];
-    if (prev.kind === 'divider') {
-      deleteBlock(prev.id);
-      return;
-    }
-    if (prev.kind === 'code') {
-      focusBlock(prev.id, 'end');
-      return;
-    }
-    const offset = htmlToText(prev.title).length;
-    history.group(() => {
-      commitText(key, 'title');
-      const patch: Partial<Blk> = { title: prev.title + b.title } as Partial<Blk>;
-      if (b.description && !prev.description) patch.description = b.description;
-      updateBlock(prev.id, patch);
-      deleteBlock(key);
-    });
-    focusBlock(prev.id, offset);
+    const after = extractAfterCaret(el);
+    const added = model.split(key, sanitizeHtml(el.innerHTML), after);
+    if (added != null) focusBlock(added, 'start');
   }
 
   /** Slash menu and Markdown shortcuts after input in the title. */
@@ -647,19 +419,9 @@
 
   /** Converts a block (clear = empty the text, e.g. after "/command"). */
   function convert(key: number, kind: Kind, clear = false) {
-    const b = find(key);
-    if (!b) return;
-    history.group(() => {
-      if (kind === 'divider') {
-        updateBlock(key, { kind: 'divider', title: '' } as Partial<Blk>);
-        insertBlock(key, { kind: 'text', indent: b.indent } as Partial<Blk>, { focus: 'start' });
-        return;
-      }
-      let title = clear ? '' : b.title;
-      if (!clear && kind === 'code' && b.kind !== 'code') title = htmlToText(b.title);
-      if (!clear && b.kind === 'code' && kind !== 'code') title = escapeHtml(b.title).replace(/\n/g, '<br>');
-      updateBlock(key, { kind, title } as Partial<Blk>);
-    });
+    const res = model.convert(key, kind, clear);
+    if (!res) return;
+    if (res.inserted != null) focusBlock(res.inserted, 'start');
     focusBlock(key, 'end');
   }
 
@@ -674,18 +436,10 @@
       return;
     }
     // Multiline into the title: first line here, further lines as new blocks.
-    history.group(() => {
-      insertPlainText(lines[0]);
-      const el = titleEls.get(b.id);
-      if (el) onText(b.id, 'title', sanitizeHtml(el.innerHTML));
-      commitText(b.id, 'title');
-      let after = b.id;
-      for (const line of lines.slice(1)) {
-        if (!line.trim()) continue;
-        after = insertBlock(after, { kind: nextKind(b.kind), title: escapeHtml(line), indent: b.indent } as Partial<Blk>);
-      }
-      focusBlock(after, 'end');
-    });
+    insertPlainText(lines[0]);
+    const el = titleEls.get(b.id);
+    const last = model.pasteLines(b.id, el ? sanitizeHtml(el.innerHTML) : undefined, lines.slice(1));
+    focusBlock(last, 'end');
   }
 
   // ---- Inline formatting (toolbar) --------------------------------------------
@@ -851,7 +605,7 @@
       return;
     }
     if (kind === 'divider') {
-      insertBlock(b.id, { kind: 'divider' } as Partial<Blk>);
+      model.insert(b.id, { kind: 'divider' } as Partial<Blk>);
       return;
     }
     convert(b.id, b.kind === kind && kind !== 'text' ? 'text' : kind);
@@ -861,29 +615,22 @@
   function add(kind: Kind) {
     const after = focused && find(focused.key) ? focused.key : (blocks[blocks.length - 1]?.id ?? null);
     const indent = focused ? (find(focused.key)?.indent ?? 0) : 0;
-    if (kind === 'divider') {
-      history.group(() => {
-        const d = insertBlock(after, { kind: 'divider' } as Partial<Blk>);
-        insertBlock(d, { kind: 'text' } as Partial<Blk>, { focus: 'start' });
-      });
-      return;
-    }
-    insertBlock(after, { kind, indent: isHeading(kind) ? 0 : indent } as Partial<Blk>, { focus: 'start' });
+    focusBlock(model.add(after, kind, indent), 'start');
   }
 
   /** "+" at the row edge: new block below with the command menu open. */
   async function plus(afterKey: number) {
-    const key = insertBlock(afterKey, { kind: 'text', title: '/' } as Partial<Blk>, { focus: 'end' });
+    const key = insertBlock(afterKey, { kind: 'text', title: '/' } as Partial<Blk>, 'end');
     await tick();
     slash = { key, query: '', active: 0 };
   }
 
   const api: EditorApi = {
     get canUndo() {
-      return history.canUndo;
+      return model.canUndo;
     },
     get canRedo() {
-      return history.canRedo;
+      return model.canRedo;
     },
     get kind() {
       return focused ? (find(focused.key)?.kind ?? null) : null;
@@ -911,15 +658,14 @@
     node.innerHTML = p.html;
     node.contentEditable = p.editable ? 'true' : 'false';
     (p.field === 'title' ? titleEls : noteEls).set(p.key, node);
-    if (!saved.has(`${p.key}:${p.field === 'title' ? 'title' : 'description'}`))
-      saved.set(`${p.key}:${p.field === 'title' ? 'title' : 'description'}`, p.html);
+    model.baseline(p.key, p.field === 'title' ? 'title' : 'description', p.html);
 
     const onInput = () => {
       if (node.innerHTML === '<br>') node.innerHTML = '';
       last = sanitizeHtml(node.innerHTML);
       onText(cur.key, cur.field === 'title' ? 'title' : 'description', last, node);
     };
-    const onBlur = () => commitText(cur.key, cur.field === 'title' ? 'title' : 'description');
+    const onBlur = () => model.commitText(cur.key, cur.field === 'title' ? 'title' : 'description');
     const onClick = (e: MouseEvent) => {
       const a = (e.target as HTMLElement).closest('a');
       if (a && (e.ctrlKey || e.metaKey || !node.isContentEditable)) {
@@ -980,12 +726,12 @@
   $effect(() => {
     const onSel = () => updateMarks();
     document.addEventListener('selectionchange', onSel);
-    const beforeUnload = () => flushAll();
+    const beforeUnload = () => model.flush();
     window.addEventListener('beforeunload', beforeUnload);
     return () => {
       document.removeEventListener('selectionchange', onSel);
       window.removeEventListener('beforeunload', beforeUnload);
-      flushAll();
+      model.flush();
     };
   });
 
@@ -1089,7 +835,7 @@
       aria-checked={done}
       aria-label={t('checklist.markDone')}
       disabled={!editable || !isChecklist}
-      onclick={() => setDone(b.id, !done)}
+      onclick={() => model.setDone(b.id, !done)}
       title={done && b.done_by_name ? t('checklist.doneBy', { name: b.done_by_name, date: fmtDateTime(b.done_at!) }) : undefined}
       class="mt-[2px] flex size-4 shrink-0 items-center justify-center border transition-colors {checkRadius()} {extra} {done
         ? 'border-accent-600 bg-accent-600 text-white'
@@ -1126,7 +872,7 @@
             onmousedown={(e) => e.preventDefault()}
             onclick={() => {
               bgMenu = null;
-              updateBlock(b.id, { bg_color: '' } as Partial<Blk>);
+              model.update(b.id, { bg_color: '' } as Partial<Blk>);
             }}
             title={t('editor.likeSection')}
             aria-label={t('editor.likeSection')}
@@ -1140,7 +886,7 @@
           onmousedown={(e) => e.preventDefault()}
           onclick={() => {
             bgMenu = null;
-            updateBlock(b.id, { bg_color: noneValue } as Partial<Blk>);
+            model.update(b.id, { bg_color: noneValue } as Partial<Blk>);
           }}
           title={inherited ? t('editor.noColor') : t('editor.none')}
           aria-label={inherited ? t('editor.noColor') : t('editor.none')}
@@ -1159,7 +905,7 @@
                 onmousedown={(e) => e.preventDefault()}
                 onclick={() => {
                   bgMenu = null;
-                  updateBlock(b.id, { bg_color: c } as Partial<Blk>);
+                  model.update(b.id, { bg_color: c } as Partial<Blk>);
                 }}
                 title={colorLabel(c, (k) => tMaybe(k) ?? k)}
                 aria-label={colorLabel(c, (k) => tMaybe(k) ?? k)}
@@ -1188,7 +934,7 @@
         onfocus={() => (focused = { key: b.id, field: 'title' })}
         onchange={(e) => {
           const v = e.currentTarget.value.trim();
-          if (v !== (b.status ?? '')) updateBlock(b.id, { status: v } as Partial<Blk>);
+          if (v !== (b.status ?? '')) model.update(b.id, { status: v } as Partial<Blk>);
         }}
         onkeydown={(e) => {
           if (e.key === 'Enter') {
@@ -1293,7 +1039,7 @@
                 if (e.key === 'Backspace' || e.key === 'Delete') {
                   e.preventDefault();
                   const p = neighbour(b.id, -1);
-                  deleteBlock(b.id);
+                  model.remove(b.id);
                   if (p) focusBlock(p.id, 'end');
                 } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
                   const n = neighbour(b.id, e.key === 'ArrowUp' ? -1 : 1);
@@ -1309,7 +1055,7 @@
                 lang={b.lang}
                 {editable}
                 oninput={(v) => onText(b.id, 'title', v)}
-                onlang={(lang) => updateBlock(b.id, { lang } as Partial<Blk>)}
+                onlang={(lang) => model.update(b.id, { lang } as Partial<Blk>)}
                 onfocus={() => (focused = { key: b.id, field: 'title' })}
                 register={(el) => (el ? codeEls.set(b.id, el) : codeEls.delete(b.id))}
                 onkeydown={(e, el) => {
@@ -1320,7 +1066,7 @@
                     e.preventDefault();
                     const n = neighbour(b.id, 1);
                     if (n) focusBlock(n.id, 'start');
-                    else insertBlock(b.id, { kind: 'text', indent: b.indent } as Partial<Blk>, { focus: 'start' });
+                    else insertBlock(b.id, { kind: 'text', indent: b.indent } as Partial<Blk>, 'start');
                   } else if (e.key === 'ArrowUp' && el.selectionStart === 0) {
                     const p = neighbour(b.id, -1);
                     if (p) {
@@ -1407,7 +1153,7 @@
                   onchange={(e) => {
                     const v = e.currentTarget.value;
                     editField = null;
-                    updateBlock(b.id, { assignee_id: v ? Number(v) : null, assignee_name: assignees.find((a) => a.id === Number(v))?.name ?? null } as Partial<Blk>);
+                    model.update(b.id, { assignee_id: v ? Number(v) : null, assignee_name: assignees.find((a) => a.id === Number(v))?.name ?? null } as Partial<Blk>);
                   }}>
                   <option value="">{t('checklist.nobody')}</option>
                   {#each assignees as a (a.id)}<option value={a.id}>{a.name}</option>{/each}
@@ -1433,7 +1179,7 @@
                   class="input w-auto! py-0! text-xs!"
                   value={b.due_date ?? ''}
                   onblur={() => (editField = null)}
-                  onchange={(e) => updateBlock(b.id, { due_date: e.currentTarget.value || null } as Partial<Blk>)} />
+                  onchange={(e) => model.update(b.id, { due_date: e.currentTarget.value || null } as Partial<Blk>)} />
               {:else if b.due_date}
                 <button
                   type="button"
@@ -1482,7 +1228,7 @@
               {@render bgPicker(b, 'mt-px max-md:hidden', t('editor.rowColor'), '')}
             {/if}
             <span class="flex shrink-0 opacity-0 group-hover/row:opacity-100 focus-within:opacity-100 max-md:hidden">
-              <ConfirmButton onconfirm={() => deleteBlock(b.id)} class="btn-danger p-0.5! leading-none"><Icon name="trash" size={14} /></ConfirmButton>
+              <ConfirmButton onconfirm={() => model.remove(b.id)} class="btn-danger p-0.5! leading-none"><Icon name="trash" size={14} /></ConfirmButton>
             </span>
           {/if}
 
@@ -1500,7 +1246,7 @@
               <button
                 type="button"
                 disabled={!editable}
-                onclick={() => updateBlock(b.id, { note_color: colorCycle[(colorCycle.indexOf(b.note_color) + 1) % colorCycle.length] } as Partial<Blk>)}
+                onclick={() => model.update(b.id, { note_color: colorCycle[(colorCycle.indexOf(b.note_color) + 1) % colorCycle.length] } as Partial<Blk>)}
                 title={t('checklist.noteColor')}
                 aria-label={t('checklist.noteColor')}
                 class="mt-[3px] h-[14px] w-[3px] shrink-0 rounded-full md:ml-0 {barColors[b.note_color]}"></button>
@@ -1532,7 +1278,7 @@
       class="mt-1 flex w-full items-center gap-2 rounded-md py-1.5 pl-8 text-left text-sm text-zinc-400 hover:bg-zinc-50 hover:text-zinc-600 dark:hover:bg-zinc-900/70"
       onclick={() => {
         const last = blocks[blocks.length - 1];
-        insertBlock(last?.id ?? null, { kind: last?.kind === "item" ? "item" : "text", indent: last?.indent ?? 0 } as Partial<Blk>, { focus: "start" });
+        insertBlock(last?.id ?? null, { kind: last?.kind === "item" ? "item" : "text", indent: last?.indent ?? 0 } as Partial<Blk>, "start");
       }}>
       <Icon name="plus" size={14} />
       {t('editor.addBlock')}

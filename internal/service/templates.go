@@ -66,10 +66,9 @@ func ApplyTemplate(ctx context.Context, d *sql.DB, projectID, templateID int64, 
 			return err
 		}
 		for i, it := range items {
-			if _, err := q.CreateItem(ctx, sqlc.CreateItemParams{
-				ChecklistID: cl.ID, Kind: it.Kind, Title: subItem(it.Kind, it.Title), Description: subItem("", it.Description),
-				NoteColor: it.NoteColor, BgColor: it.BgColor, Indent: it.Indent, Lang: it.Lang, Position: int64(i),
-			}); err != nil {
+			b := BlockOfTemplateItem(it)
+			b.Title, b.Description = subItem(b.Kind, b.Title), subItem("", b.Description)
+			if _, err := q.CreateItem(ctx, b.Item(cl.ID, int64(i))); err != nil {
 				return err
 			}
 		}
@@ -95,10 +94,7 @@ func SaveChecklistAsTemplate(ctx context.Context, d *sql.DB, checklistID int64, 
 			return err
 		}
 		for i, it := range items {
-			if _, err := q.CreateTemplateItem(ctx, sqlc.CreateTemplateItemParams{
-				TemplateID: tmpl.ID, Kind: it.Kind, Title: it.Title, Description: it.Description,
-				NoteColor: it.NoteColor, BgColor: it.BgColor, Indent: it.Indent, Lang: it.Lang, Position: int64(i),
-			}); err != nil {
+			if _, err := q.CreateTemplateItem(ctx, BlockOfItem(it).TemplateItem(tmpl.ID, int64(i))); err != nil {
 				return err
 			}
 		}

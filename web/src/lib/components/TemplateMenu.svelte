@@ -4,7 +4,8 @@
   import { goto } from '$app/navigation';
   import { api, errorText } from '$lib/api';
   import { t } from '$lib/i18n.svelte';
-  import { canWrite, toast } from '$lib/state.svelte';
+  import { canWrite } from '$lib/session.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { isFavorite, toggleFavorite } from '$lib/navMemory.svelte';
   import { templatesIndex } from '$lib/templatesIndex.svelte';
   import type { Template, TemplateCategory, TemplateSummary } from '$lib/types';

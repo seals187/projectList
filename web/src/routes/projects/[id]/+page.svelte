@@ -5,7 +5,9 @@
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { api, errorText } from '$lib/api';
-  import { canWrite, refreshSidebar, sidebar, toast } from '$lib/state.svelte';
+  import { canWrite } from '$lib/session.svelte';
+  import { workspace } from '$lib/workspace.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { untrack } from 'svelte';
   import { fmtDate, t, todayISO } from '$lib/i18n.svelte';
   import { reorder, sortable } from '$lib/sortable';
@@ -13,8 +15,8 @@
   import { relativeTime } from '$lib/activity';
   import { sheetsText } from '$lib/templateText';
   import { readXlsx, titleFromFile } from '$lib/xlsxImport';
-  import { ALL_STATUSES, barCls, statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
-  import { pct } from '$lib/overview';
+  import { ALL_STATUSES, barCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
+  import { pct } from '$lib/projectQuery';
   import { toDay } from '$lib/dates';
   import EntityIcon from '$lib/components/EntityIcon.svelte';
   import FavoriteStar from '$lib/components/FavoriteStar.svelte';
@@ -81,7 +83,7 @@
   // not have yet reloads the list (and the activity).
   let reloading = false;
   $effect(() => {
-    const sp = sidebar.customers.flatMap((c) => c.projects).find((p) => p.id === id);
+    const sp = workspace.findProject(id);
     const d = data;
     if (!sp || !d || d.project.id !== id) return;
     const known = new Set(d.checklists.map((c) => c.id));
@@ -112,8 +114,7 @@
   async function save(body: Partial<Project>) {
     if (!data) return;
     try {
-      data.project = await api.patch<Project>(`/projects/${id}`, body);
-      refreshSidebar(0);
+      data.project = await workspace.updateProject(id, body);
       // a new person responsible takes over checklists (see updateProject): show their assignees
       if ('owner_id' in body) reloadChecklists(true);
       else loadActivity();
@@ -140,8 +141,7 @@
     e.preventDefault();
     if (!data || !newTitle.trim()) return;
     try {
-      const c = await api.post<Checklist>(`/projects/${id}/checklists`, { title: newTitle });
-      refreshSidebar(0);
+      const c = await workspace.createChecklist(id, newTitle);
       goto(`/checklists/${c.id}`);
     } catch (err) {
       toast(errorText(err));
@@ -151,7 +151,7 @@
   function created(c: Checklist) {
     data?.checklists.push(summary(c));
     mode = 'none';
-    refreshSidebar(0);
+    workspace.invalidate(); // created by TemplatePicker
     goto(`/checklists/${c.id}`);
   }
 
@@ -165,8 +165,7 @@
     const prev = data.checklists;
     data.checklists = reorder(prev, ids);
     try {
-      await api.put(`/projects/${id}/checklists/order`, { ids });
-      refreshSidebar(0);
+      await workspace.reorderChecklists(id, ids);
     } catch (e) {
       data.checklists = prev;
       toast(errorText(e));
@@ -181,8 +180,7 @@
     cl.assignee_id = assigneeId;
     cl.assignee_name = data.assignees.find((a) => a.id === assigneeId)?.name ?? '';
     try {
-      await api.patch(`/checklists/${clId}`, { assignee_id: assigneeId });
-      refreshSidebar(0);
+      await workspace.assignChecklist(clId, assigneeId);
     } catch (e) {
       cl.assignee_id = prev.id;
       cl.assignee_name = prev.name;
@@ -193,9 +191,8 @@
   async function deleteChecklist(clId: number) {
     if (!data) return;
     try {
-      await api.del(`/checklists/${clId}`);
+      await workspace.deleteChecklist(clId);
       data.checklists = data.checklists.filter((c) => c.id !== clId);
-      refreshSidebar(0);
       loadActivity();
     } catch (e) {
       toast(errorText(e));
@@ -212,9 +209,8 @@
     e.preventDefault();
     if (!tableTitle.trim()) return;
     try {
-      const tb = await api.post<Table>(`/projects/${id}/tables`, { title: tableTitle });
+      const tb = await workspace.createTable(id, { title: tableTitle });
       tableTitle = '';
-      refreshSidebar(0);
       goto(`/tables/${tb.id}`);
     } catch (err) {
       toast(errorText(err));
@@ -223,7 +219,7 @@
 
   function tableCreated(tb: Table) {
     tableMode = 'none';
-    refreshSidebar(0);
+    workspace.invalidate(); // created by TemplatePicker
     goto(`/tables/${tb.id}`);
   }
 
@@ -234,9 +230,8 @@
     try {
       const sheets = await readXlsx(file);
       if (!sheets) return;
-      const tb = await api.post<Table>(`/projects/${id}/tables`, { title: titleFromFile(file.name), data: sheets });
+      const tb = await workspace.createTable(id, { title: titleFromFile(file.name), data: sheets });
       toast(t('table.imported', { name: tb.title }), 'info');
-      refreshSidebar(0);
       goto(`/tables/${tb.id}`);
     } catch (err) {
       toast(errorText(err));
@@ -251,8 +246,7 @@
     const prev = data.tables;
     data.tables = reorder(prev, ids);
     try {
-      await api.put(`/projects/${id}/tables/order`, { ids });
-      refreshSidebar(0);
+      await workspace.reorderTables(id, ids);
     } catch (e) {
       data.tables = prev;
       toast(errorText(e));
@@ -262,9 +256,8 @@
   async function deleteTable(tableId: number) {
     if (!data) return;
     try {
-      await api.del(`/tables/${tableId}`);
+      await workspace.deleteTable(tableId);
       data.tables = data.tables.filter((x) => x.id !== tableId);
-      refreshSidebar(0);
       loadActivity();
     } catch (e) {
       toast(errorText(e));
@@ -275,8 +268,7 @@
   async function duplicate() {
     if (!data) return;
     try {
-      const p = await api.post<Project>(`/projects/${id}/duplicate`, { name: `${data.project.name} (${t('project.copySuffix')})` });
-      refreshSidebar(0);
+      const p = await workspace.duplicateProject(id, `${data.project.name} (${t('project.copySuffix')})`);
       toast(t('project.duplicated'), 'info');
       goto(`/projects/${p.id}`);
     } catch (e) {
@@ -291,8 +283,7 @@
     if (!data) return;
     const customerId = data.customer.id;
     try {
-      await api.del(`/projects/${id}`);
-      refreshSidebar(0);
+      await workspace.deleteProject(id);
       goto(`/customers/${customerId}`);
     } catch (e) {
       toast(errorText(e));
@@ -301,19 +292,11 @@
 
   // background of the project (also behind its checklists)
   let bgOpen = $state(false);
-  const projectBg = $derived(storeProjectBg(id));
-  function storeProjectBg(pid: number) {
-    for (const c of sidebar.customers) for (const p of c.projects) if (p.id === pid) return p.background;
-    return '';
-  }
+  const projectBg = $derived(workspace.findProject(id)?.background ?? '');
   async function pickBg(value: string) {
-    const sp = sidebar.customers.flatMap((c) => c.projects).find((p) => p.id === id);
-    const prev = sp?.background ?? '';
-    if (sp) sp.background = value;
     try {
-      await api.put(`/projects/${id}/background`, { background: value });
+      await workspace.setProjectBackground(id, value);
     } catch (e) {
-      if (sp) sp.background = prev;
       toast(errorText(e));
     }
   }
@@ -360,7 +343,7 @@
         <h1 class="min-w-0 font-serif text-[28px] in-[.band]:text-xl leading-tight font-bold tracking-tight">
           <Editable value={d.project.name} required disabled={!editable} onsave={(name) => save({ name })} inputClass="font-serif text-2xl! font-bold" />
         </h1>
-        <span class="badge {statusBadgeCls(d.project.status)}" style={statusBadgeStyle(d.project.status)}>{statusLabel(d.project.status)}</span>
+        <span class="badge" style={statusBadgeStyle(d.project.status)}>{statusLabel(d.project.status)}</span>
         <FavoriteStar kind="project" {id} />
         <SaveStatus />
       </div>
@@ -564,7 +547,7 @@
           <dt class={propLabel}><Icon name="flag" size={14} />{t('common.status')}</dt>
           <dd>
             <select
-              class="badge cursor-pointer appearance-none border-0 pr-2 outline-none focus:ring-2 focus:ring-accent-500/30 {statusBadgeCls(d.project.status)}"
+              class="badge cursor-pointer appearance-none border-0 pr-2 outline-none focus:ring-2 focus:ring-accent-500/30"
               style={statusBadgeStyle(d.project.status)}
               value={d.project.status}
               disabled={!editable}

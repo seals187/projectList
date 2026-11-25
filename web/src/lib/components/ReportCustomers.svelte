@@ -2,7 +2,7 @@
   // Reporting, view "Customers": progress, open / overdue items and next due
   // date per customer; click on a row shows the preview of its status report
   // (PDF = print view /reports/print/{id}).
-  import { session } from '$lib/state.svelte';
+  import { session } from '$lib/session.svelte';
   import { t } from '$lib/i18n.svelte';
   import { dayMonth, percent, swissDate, type Report } from '$lib/reporting';
   import { barCls } from '$lib/projectStatus';

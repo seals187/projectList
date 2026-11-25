@@ -4,17 +4,19 @@
   // Sections expand inline.
   import type { ComponentProps } from 'svelte';
   import { goto } from '$app/navigation';
-  import { api, errorText } from '$lib/api';
+  import { errorText } from '$lib/api';
   import { fmtDate, t, type Key } from '$lib/i18n.svelte';
-  import { canWrite, refreshSidebar, sidebar, toast } from '$lib/state.svelte';
-  import { ALL_STATUSES, statusBadgeCls, statusBadgeStyle, statusDotCls, statusDotStyle, statusLabel } from '$lib/projectStatus';
+  import { canWrite } from '$lib/session.svelte';
+  import { sidebar, workspace } from '$lib/workspace.svelte';
+  import { toast } from '$lib/toasts.svelte';
+  import { ALL_STATUSES, statusBadgeStyle, statusDotCls, statusDotStyle, statusLabel } from '$lib/projectStatus';
   import { customerAssignees, patchProject, setProjectTags, storeProject } from '$lib/projectActions';
   import { myColors, setMyColor } from '$lib/myColors.svelte';
   import { isFavorite, toggleFavorite } from '$lib/navMemory.svelte';
   import { cardHex } from '$lib/cardColors';
   import CardColorPicker from './CardColorPicker.svelte';
   import { tagsByIds } from '$lib/tags';
-  import type { Assignee, Checklist, ProjectStatus, SidebarCustomer, SidebarProject } from '$lib/types';
+  import type { Assignee, ProjectStatus, SidebarCustomer, SidebarProject } from '$lib/types';
   import ContextMenu from './ContextMenu.svelte';
   import TagMenu from './TagMenu.svelte';
   import Avatar from './Avatar.svelte';
@@ -90,8 +92,7 @@
     e.preventDefault();
     if (!newChecklist.trim()) return;
     try {
-      const c = await api.post<Checklist>(`/projects/${p.id}/checklists`, { title: newChecklist.trim() });
-      refreshSidebar(0);
+      const c = await workspace.createChecklist(p.id, newChecklist.trim());
       open(`/checklists/${c.id}`);
     } catch (err) {
       toast(errorText(err));
@@ -112,10 +113,7 @@
   async function removeProject() {
     deleting = true;
     try {
-      await api.del(`/projects/${p.id}`);
-      // drop it from the overview right away; the reload brings the rest in line
-      for (const c of sidebar.customers) c.projects = c.projects.filter((x) => x.id !== p.id);
-      refreshSidebar(0);
+      await workspace.deleteProject(p.id); // drops it from the overview right away
       toast(t('project.deleted', { name: p.name }));
       onchanged?.();
       onclose();
@@ -146,7 +144,7 @@
       <p class="truncate font-semibold">{p.name}</p>
       <p class="truncate text-xs text-zinc-500">{customer.name}</p>
     </div>
-    <span class="badge shrink-0 {statusBadgeCls(p.status)}" style={statusBadgeStyle(p.status)}>{statusLabel(p.status)}</span>
+    <span class="badge shrink-0" style={statusBadgeStyle(p.status)}>{statusLabel(p.status)}</span>
   </div>
 
   <button type="button" class={itemCls} role="menuitem" onclick={() => open(`/projects/${p.id}`)}>

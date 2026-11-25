@@ -4,7 +4,8 @@
   // Admins choose the recipient, members send to themselves.
   import { untrack } from 'svelte';
   import { api, errorText } from '$lib/api';
-  import { session, toast } from '$lib/state.svelte';
+  import { session } from '$lib/session.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { i18n, t, type Key } from '$lib/i18n.svelte';
   import type { ReportFilter, ReportSchedule } from '$lib/reporting';
   import Icon from './Icon.svelte';

@@ -4,7 +4,7 @@
   import { goto } from '$app/navigation';
   import { t } from '$lib/i18n.svelte';
   import type { SidebarCustomer } from '$lib/types';
-  import { sidebar } from '$lib/state.svelte';
+  import { sidebar } from '$lib/workspace.svelte';
   import { myColors, setMyColor } from '$lib/myColors.svelte';
   import { isFavorite, toggleFavorite } from '$lib/navMemory.svelte';
   import { cardHex, customerCardColor } from '$lib/cardColors';

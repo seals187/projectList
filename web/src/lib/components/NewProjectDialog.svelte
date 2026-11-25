@@ -4,10 +4,11 @@
   import { untrack } from 'svelte';
   import { goto } from '$app/navigation';
   import { api, errorText } from '$lib/api';
-  import { refreshSidebar, sidebar, toast } from '$lib/state.svelte';
+  import { sidebar, workspace } from '$lib/workspace.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { t } from '$lib/i18n.svelte';
   import { ALL_STATUSES, statusLabel } from '$lib/projectStatus';
-  import type { Project, ProjectStatus, TemplateSummary } from '$lib/types';
+  import type { ProjectStatus, TemplateSummary } from '$lib/types';
   import Icon from './Icon.svelte';
 
   let {
@@ -40,15 +41,18 @@
     if (!name.trim() || !customer) return;
     busy = true;
     try {
-      const p = await api.post<Project>(`/customers/${customer}/projects`, { name, status: st, due_date: due || null });
-      if (templateId) {
-        try {
-          await api.post(`/projects/${p.id}/checklists/from-template`, { template_id: templateId, title: '' });
-        } catch (err) {
-          toast(errorText(err)); // project was created, only the template is missing
+      // project and its first checklist: one reload of the workspace
+      const p = await workspace.batch(async () => {
+        const p = await workspace.createProject(customer, { name, status: st, due_date: due || null });
+        if (templateId) {
+          try {
+            await workspace.createChecklistFromTemplate(p.id, { template_id: templateId, title: '' });
+          } catch (err) {
+            toast(errorText(err)); // project was created, only the template is missing
+          }
         }
-      }
-      refreshSidebar(0);
+        return p;
+      });
       onclose();
       goto(`/projects/${p.id}`);
     } catch (err) {

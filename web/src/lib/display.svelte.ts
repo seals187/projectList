@@ -1,10 +1,11 @@
 // Display options of the page headers per user and page/view: saved on the
 // server (pref "display"), localStorage as fallback (offline, before the sidebar
 // data has arrived, or when saving fails).
-import { api } from './api';
-import { session, sidebar } from './state.svelte';
+import { session } from './session.svelte';
+import { sidebar } from './workspace.svelte';
 import { parseStore, resolveDisplay, withOption, type DisplayStore, type DisplayValues } from './displayCore';
 import { t } from './i18n.svelte';
+import { syncedPref } from './syncedPref.svelte';
 
 type TKey = Parameters<typeof t>[0];
 
@@ -25,40 +26,47 @@ function writeLocal(s: DisplayStore) {
   }
 }
 
-export const displayStore = $state<{ all: DisplayStore; loaded: boolean }>({ all: {}, loaded: false });
+// server value, or localStorage when the server has nothing; failures stay local
+const pref = syncedPref<DisplayStore>('display', {
+  parse: (raw) => {
+    const server = parseStore(raw);
+    return Object.keys(server).length ? server : readLocal();
+  },
+  debounce: 400,
+  onError: 'silent',
+  onChange: (v) => writeLocal($state.snapshot(v) as DisplayStore)
+});
 
-let saveTimer: ReturnType<typeof setTimeout> | undefined;
+/** All stored options; `loaded` = a server value has been taken over. */
+export const displayStore = {
+  get all() {
+    return pref.value;
+  },
+  set all(v: DisplayStore) {
+    pref.value = v;
+  },
+  get loaded() {
+    return pref.synced;
+  },
+  set loaded(v: boolean) {
+    pref.synced = v;
+  }
+};
 
-/** Take over the server value when the sidebar data arrives (unless a change is pending). */
+/** Take over the server value from the sidebar data (unless a change is pending). */
 export function syncDisplay() {
-  if (saveTimer) return;
-  const server = parseStore(sidebar.prefs.display);
-  displayStore.all = Object.keys(server).length ? server : readLocal();
-  displayStore.loaded = true;
+  pref.sync(sidebar);
 }
 
 /** Current options of a page/view (defaults where nothing is stored). */
 export function displayOf(page: string, defaults: DisplayValues): DisplayValues {
-  const all = displayStore.loaded ? displayStore.all : readLocal(); // read only (may run inside $derived)
+  const all = pref.synced ? pref.value : readLocal(); // read only (may run inside $derived)
   return resolveDisplay(defaults, all[page]);
 }
 
 /** Change one option: shown at once, localStorage immediately, server debounced. */
 export function setDisplay(page: string, key: string, value: boolean) {
-  displayStore.all = withOption(displayStore.all, page, key, value);
-  writeLocal(displayStore.all);
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(async () => {
-    try {
-      const v = $state.snapshot(displayStore.all);
-      await api.put('/prefs/display', v);
-      sidebar.prefs.display = v;
-    } catch {
-      /* stays in localStorage */
-    } finally {
-      saveTimer = undefined;
-    }
-  }, 400);
+  pref.set((all) => withOption(all, page, key, value));
 }
 
 /** Label of an option ("disp.<key>" in the translations). */

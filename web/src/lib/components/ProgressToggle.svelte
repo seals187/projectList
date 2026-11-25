@@ -2,8 +2,10 @@
   // Toggle "counts toward customer progress" for a project (pie chart icon).
   // On: purple on light purple; off: gray. Admins and members change it by click
   // (visible immediately, reverted on error), viewers only see the state.
-  import { api, errorText } from '$lib/api';
-  import { canWrite, toast } from '$lib/state.svelte';
+  import { errorText } from '$lib/api';
+  import { workspace } from '$lib/workspace.svelte';
+  import { canWrite } from '$lib/session.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { t } from '$lib/i18n.svelte';
   import { customerLabel } from '$lib/projectStatus';
   import type { SidebarProject } from '$lib/types';
@@ -23,12 +25,10 @@
     e.preventDefault(); // sits inside links/rows: don't open the project
     e.stopPropagation();
     if (!editable) return;
-    const next = !on;
-    project.include_in_customer_progress = next;
+    // shown at once in the workspace (the project comes from it), reverted on error
     try {
-      await api.patch(`/projects/${project.id}`, { include_in_customer_progress: next });
+      await workspace.updateProject(project.id, { include_in_customer_progress: !on });
     } catch (err) {
-      project.include_in_customer_progress = !next;
       toast(errorText(err));
     }
   }

@@ -1,21 +1,15 @@
 // Overview filters (customer, label, person responsible), board grouping and
 // compact cards, plus saved views. Everything is stored per user in the
 // database and therefore the same on all devices. The customer filter keeps its
-// own key (sidebar.boardHidden) so existing settings stay valid.
+// own key (pref "board_hidden", PUT /prefs/board-hidden) so existing settings stay valid.
 import { goto } from '$app/navigation';
-import { api, errorText } from './api';
-import { OVERVIEW_VIEWS, setBoardHidden, setOverviewView, sidebar, toast, type OverviewView } from './state.svelte';
-import type { SidebarProject } from './types';
+import { OVERVIEW_VIEWS, setOverviewView, type OverviewView } from './state.svelte';
+import { sidebar } from './workspace.svelte';
+import { syncedPref } from './syncedPref.svelte';
+import { BOARD_GROUPS, nextHidden, NO_OWNER, type BoardGroup, type CustomerFilterMode } from './projectQuery';
 import { normQuery } from './pageStateCore';
-import { syncDisplay } from './display.svelte';
-import { syncUi } from './uiSync.svelte';
-import { syncMyColors } from './myColors.svelte';
 
-export type BoardGroup = 'status' | 'customer' | 'owner';
-export const BOARD_GROUPS: readonly BoardGroup[] = ['status', 'customer', 'owner'];
-
-/** Person responsible "nobody" in the owner filter. */
-export const NO_OWNER = 0;
+export { BOARD_GROUPS, NO_OWNER, type BoardGroup };
 
 interface Filter {
   tags: number[]; // projects with at least one of these labels (empty = all)
@@ -64,52 +58,51 @@ function parseViews(v: unknown): SavedView[] {
     }));
 }
 
-export const filter = $state<Filter>(parseFilter(null));
-export const savedViews = $state<{ list: SavedView[] }>({ list: [] });
+// Synced prefs (see syncedPref.svelte.ts): filters debounced, saved views
+// immediately with rollback, hidden customers via their own endpoint.
+const filterPref = syncedPref('overview', { parse: parseFilter, debounce: 400 });
+const viewsPref = syncedPref('saved_views', { parse: parseViews, debounce: 0, rollback: true });
+/** Customers hidden in the overview (all views); key kept from the board ("board-hidden"). */
+export const boardHidden = syncedPref<number[]>('board_hidden', {
+  parse: ids,
+  read: (s) => s.board_hidden,
+  url: '/prefs/board-hidden',
+  body: (v) => ({ customer_ids: v }),
+  debounce: 400
+});
 
-// Take over the stored values whenever the sidebar data arrives, unless a
-// local change is still being saved.
-let filterTimer: ReturnType<typeof setTimeout> | undefined;
-let viewsSaving = false;
-export function syncFromServer() {
-  if (!filterTimer) Object.assign(filter, parseFilter(sidebar.prefs.overview));
-  if (!viewsSaving) savedViews.list = parseViews(sidebar.prefs.saved_views);
-  syncDisplay();
-  syncMyColors();
-  syncUi();
+/** Current filters (reactive, read only; change them with setFilter). */
+export const filter: Readonly<Filter> = {
+  get tags() {
+    return filterPref.value.tags;
+  },
+  get owners() {
+    return filterPref.value.owners;
+  },
+  get group() {
+    return filterPref.value.group;
+  },
+  get compact() {
+    return filterPref.value.compact;
+  }
+};
+export const savedViews: { readonly list: SavedView[] } = {
+  get list() {
+    return viewsPref.value;
+  }
+};
+
+/** Customer filter: shown immediately, saved debounced (rapid clicks = one request). */
+export function setBoardHidden(list: number[]) {
+  boardHidden.set(list);
 }
 
 /** Change filters; shown immediately, saved debounced. */
 export function setFilter(patch: Partial<Filter>) {
-  Object.assign(filter, patch);
-  clearTimeout(filterTimer);
-  filterTimer = setTimeout(async () => {
-    try {
-      const value = { ...filter };
-      await api.put('/prefs/overview', value);
-      sidebar.prefs.overview = value;
-    } catch (e) {
-      toast(errorText(e));
-    } finally {
-      filterTimer = undefined;
-    }
-  }, 400);
+  filterPref.set((f) => ({ ...f, ...patch }));
 }
 
-async function saveViews(list: SavedView[]) {
-  const prev = savedViews.list;
-  savedViews.list = list;
-  viewsSaving = true;
-  try {
-    await api.put('/prefs/saved_views', list);
-    sidebar.prefs.saved_views = list;
-  } catch (e) {
-    savedViews.list = prev;
-    toast(errorText(e));
-  } finally {
-    viewsSaving = false;
-  }
-}
+const saveViews = (list: SavedView[]) => viewsPref.set(list);
 
 const newId = () => Math.random().toString(36).slice(2, 10);
 
@@ -127,7 +120,7 @@ export function addSavedView(name: string, view: OverviewView, query = '') {
     page: 'overview',
     query,
     view,
-    hidden: [...sidebar.boardHidden],
+    hidden: [...boardHidden.value],
     tags: [...filter.tags],
     owners: [...filter.owners],
     group: filter.group
@@ -179,15 +172,13 @@ export function resetFilters() {
 /** Whether the current filters equal a saved view (highlight in the sidebar). */
 export function isActiveView(v: SavedView, view: OverviewView): boolean {
   const same = (a: number[], b: number[]) => a.length === b.length && a.every((x) => b.includes(x));
-  return v.page === 'overview' && v.view === view && v.group === filter.group && same(v.hidden, sidebar.boardHidden) && same(v.tags, filter.tags) && same(v.owners, filter.owners);
+  return v.page === 'overview' && v.view === view && v.group === filter.group && same(v.hidden, boardHidden.value) && same(v.tags, filter.tags) && same(v.owners, filter.owners);
 }
 
-/** Whether a project passes the label and owner filters (customer filter is separate). */
-export function matchesFilter(p: SidebarProject): boolean {
-  if (filter.tags.length && !p.tag_ids.some((id) => filter.tags.includes(id))) return false;
-  if (filter.owners.length && !filter.owners.includes(p.owner_id ?? NO_OWNER)) return false;
-  return true;
+/** Customer filter from a customer menu (all overview views): only / toggle / all. */
+export function applyCustomerFilter(id: number, mode: CustomerFilterMode) {
+  setBoardHidden(nextHidden(boardHidden.value, sidebar.customers.map((c) => c.id), id, mode));
 }
 
 /** Number of active filters (customer, label, person responsible). */
-export const activeFilters = () => (sidebar.boardHidden.length ? 1 : 0) + (filter.tags.length ? 1 : 0) + (filter.owners.length ? 1 : 0);
+export const activeFilters = () => (boardHidden.value.length ? 1 : 0) + (filter.tags.length ? 1 : 0) + (filter.owners.length ? 1 : 0);

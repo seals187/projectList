@@ -4,7 +4,9 @@
   // applied immediately and synced to all devices of the user (pref "ui").
   import { errorText } from '$lib/api';
   import { i18n, LANGS, setLang, t } from '$lib/i18n.svelte';
-  import { prefs, setPref, setTheme, theme, toast } from '$lib/state.svelte';
+  import { prefs, setPref } from '$lib/state.svelte';
+  import { setTheme, theme } from '$lib/theme.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { ACCENT_SWATCH, ACCENTS, DENSITIES, DIM_CONTENT, SCALE_STEPS, stepScale, THEME_CHOICES } from '$lib/appearance';
   import { pushUi } from '$lib/uiSync.svelte';
   import { backgroundCss, setUserBackground, userBackground } from '$lib/backgrounds';

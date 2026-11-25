@@ -8,7 +8,8 @@
   import { goto } from '$app/navigation';
   import { api, errorText } from '$lib/api';
   import { t, type Key } from '$lib/i18n.svelte';
-  import { isAdmin, toast } from '$lib/state.svelte';
+  import { isAdmin } from '$lib/session.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { moveItem, type ReportConfig, type ReportConfigResp, type ReportKpi, type ReportSchedule, type ReportView } from '$lib/reporting';
   import SettingsShell from '$lib/components/SettingsShell.svelte';
   import SetCard from '$lib/components/SetCard.svelte';

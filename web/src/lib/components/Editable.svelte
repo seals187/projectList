@@ -3,7 +3,7 @@
   // Escape cancels. In multiline fields, Ctrl+Enter saves.
   import { tick } from 'svelte';
   import { errorText } from '$lib/api';
-  import { toast } from '$lib/state.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { t } from '$lib/i18n.svelte';
 
   let {

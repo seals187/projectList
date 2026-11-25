@@ -78,7 +78,8 @@
   import FilterOptions from './FilterOptions.svelte';
   import SelectDropdown from './SelectDropdown.svelte';
   import ContextMenu from './ContextMenu.svelte';
-  import { prefs, stepPageZoomOf } from '$lib/state.svelte';
+  import { prefs } from '$lib/state.svelte';
+  import { stepPageZoomOf } from '$lib/zoom';
   import { PAGE_ZOOM_STEPS } from '$lib/pageZoom';
 
   let {

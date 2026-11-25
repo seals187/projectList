@@ -5,6 +5,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/seals187/projectList/internal/richtext"
+	"github.com/seals187/projectList/internal/service"
 )
 
 // Block types of the editor. Only "item" (checkbox) counts towards progress.
@@ -19,15 +20,7 @@ const (
 )
 
 // block holds the content fields of a checklist or template entry.
-type block struct {
-	Kind        string
-	Title       string
-	Description string
-	NoteColor   string
-	BgColor     string
-	Indent      int64
-	Lang        string
-}
+type block = service.Block
 
 // normalize validates and sanitizes a block. Title and note are
 // inline HTML (whitelist), code blocks store plain text.

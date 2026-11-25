@@ -12,7 +12,7 @@ vi.mock('$app/state', () => ({
 vi.mock('$app/navigation', () => ({
   replaceState: vi.fn((url: URL) => history.replaceState(null, '', url.href))
 }));
-vi.mock('./state.svelte', () => ({ session: { user: { id: 7 } } }));
+vi.mock('./session.svelte', () => ({ session: { user: { id: 7 } } }));
 // Node's own (flag-gated) localStorage global shadows jsdom's: simple in-memory one
 const mem = new Map<string, string>();
 vi.stubGlobal('localStorage', {

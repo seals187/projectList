@@ -4,7 +4,7 @@
   // integration). Existing variables can be deleted.
   import { untrack } from 'svelte';
   import { api, errorText } from '$lib/api';
-  import { toast } from '$lib/state.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { t, type Key } from '$lib/i18n.svelte';
   import { validVariableName } from '$lib/templateLibrary';
   import type { TemplateVariable } from '$lib/types';

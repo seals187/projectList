@@ -2,7 +2,7 @@
   // Files of a project: upload (button or drag & drop, max. 25 MB), download, delete.
   import { api, errorText } from '$lib/api';
   import { fmtDateTime, shortName, t } from '$lib/i18n.svelte';
-  import { toast } from '$lib/state.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import type { ProjectFile } from '$lib/types';
   import ConfirmButton from './ConfirmButton.svelte';
   import Icon from './Icon.svelte';

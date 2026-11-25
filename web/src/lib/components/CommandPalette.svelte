@@ -5,7 +5,7 @@
   import { goto } from '$app/navigation';
   import { tick } from 'svelte';
   import { api } from '$lib/api';
-  import { palette } from '$lib/state.svelte';
+  import { palette } from '$lib/dialogs.svelte';
   import { fmtDate, t } from '$lib/i18n.svelte';
   import type { ProjectStatus, SearchResult } from '$lib/types';
   import { entitySubtitle, type EntityType } from '$lib/entityTypes';

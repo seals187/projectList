@@ -4,13 +4,9 @@ import (
 	"context"
 	"net/http"
 	"regexp"
-	"slices"
-	"strconv"
 	"strings"
 
 	"github.com/seals187/projectList/internal/authz"
-	"github.com/seals187/projectList/internal/automation"
-	"github.com/seals187/projectList/internal/db"
 	"github.com/seals187/projectList/internal/db/sqlc"
 )
 
@@ -203,37 +199,9 @@ func (s *Server) setProjectTags(w http.ResponseWriter, r *http.Request, u authz.
 		}
 		names = append(names, tag.Name)
 	}
-	prev, err := s.q.ListTagIDsByProject(ctx, id)
+	ids, err := s.life.SetTags(ctx, actor(u), id, req.TagIDs, names)
 	if err != nil {
 		return err
-	}
-	err = db.WithTx(ctx, s.db, func(q *sqlc.Queries) error {
-		if err := q.ClearProjectTags(ctx, id); err != nil {
-			return err
-		}
-		for _, t := range req.TagIDs {
-			if err := q.AddProjectTag(ctx, sqlc.AddProjectTagParams{ProjectID: id, TagID: t}); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-	ids, err := s.q.ListTagIDsByProject(ctx, id)
-	if err != nil {
-		return err
-	}
-	if !slices.Equal(prev, ids) {
-		s.logActivity(ctx, id, u.ID, actTags, "", strings.Join(names, ", "))
-		if p, err := s.q.GetProject(ctx, id); err == nil {
-			for _, t := range ids {
-				if !slices.Contains(prev, t) {
-					s.fire(ctx, automation.ProjectTag, p, map[string]string{"tag": strconv.FormatInt(t, 10)})
-				}
-			}
-		}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"tag_ids": ids})
 	return nil

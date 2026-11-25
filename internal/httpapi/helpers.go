@@ -13,6 +13,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/seals187/projectList/internal/authz"
 	"github.com/seals187/projectList/internal/service"
 )
 
@@ -45,6 +46,8 @@ func (s *Server) writeError(w http.ResponseWriter, r *http.Request, err error) {
 	case errors.As(err, &he):
 	case errors.Is(err, sql.ErrNoRows):
 		he = errNotFound().(*httpError)
+	case errors.Is(err, service.ErrInvalidOrder):
+		he = errBadRequest("invalid_order").(*httpError)
 	case errors.Is(err, service.ErrTemplateKind):
 		he = errBadRequest("wrong_template_kind").(*httpError)
 	case isFKViolation(err):
@@ -189,3 +192,6 @@ func (v validator) optDate(field string, o Opt[string], cur *string) *string {
 	d := v.date(field, strings.TrimSpace(o.V))
 	return &d
 }
+
+// actor is the logged-in user as the cause of a project change.
+func actor(u authz.User) service.Actor { return service.UserActor(u.ID, u.Name) }

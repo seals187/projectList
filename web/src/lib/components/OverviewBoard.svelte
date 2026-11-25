@@ -3,11 +3,12 @@
   // responsible. Grouped by status, projects move via drag & drop between and
   // within columns (the order is shared by all users); admins edit a status'
   // name, color and WIP limit via the column title. Filters come from the page.
-  import { isAdmin, setBoardHidden, sidebar } from '$lib/state.svelte';
+  import { isAdmin } from '$lib/session.svelte';
+  import { sidebar } from '$lib/workspace.svelte';
   import { fmtDate, t } from '$lib/i18n.svelte';
-  import { barCls, BOARD_STATUSES, statusDotCls, statusDotStyle, statusLabel } from '$lib/projectStatus';
-  import { dueUrgent, pct, type OvCustomer, type OvProject } from '$lib/overview';
-  import { filter, NO_OWNER } from '$lib/overviewFilter.svelte';
+  import { barCls, statusDotCls, statusDotStyle, statusLabel } from '$lib/projectStatus';
+  import { boardColumns, boardDropOrder, dueUrgent, pct, type BoardColumn, type OvCustomer, type OvProject } from '$lib/projectQuery';
+  import { applyCustomerFilter, boardHidden, filter } from '$lib/overviewFilter.svelte';
   import { tagsByIds } from '$lib/tags';
   import type { ProjectStatus, SidebarCustomer } from '$lib/types';
   import TeamAvatars from './TeamAvatars.svelte';
@@ -38,43 +39,12 @@
     display?: Record<string, boolean>; // header "Display" options
   } = $props();
 
-  // ---- Columns ---------------------------------------------------------------------
-  interface Column {
-    key: string;
-    title: string;
-    status?: ProjectStatus; // grouped by status: drop target, WIP limit, status menu
-    customer?: SidebarCustomer;
-    owner?: { id: number; name: string };
-    items: OvProject[];
-  }
-
-  // order within a status column: board position, then name (stable sort keeps the name order)
-  const byPosition = (a: OvProject, b: OvProject) => a.board_position - b.board_position;
-  // customer/person columns: projects in board order (status, then position)
-  const statusIndex = (s: ProjectStatus) => (BOARD_STATUSES as readonly ProjectStatus[]).indexOf(s);
-  const byStatus = (a: OvProject, b: OvProject) => statusIndex(a.status) - statusIndex(b.status) || byPosition(a, b);
-
+  // ---- Columns (grouping and order: projectQuery) ----------------------------------
+  type Column = BoardColumn;
   const everything = $derived(all.flatMap((g) => g.projects));
   const projects = $derived(groups.flatMap((g) => g.projects));
   const byStatusGroup = $derived(filter.group === 'status');
-
-  const columns = $derived.by((): Column[] => {
-    if (filter.group === 'customer')
-      return groups.map((g) => ({ key: `c${g.customer.id}`, title: g.customer.name, customer: g.customer, items: [...g.projects].sort(byStatus) }));
-    if (filter.group === 'owner') {
-      const m = new Map<number, Column>();
-      for (const p of projects) {
-        const id = p.owner_id ?? NO_OWNER;
-        if (!m.has(id)) m.set(id, { key: `o${id}`, title: id ? p.owner_name : t('project.noOwner'), owner: { id, name: p.owner_name }, items: [] });
-        m.get(id)!.items.push(p);
-      }
-      // people alphabetically, "nobody" last
-      return [...m.values()]
-        .sort((a, b) => (a.owner!.id === NO_OWNER ? 1 : b.owner!.id === NO_OWNER ? -1 : a.title.localeCompare(b.title)))
-        .map((c) => ({ ...c, items: c.items.sort(byStatus) }));
-    }
-    return BOARD_STATUSES.map((s) => ({ key: s, title: statusLabel(s), status: s, items: projects.filter((p) => p.status === s).sort(byPosition) }));
-  });
+  const columns = $derived(boardColumns(groups, filter.group, { status: statusLabel, noOwner: t('project.noOwner') }));
 
   // the only visible customer is preselected when creating a project; new
   // projects always start in "planning", also from another status column
@@ -118,13 +88,7 @@
   }
 
   // customer filter from the customer menu
-  const hidden = $derived(new Set(sidebar.boardHidden));
-  const allIds = $derived(all.map((g) => g.customer.id));
-  function customerFilter(id: number, mode: 'only' | 'toggle' | 'all') {
-    if (mode === 'all') setBoardHidden([]);
-    else if (mode === 'only') setBoardHidden(allIds.filter((x) => x !== id));
-    else setBoardHidden(hidden.has(id) ? [...hidden].filter((x) => x !== id) : [...hidden, id]);
-  }
+  const hidden = $derived(new Set(boardHidden.value));
 
   // ---- Drag & Drop (grouped by status only) --------------------------------------------
   // target column and the card before which the project is inserted (null = at the end)
@@ -153,16 +117,8 @@
     over = null;
     if (!p) return;
     // new order of the whole column, incl. filtered-out projects (they keep their place)
-    const column = everything.filter((x) => x.status === status && x.id !== p.id).sort(byPosition);
-    const visibleIds = new Set(projects.map((x) => x.id));
-    const visible = column.filter((x) => visibleIds.has(x.id));
-    let at = before === null ? -1 : column.findIndex((x) => x.id === before);
-    if (at < 0) at = visible.length ? column.indexOf(visible[visible.length - 1]) + 1 : column.length;
-    const ids = column.map((x) => x.id);
-    ids.splice(at, 0, p.id);
-    const old = everything.filter((x) => x.status === status).sort(byPosition).map((x) => x.id);
-    if (p.status === status && old.join() === ids.join()) return; // nothing changed
-    onmove(p, status, ids);
+    const ids = boardDropOrder(everything, new Set(projects.map((x) => x.id)), p, status, before);
+    if (ids) onmove(p, status, ids);
   }
 
   const quickCls = 'rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-800 dark:hover:text-zinc-200';
@@ -358,5 +314,5 @@
     {canCreate}
     onclose={() => (menu = null)}
     oncreate={() => oncreate(m.customer.id, 'planning')}
-    onfilter={(mode) => customerFilter(m.customer.id, mode)} />
+    onfilter={(mode) => applyCustomerFilter(m.customer.id, mode)} />
 {/if}

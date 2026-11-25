@@ -1,10 +1,10 @@
 <script lang="ts">
   // Create a new customer (admin): name, location, contact person, email.
   import { goto } from '$app/navigation';
-  import { api, errorText } from '$lib/api';
-  import { refreshSidebar, toast } from '$lib/state.svelte';
+  import { errorText } from '$lib/api';
+  import { workspace } from '$lib/workspace.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { t } from '$lib/i18n.svelte';
-  import type { Customer } from '$lib/types';
   import Icon from './Icon.svelte';
 
   let { onclose }: { onclose: () => void } = $props();
@@ -25,8 +25,7 @@
     if (!name.trim()) return;
     busy = true;
     try {
-      const c = await api.post<Customer>('/customers', { name, location, contact_name: contactName, contact_email: contactEmail });
-      refreshSidebar(0);
+      const c = await workspace.createCustomer({ name, location, contact_name: contactName, contact_email: contactEmail });
       onclose();
       goto(`/customers/${c.id}`);
     } catch (err) {

@@ -11,8 +11,8 @@
   // Below 900 px window width, due date and responsible move into a second line.
   import { openCustomers, toggleCustomer } from '$lib/overviewOpen.svelte';
   import { t } from '$lib/i18n.svelte';
-  import { statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
-  import { dueUrgent, type OvCustomer, type OvProject } from '$lib/overview';
+  import { statusBadgeStyle, statusLabel } from '$lib/projectStatus';
+  import { dueUrgent, type OvCustomer, type OvProject } from '$lib/projectQuery';
   import { customerSummary, dayMonth, percent } from '$lib/listMetrics';
   import type { DisplayValues } from '$lib/displayCore';
   import { tagsByIds } from '$lib/tags';
@@ -22,7 +22,7 @@
   import ProgressRing from './ProgressRing.svelte';
   import TagDots from './TagDots.svelte';
   import CustomerMenu from './CustomerMenu.svelte';
-  import { setBoardHidden, sidebar } from '$lib/state.svelte';
+  import { applyCustomerFilter, boardHidden } from '$lib/overviewFilter.svelte';
   import { customerCardColor, projectColor, tintStyle } from '$lib/cardColors';
   import ProjectMenu from './ProjectMenu.svelte';
   import { myColors } from '$lib/myColors.svelte';
@@ -79,13 +79,7 @@
     pmenu = { project, customer, x: e.clientX, y: e.clientY };
   }
   // customer filter (shared with all overview views)
-  const hidden = $derived(new Set(sidebar.boardHidden));
-  function customerFilter(id: number, mode: 'only' | 'toggle' | 'all') {
-    const all = sidebar.customers.map((c) => c.id);
-    if (mode === 'all') setBoardHidden([]);
-    else if (mode === 'only') setBoardHidden(all.filter((x) => x !== id));
-    else setBoardHidden(hidden.has(id) ? [...hidden].filter((x) => x !== id) : [...hidden, id]);
-  }
+  const hidden = $derived(new Set(boardHidden.value));
 </script>
 
 <svelte:window bind:innerWidth={winWidth} />
@@ -165,7 +159,7 @@
                   </span>
                 </span>
               {/if}
-              <span><span class="badge rounded-full! px-2.5! whitespace-nowrap {statusBadgeCls(p.status)}" style={statusBadgeStyle(p.status)}>{statusLabel(p.status)}</span></span>
+              <span><span class="badge rounded-full! px-2.5! whitespace-nowrap" style={statusBadgeStyle(p.status)}>{statusLabel(p.status)}</span></span>
               <span class="flex min-w-0 items-center gap-2.5">
                 <span class="block h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-[#eceef2] dark:bg-zinc-800">
                   <span class="block h-full rounded-full {barColor(p.done, p.total)}" style:width="{pc}%"></span>
@@ -219,7 +213,7 @@
     {canCreate}
     onclose={() => (menu = null)}
     oncreate={() => oncreate(m.customer.id)}
-    onfilter={(mode) => customerFilter(m.customer.id, mode)}
+    onfilter={(mode) => applyCustomerFilter(m.customer.id, mode)}
     colorView="list" />
 {/if}
 

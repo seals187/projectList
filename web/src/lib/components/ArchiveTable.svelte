@@ -3,12 +3,14 @@
   // project, optionally customer and "by", date of archiving, checklist progress;
   // per row (on hover) "Restore" and "Delete permanently"; checkboxes for both
   // as bulk actions. group = "year": rows under collapsible year headings.
-  import { api, errorText } from '$lib/api';
-  import { canWrite, refreshSidebar, toast } from '$lib/state.svelte';
+  import { errorText } from '$lib/api';
+  import { canWrite } from '$lib/session.svelte';
+  import { workspace } from '$lib/workspace.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { fmtDate, t } from '$lib/i18n.svelte';
   import { groupByYear, localDay, type YearGroup } from '$lib/archive';
   import { barCls } from '$lib/projectStatus';
-  import { pct } from '$lib/overview';
+  import { pct } from '$lib/projectQuery';
   import type { ArchivedProject } from '$lib/types';
   import EntityIcon from './EntityIcon.svelte';
   import ConfirmButton from './ConfirmButton.svelte';
@@ -65,22 +67,24 @@
     busy = true;
     let ok = 0;
     try {
-      for (const id of ids) {
-        await op(id);
-        ok++;
-      }
+      // one reload of the workspace for the whole selection
+      await workspace.batch(async () => {
+        for (const id of ids) {
+          await op(id);
+          ok++;
+        }
+      });
     } catch (err) {
       toast(errorText(err));
     } finally {
       busy = false;
       if (ok) toast(t(doneKey, { n: ok }), 'info');
       selected = new Set([...selected].filter((id) => !ids.includes(id)));
-      refreshSidebar(0);
       onchanged();
     }
   }
-  const restore = (ids: number[]) => run(ids, (id) => api.patch(`/projects/${id}`, { status: 'active' }), 'archive.restored');
-  const remove = (ids: number[]) => run(ids, (id) => api.del(`/projects/${id}`), 'archive.deleted');
+  const restore = (ids: number[]) => run(ids, (id) => workspace.updateProject(id, { status: 'active' }), 'archive.restored');
+  const remove = (ids: number[]) => run(ids, (id) => workspace.deleteProject(id), 'archive.deleted');
 
   const day = (p: ArchivedProject) => (p.archived_at ? fmtDate(localDay(p.archived_at)) : null);
 </script>

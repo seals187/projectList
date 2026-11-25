@@ -5,7 +5,8 @@
   import { t, tMaybe, type Key } from '$lib/i18n.svelte';
   import { colorLabel, HUES, MARK_SWATCH, SHADES, TEXT_SWATCH } from '$lib/palette';
   import type { EditorApi, Kind } from '$lib/types';
-  import { prefs, setPref, stepZoom, ZOOM_STEPS } from '$lib/state.svelte';
+  import { prefs, setPref, ZOOM_STEPS } from '$lib/state.svelte';
+  import { stepZoom } from '$lib/zoom';
   import Icon from './Icon.svelte';
   import BlockIcon from './BlockIcon.svelte';
 

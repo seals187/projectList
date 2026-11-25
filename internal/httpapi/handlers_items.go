@@ -6,18 +6,9 @@ import (
 	"time"
 
 	"github.com/seals187/projectList/internal/authz"
-	"github.com/seals187/projectList/internal/db"
 	"github.com/seals187/projectList/internal/db/sqlc"
+	"github.com/seals187/projectList/internal/service"
 )
-
-// loadItem loads an item and checks access via the customer.
-func (s *Server) loadItem(ctx context.Context, u authz.User, id int64) (sqlc.GetItemWithCustomerRow, error) {
-	it, err := s.q.GetItemWithCustomer(ctx, id)
-	if err != nil {
-		return it, err
-	}
-	return it, s.requireCustomer(ctx, u, it.CustomerID)
-}
 
 func (s *Server) itemResponse(w http.ResponseWriter, r *http.Request, status int, id int64) error {
 	row, err := s.q.GetItemFull(r.Context(), id)
@@ -128,22 +119,11 @@ func (s *Server) createItem(w http.ResponseWriter, r *http.Request, u authz.User
 	if err := v.err(); err != nil {
 		return err
 	}
-	var id int64
-	err = db.WithTx(r.Context(), s.db, func(q *sqlc.Queries) error {
-		next, err := q.NextItemPosition(r.Context(), checklistID)
-		if err != nil {
-			return err
-		}
-		p.Position = next
-		if req.Position.Set && !req.Position.Null && req.Position.V < next {
-			p.Position = req.Position.V
-			if err := q.ShiftItemPositions(r.Context(), sqlc.ShiftItemPositionsParams{ChecklistID: checklistID, Position: p.Position}); err != nil {
-				return err
-			}
-		}
-		id, err = q.CreateItem(r.Context(), p)
-		return err
-	})
+	var at *int64
+	if req.Position.Set && !req.Position.Null {
+		at = &req.Position.V
+	}
+	id, err := service.InsertItem(r.Context(), s.db, p, at)
 	if err != nil {
 		return err
 	}
@@ -298,19 +278,7 @@ func (s *Server) orderItems(w http.ResponseWriter, r *http.Request, u authz.User
 	if err := req.validate(); err != nil {
 		return err
 	}
-	err = db.WithTx(r.Context(), s.db, func(q *sqlc.Queries) error {
-		for i, id := range req.IDs {
-			n, err := q.SetItemPosition(r.Context(), sqlc.SetItemPositionParams{Position: int64(i), ID: id, ChecklistID: checklistID})
-			if err != nil {
-				return err
-			}
-			if n != 1 {
-				return errBadRequest("invalid_order")
-			}
-		}
-		return nil
-	})
-	if err != nil {
+	if err := service.Reorder(r.Context(), s.db, service.ItemsOfChecklist, checklistID, req.IDs); err != nil {
 		return err
 	}
 	w.WriteHeader(http.StatusNoContent)

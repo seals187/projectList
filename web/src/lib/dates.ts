@@ -42,3 +42,6 @@ export const monthLabel = (day: number, locale: string, withYear = true): string
 /** Short weekday names Monday … Sunday in the UI language. */
 export const weekdayNames = (locale: string): string[] =>
   Array.from({ length: 7 }, (_, i) => new Date(Date.UTC(2024, 0, 1 + i)).toLocaleDateString(locale, { weekday: 'short', timeZone: 'UTC' }));
+
+/** Days from today until the date (YYYY-MM-DD); negative = overdue. */
+export const daysUntil = (iso: string, today: string): number => toDay(iso) - toDay(today);

@@ -4,7 +4,9 @@
   import { goto } from '$app/navigation';
   import { api, errorText } from '$lib/api';
   import { t } from '$lib/i18n.svelte';
-  import { isAdmin, refreshSidebar, sidebar, toast } from '$lib/state.svelte';
+  import { isAdmin } from '$lib/session.svelte';
+  import { sidebar, workspace } from '$lib/workspace.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { tagStyle } from '$lib/tags';
   import type { Tag } from '$lib/types';
   import SettingsShell from '$lib/components/SettingsShell.svelte';
@@ -65,9 +67,7 @@
   async function removeTag(tag: Tag) {
     menu = null;
     try {
-      await api.del(`/tags/${tag.id}`);
-      sidebar.tags = sidebar.tags.filter((x) => x.id !== tag.id);
-      refreshSidebar(0);
+      await workspace.deleteTag(tag.id);
     } catch (err) {
       toast(errorText(err));
     }

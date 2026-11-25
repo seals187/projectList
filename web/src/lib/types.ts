@@ -1,7 +1,6 @@
-export type Role = 'admin' | 'member' | 'viewer';
-export type ProjectStatus = 'planning' | 'active' | 'review' | 'blocked' | 'done' | 'archived';
-export type Kind = 'item' | 'h1' | 'h2' | 'h3' | 'h4' | 'text' | 'bullet' | 'numbered' | 'quote' | 'code' | 'divider';
-export type NoteColor = '' | 'green' | 'orange' | 'red' | 'indigo';
+// Enums of the HTTP contract, generated from Go (api.gen.ts).
+export type { Role, ProjectStatus, Kind, NoteColor, FavoriteKind, TemplateKind } from './api.gen';
+import type { Role, ProjectStatus, Kind, NoteColor, FavoriteKind, TemplateKind } from './api.gen';
 // '' = same as section, 'none' = explicitly none, otherwise values from $lib/palette (e.g. "yellow-strong")
 export type BgColor = string;
 
@@ -13,7 +12,6 @@ export interface User {
 }
 
 /** Favorite in the sidebar (per user). */
-export type FavoriteKind = 'customer' | 'project' | 'checklist' | 'template';
 export interface Favorite {
   kind: FavoriteKind;
   id: number;
@@ -173,7 +171,6 @@ export interface Template {
 }
 
 /** A template creates a checklist (items) or a table (workbook). */
-export type TemplateKind = 'checklist' | 'table';
 
 export interface TemplateSummary extends Template {
   item_count: number;
@@ -285,6 +282,20 @@ export interface SidebarCustomer {
   color: string; // shared customer color; with color_everywhere it wins in all views (all users)
   color_everywhere: boolean;
   projects: SidebarProject[];
+}
+
+/** /api/sidebar: the app's main read model (customers → projects → checklists, favorites, tags, status settings, synced prefs). */
+export interface SidebarData {
+  customers: SidebarCustomer[];
+  my_tasks: number;
+  favorites: Favorite[];
+  favorite_groups?: FavoriteGroup[];
+  tags: Tag[];
+  status_labels: Partial<Record<ProjectStatus, string>>;
+  status_colors?: Partial<Record<ProjectStatus, string>>;
+  status_wip?: Partial<Record<ProjectStatus, number>>;
+  prefs?: Record<string, unknown>; // synced personal settings (see syncedPref.svelte.ts)
+  board_hidden: number[]; // customers hidden in the overview (pref "board_hidden")
 }
 
 export interface Task {

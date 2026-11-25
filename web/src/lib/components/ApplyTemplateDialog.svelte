@@ -5,9 +5,10 @@
   import { untrack } from 'svelte';
   import { goto } from '$app/navigation';
   import { api, errorText } from '$lib/api';
-  import { refreshSidebar, sidebar, toast } from '$lib/state.svelte';
+  import { sidebar, workspace } from '$lib/workspace.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { t, type Key } from '$lib/i18n.svelte';
-  import type { Checklist, Project, Table, TemplateSummary, TemplateVariable } from '$lib/types';
+  import type { TemplateSummary, TemplateVariable } from '$lib/types';
   import Icon from './Icon.svelte';
   import { templateSizeText } from '$lib/templateText';
   import EntityIcon from './EntityIcon.svelte';
@@ -54,23 +55,22 @@
     e.preventDefault();
     if (!customer || (project === NEW && !newName.trim())) return;
     busy = true;
+    const cust = customer;
     try {
-      let pid = project;
-      if (pid === NEW) pid = (await api.post<Project>(`/customers/${customer}/projects`, { name: newName.trim() })).id;
-      const body = { template_id: template.id, title: title.trim(), values };
-      if (isTable) {
-        const tb = await api.post<Table>(`/projects/${pid}/tables/from-template`, body);
-        refreshSidebar(0);
-        toast(t('apply.tableDone', { name: tb.title }), 'info');
-        dialog?.close();
-        goto(`/tables/${tb.id}`);
-        return;
-      }
-      const cl = await api.post<Checklist>(`/projects/${pid}/checklists/from-template`, body);
-      refreshSidebar(0);
-      toast(t('apply.done', { name: cl.title }), 'info');
+      // new project and its checklist/table: one reload of the workspace
+      const created = await workspace.batch(async () => {
+        const pid = project === NEW ? (await workspace.createProject(cust, { name: newName.trim() })).id : project;
+        const body = { template_id: template.id, title: title.trim(), values };
+        if (isTable) {
+          const tb = await workspace.createTableFromTemplate(pid, body);
+          return { msg: t('apply.tableDone', { name: tb.title }), href: `/tables/${tb.id}` };
+        }
+        const cl = await workspace.createChecklistFromTemplate(pid, body);
+        return { msg: t('apply.done', { name: cl.title }), href: `/checklists/${cl.id}` };
+      });
+      toast(created.msg, 'info');
       dialog?.close();
-      goto(`/checklists/${cl.id}`);
+      goto(created.href);
     } catch (err) {
       toast(errorText(err));
     } finally {

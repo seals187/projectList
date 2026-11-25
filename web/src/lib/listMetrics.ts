@@ -3,6 +3,8 @@
 //
 // Steps of a project = done / all items of all its checklists (headings do not
 // count; the server already aggregates this per project in SQL, see sidebar).
+// Progress, open items and due dates come from projectQuery.
+import { openItems, pct, projectDue } from './projectQuery';
 
 export interface StepsLike {
   done: number;
@@ -15,7 +17,7 @@ export interface ProjectLike extends StepsLike {
 }
 
 /** Progress in percent (rounded); no steps = 0. */
-export const percent = (done: number, total: number) => (total > 0 ? Math.round((done / total) * 100) : 0);
+export const percent = pct;
 
 export interface CustomerSummary {
   projects: number;
@@ -31,11 +33,12 @@ export function customerSummary(projects: ProjectLike[], today: string): Custome
   const included = projects.filter((p) => p.include_in_customer_progress);
   const done = included.reduce((s, p) => s + p.done, 0);
   const total = included.reduce((s, p) => s + p.total, 0);
-  const open = projects.reduce((s, p) => s + Math.max(0, p.total - p.done), 0);
+  const open = projects.reduce((s, p) => s + openItems(p), 0);
   const next =
     projects
-      .filter((p) => p.due_date && p.due_date >= today && p.status !== 'done' && p.status !== 'archived')
-      .map((p) => p.due_date!)
+      .filter((p) => p.status !== 'archived')
+      .map((p) => projectDue(p))
+      .filter((d) => d && d >= today)
       .sort()[0] ?? null;
   return { projects: projects.length, done, total, pct: percent(done, total), open, next };
 }

@@ -1,7 +1,7 @@
 // Reading an Excel file chosen by the user (project tables, table templates):
 // errors are shown as a toast, the result is null then.
 import { t } from './i18n.svelte';
-import { toast } from './state.svelte';
+import { toast } from './toasts.svelte';
 import { MAX_STORED, storedSize, type StoredSheet } from './sheetData';
 
 export async function readXlsx(file: File): Promise<StoredSheet[] | null> {

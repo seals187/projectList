@@ -4,7 +4,7 @@
   import { page } from '$app/state';
   import { tick } from 'svelte';
   import { api, errorText } from '$lib/api';
-  import { session } from '$lib/state.svelte';
+  import { session } from '$lib/session.svelte';
   import { t } from '$lib/i18n.svelte';
   import { percent, swissDate, type ClBrief, type CustomerReport } from '$lib/reporting';
 

@@ -5,7 +5,7 @@
   // delete per row or for a selection. State per user in localStorage and in the URL.
   import { page } from '$app/state';
   import { api, errorText } from '$lib/api';
-  import { toast } from '$lib/state.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { t } from '$lib/i18n.svelte';
   import { ARCHIVE_PERIODS, ARCHIVE_SORTS, filterArchive, sortArchive, type ArchivePeriod, type ArchiveSort } from '$lib/archive';
   import { addPageView } from '$lib/overviewFilter.svelte';

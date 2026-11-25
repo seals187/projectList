@@ -1,7 +1,10 @@
 <script lang="ts">
   // "My tasks" list with check-off (optimistic) and context link.
-  import { api, errorText } from '$lib/api';
-  import { canWrite, checkRadius, refreshSidebar, session, toast } from '$lib/state.svelte';
+  import { errorText } from '$lib/api';
+  import { checkRadius } from '$lib/state.svelte';
+  import { canWrite, session } from '$lib/session.svelte';
+  import { workspace } from '$lib/workspace.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { fmtDate, t, todayISO } from '$lib/i18n.svelte';
   import { sanitizeHtml } from '$lib/rich';
   import type { Task } from '$lib/types';
@@ -15,8 +18,7 @@
     const prev = task.done_at;
     task.done_at = done ? new Date().toISOString() : null;
     try {
-      await api.post(`/items/${task.id}/done`, { done });
-      refreshSidebar();
+      await workspace.setItemDone(task.id, done);
     } catch (e) {
       task.done_at = prev;
       toast(errorText(e));

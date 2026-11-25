@@ -1,25 +1,16 @@
 <script lang="ts">
   import '../app.css';
-  import { onMount, untrack } from 'svelte';
+  import { onMount } from 'svelte';
   import { goto, afterNavigate } from '$app/navigation';
   import { page } from '$app/state';
   import { api, setCsrf } from '$lib/api';
-  import {
-    newProject,
-    prefs,
-    refreshSidebar,
-    saveState,
-    session,
-    setSidebarWidth,
-    sidebar,
-    SIDEBAR_DEFAULT,
-    SIDEBAR_MAX,
-    SIDEBAR_MIN,
-    sidebarWidth,
-    toggleSidebar
-  } from '$lib/state.svelte';
+  import { prefs, setSidebarWidth, SIDEBAR_DEFAULT, SIDEBAR_MAX, SIDEBAR_MIN, sidebarUi, sidebarWidth, toggleSidebar } from '$lib/state.svelte';
+  import { session } from '$lib/session.svelte';
+  import { refreshSidebar, sidebar } from '$lib/workspace.svelte';
+  import { newProject } from '$lib/dialogs.svelte';
+  import { saveState } from '$lib/saveState.svelte';
   import { t } from '$lib/i18n.svelte';
-  import { syncFromServer } from '$lib/overviewFilter.svelte';
+  import '$lib/uiSync.svelte'; // synced appearance (pref "ui"): hooks into theme and prefs at startup
   import { backgroundCss, userBackground } from '$lib/backgrounds';
   import { pageBg } from '$lib/pageBg.svelte';
   import type { User } from '$lib/types';
@@ -84,11 +75,6 @@
     session.ready = true;
   });
 
-  // overview filters and saved views (synced per user) whenever the sidebar data arrives
-  $effect(() => {
-    if (sidebar.prefs) untrack(syncFromServer);
-  });
-
   $effect(() => {
     if (session.ready && !session.user && !publicPage) goto('/login');
   });
@@ -142,7 +128,7 @@
   // After navigation: history of the back bar, close the mobile sidebar, reset the save indicator.
   afterNavigate((nav) => {
     if (nav.to) recordNav(nav.type, nav.delta, nav.to.url);
-    sidebar.open = false;
+    sidebarUi.open = false;
     saveState.saved = false;
     saveState.error = false;
   });
@@ -162,26 +148,26 @@
     style:background-image={bgImage || undefined}
     style:background-size={bgCss ? 'cover' : undefined}
     style:background-position={bgCss ? 'center' : undefined}>
-    {#if sidebar.open}
+    {#if sidebarUi.open}
       <button
         type="button"
         class="fixed inset-0 z-30 bg-zinc-950/30 md:hidden"
         aria-label={t('nav.closeMenu')}
-        onclick={() => (sidebar.open = false)}></button>
+        onclick={() => (sidebarUi.open = false)}></button>
     {/if}
     <aside
       class="fixed inset-y-0 left-0 z-30 w-64 overflow-hidden md:relative md:translate-x-0
         {glassChrome ? 'glass-bar dark border-white/10 bg-zinc-950/45 text-zinc-100 backdrop-blur-lg' : 'border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900'}
         {resizing ? '' : 'transition-[translate,width] duration-200'}
-        {sidebar.open ? 'translate-x-0' : '-translate-x-full'}
-        {sidebar.collapsed ? 'border-r md:w-0 md:border-r-0' : 'border-r md:w-(--sb-w)'}"
+        {sidebarUi.open ? 'translate-x-0' : '-translate-x-full'}
+        {sidebarUi.collapsed ? 'border-r md:w-0 md:border-r-0' : 'border-r md:w-(--sb-w)'}"
       style:--sb-w="{sidebarWidth.value}px"
-      inert={sidebar.collapsed && !sidebar.open && isDesktop}>
+      inert={sidebarUi.collapsed && !sidebarUi.open && isDesktop}>
       <!-- fixed width so the content doesn't reflow when collapsing/expanding -->
       <div class="h-full w-64 md:w-(--sb-w)">
         <Sidebar />
       </div>
-      {#if !sidebar.collapsed}
+      {#if !sidebarUi.collapsed}
         <!-- drag handle on the right edge: change width, double-click = default width -->
         <!-- svelte-ignore a11y_no_noninteractive_element_interactions, a11y_no_noninteractive_tabindex -->
         <div
@@ -205,7 +191,7 @@
       {/if}
     </aside>
 
-    {#if sidebar.collapsed}
+    {#if sidebarUi.collapsed}
       <button
         type="button"
         class="fixed top-3 left-2 z-20 hidden rounded-md border border-zinc-200 bg-white/90 p-1.5 text-zinc-500 shadow-xs backdrop-blur hover:text-zinc-800 md:block dark:border-zinc-800 dark:bg-zinc-900/90 dark:text-zinc-400 dark:hover:text-zinc-100"
@@ -218,7 +204,7 @@
 
     <div class="flex min-w-0 flex-1 flex-col">
       <header class="flex items-center gap-2 border-b px-3 py-2 md:hidden {glassChrome ? 'glass-bar dark border-white/10 bg-zinc-950/45 text-zinc-100 backdrop-blur-lg' : 'border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900'}">
-        <button type="button" class="btn-ghost px-2!" onclick={() => (sidebar.open = true)} aria-label={t('nav.openMenu')}>
+        <button type="button" class="btn-ghost px-2!" onclick={() => (sidebarUi.open = true)} aria-label={t('nav.openMenu')}>
           <Icon name="menu" size={18} />
         </button>
         <img src="/favicon.svg" alt="" width="20" height="20" />

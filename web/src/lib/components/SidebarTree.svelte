@@ -6,15 +6,13 @@
   // rename / move / delete; on an entry move up/down, into a folder, plus the
   // entry's own actions (`itemMenu`). The entry itself is rendered by `item`.
   import type { Snippet } from 'svelte';
-  import { api, errorText } from '$lib/api';
   import { t } from '$lib/i18n.svelte';
-  import { sidebar, toast } from '$lib/state.svelte';
+  import { layoutPrefs, type LayoutPrefKey } from '$lib/layoutPrefs';
   import {
     addFolder,
     deleteFolder,
     folderOf,
     moveNode,
-    parseLayout,
     renameFolder,
     resolveLayout,
     setFolderOpen,
@@ -39,7 +37,7 @@
     testid
   }: {
     keys: string[]; // entries in their default order (new ones are appended)
-    prefKey: 'fav_layout' | 'views_layout';
+    prefKey: LayoutPrefKey;
     label: string;
     closed: boolean;
     head: Snippet;
@@ -49,13 +47,12 @@
     testid: string;
   } = $props();
 
-  const layout = $derived(resolveLayout(parseLayout(sidebar.prefs[prefKey]), keys));
+  const layout = $derived(resolveLayout(layoutPrefs[prefKey].value, keys));
   const folders = $derived(layout.filter((n) => n.t === 'f'));
   const visible = $derived(keys.length > 0 || folders.length > 0);
 
   function save(l: FavLayout) {
-    sidebar.prefs[prefKey] = l;
-    api.put(`/prefs/${prefKey}`, l).catch((e) => toast(errorText(e)));
+    layoutPrefs[prefKey].set(l); // shown at once, saved immediately (errors: toast)
   }
 
   // ---- drag & drop ----------------------------------------------------------------

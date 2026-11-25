@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/svelte';
 import { i18n } from '$lib/i18n.svelte';
 import { openCustomers } from '$lib/overviewOpen.svelte';
-import type { OvCustomer } from '$lib/overview';
+import type { OvCustomer } from '$lib/projectQuery';
 import OverviewList from './OverviewList.svelte';
 
 const customer = { id: 1, name: '(AB) Appenzell Spital', projects: [] } as unknown as OvCustomer['customer'];

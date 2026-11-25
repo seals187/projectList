@@ -1,5 +1,6 @@
 import { goto } from '$app/navigation';
-import { saveState, session } from './state.svelte';
+import { session } from './session.svelte';
+import { saveState } from './saveState.svelte';
 import { t, tMaybe } from './i18n.svelte';
 
 let csrfToken = '';

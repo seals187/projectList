@@ -5,10 +5,14 @@
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { api, errorText } from '$lib/api';
-  import { canWrite, isAdmin, openNewProject, prefs, refreshSidebar, sidebar, toast } from '$lib/state.svelte';
+  import { prefs } from '$lib/state.svelte';
+  import { canWrite, isAdmin } from '$lib/session.svelte';
+  import { refreshSidebar, sidebar, workspace } from '$lib/workspace.svelte';
+  import { toast } from '$lib/toasts.svelte';
+  import { openNewProject } from '$lib/dialogs.svelte';
   import { fmtDate, t, todayISO, withoutText } from '$lib/i18n.svelte';
-  import { barCls, statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
-  import { dueUrgent, pct, segGrow } from '$lib/overview';
+  import { barCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
+  import { dueUrgent, pct, segGrow } from '$lib/projectQuery';
   import {
     buildCustomerRows,
     CUSTOMER_FILTERS,
@@ -69,10 +73,9 @@
   // delete from the menu (admins; the menu asks for confirmation first)
   async function removeCustomer(id: number) {
     try {
-      await api.del(`/customers/${id}`);
+      await workspace.deleteCustomer(id);
       infos = infos.filter((x) => x.id !== id);
       ps.expanded = ps.expanded.filter((x) => x !== id);
-      refreshSidebar(0);
     } catch (err) {
       toast(errorText(err));
     }
@@ -347,7 +350,7 @@
                     {#if disp.percent}<span class="text-xs text-zinc-500 tabular-nums">{pct(p.done, p.total)}%</span>{/if}
                   </span>
                   {#if disp.due}{@render dueDate(p.due_date, dueUrgent(p, today))}{/if}
-                  <span><span class="badge {statusBadgeCls(p.status)}" style={statusBadgeStyle(p.status)}>{statusLabel(p.status)}</span></span>
+                  <span><span class="badge" style={statusBadgeStyle(p.status)}>{statusLabel(p.status)}</span></span>
                   <span class="-my-1 justify-self-end"><ProgressToggle project={p} customerName={r.customer.name} /></span>
                 </a>
               {/each}

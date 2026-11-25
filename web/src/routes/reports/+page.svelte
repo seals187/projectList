@@ -6,7 +6,9 @@
   // "Schedule e-mail" = report e-mails (admins and members).
   import { page } from '$app/state';
   import { api, errorText } from '$lib/api';
-  import { canWrite, sidebar, toast } from '$lib/state.svelte';
+  import { canWrite } from '$lib/session.svelte';
+  import { sidebar } from '$lib/workspace.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { t, type Key } from '$lib/i18n.svelte';
   import { addPageView } from '$lib/overviewFilter.svelte';
   import { pageState } from '$lib/pageState.svelte';

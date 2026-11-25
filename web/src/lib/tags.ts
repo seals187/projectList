@@ -1,6 +1,6 @@
 // Project tags: free color (#rrggbb) as chip background with a readable text color.
 import type { Tag } from './types';
-import { sidebar } from './state.svelte';
+import { sidebar } from './workspace.svelte';
 
 /**
  * Suggested colors in the pickers (tags, project status): 18 hues in a light,

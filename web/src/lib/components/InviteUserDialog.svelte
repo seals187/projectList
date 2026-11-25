@@ -4,7 +4,7 @@
   // afterwards in any case so it can also be passed on by hand.
   import { api, errorText } from '$lib/api';
   import { i18n, t } from '$lib/i18n.svelte';
-  import { toast } from '$lib/state.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import type { AdminUser, Role } from '$lib/types';
   import Icon from './Icon.svelte';
   import LinkBox from './LinkBox.svelte';

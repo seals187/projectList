@@ -2,7 +2,7 @@
   // Manage the template categories (admins): name, color, add, delete.
   // Changes are saved immediately; onchange reloads the list of the page.
   import { api, errorText } from '$lib/api';
-  import { toast } from '$lib/state.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import { t } from '$lib/i18n.svelte';
   import { CARD_COLORS, CARD_HEX } from '$lib/cardColors';
   import { categoryHex } from '$lib/templateLibrary';

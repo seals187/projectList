@@ -5,7 +5,10 @@
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { api, errorText } from '$lib/api';
-  import { canWrite, isAdmin, openNewProject, refreshSidebar, sidebar, toast } from '$lib/state.svelte';
+  import { canWrite, isAdmin } from '$lib/session.svelte';
+  import { sidebar, workspace } from '$lib/workspace.svelte';
+  import { toast } from '$lib/toasts.svelte';
+  import { openNewProject } from '$lib/dialogs.svelte';
   import { fmtDate, shortName, t, todayISO } from '$lib/i18n.svelte';
   import type { ArchivedProject, Customer, CustomerPhone, Project, ProjectWithProgress, SidebarProject } from '$lib/types';
   import ProjectMenu from '$lib/components/ProjectMenu.svelte';
@@ -18,8 +21,8 @@
   import Icon from '$lib/components/Icon.svelte';
   import BackgroundPicker from '$lib/components/BackgroundPicker.svelte';
   import HeaderBand from '$lib/components/HeaderBand.svelte';
-  import { barCls, statusBadgeCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
-  import { dueUrgent, pct } from '$lib/overview';
+  import { barCls, statusBadgeStyle, statusLabel } from '$lib/projectStatus';
+  import { dueUrgent, pct } from '$lib/projectQuery';
   import { tagsByIds } from '$lib/tags';
   import { cardHex, projectColor, tintStyle } from '$lib/cardColors';
   import { myColors } from '$lib/myColors.svelte';
@@ -81,8 +84,7 @@
   }
 
   async function save(field: Field, value: string) {
-    customer = await api.patch<Customer>(`/customers/${id}`, { [field]: value });
-    if (field === 'name' || field === 'location') refreshSidebar(0);
+    customer = await workspace.updateCustomer(id, { [field]: value });
   }
 
   // phone numbers: edited as a list (label + number) while "Edit" is on, saved on leaving a field
@@ -106,9 +108,8 @@
     e.preventDefault();
     if (!newProject.trim()) return;
     try {
-      const p = await api.post<Project>(`/customers/${id}/projects`, { name: newProject });
+      const p = await workspace.createProject(id, { name: newProject });
       newProject = '';
-      refreshSidebar(0);
       goto(`/projects/${p.id}`);
     } catch (err) {
       toast(errorText(err));
@@ -117,8 +118,7 @@
 
   async function remove() {
     try {
-      await api.del(`/customers/${id}`);
-      refreshSidebar(0);
+      await workspace.deleteCustomer(id);
       goto('/customers');
     } catch (err) {
       toast(errorText(err));
@@ -170,13 +170,9 @@
   let bgOpen = $state(false);
   async function pickBg(value: string) {
     if (!customer) return;
-    const sc = sidebar.customers.find((x) => x.id === id);
-    const prev = sc?.background ?? '';
-    if (sc) sc.background = value;
     try {
-      await api.put(`/customers/${id}/background`, { background: value });
+      await workspace.setCustomerBackground(id, value);
     } catch (e) {
-      if (sc) sc.background = prev;
       toast(errorText(e));
     }
   }
@@ -371,7 +367,7 @@
               <EntityIcon type="project" size="sm" />
               <span class="truncate font-semibold {p.status === 'archived' ? 'text-zinc-400 line-through' : ''}" title={p.name}>{p.name}</span>
             </span>
-            <span class="min-w-0"><span class="badge inline-block max-w-full truncate {statusBadgeCls(p.status)}" style={statusBadgeStyle(p.status)} title={statusLabel(p.status)}>{statusLabel(p.status)}</span></span>
+            <span class="min-w-0"><span class="badge inline-block max-w-full truncate" style={statusBadgeStyle(p.status)} title={statusLabel(p.status)}>{statusLabel(p.status)}</span></span>
             <span class="flex min-w-0 items-center gap-2.5 text-xs text-zinc-600 dark:text-zinc-400" title={tags.map((x) => x.name).join(', ')}>
               {#each tags.slice(0, 2) as tag (tag.id)}
                 <span class="flex min-w-0 items-center gap-1"><span class="size-2 shrink-0 rounded-full" style:background-color={tag.color}></span><span class="truncate">{tag.name}</span></span>

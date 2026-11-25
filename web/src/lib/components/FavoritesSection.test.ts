@@ -11,7 +11,7 @@ vi.mock('$lib/api', () => ({
 import { api } from '$lib/api';
 import { goto } from '$app/navigation';
 import { i18n } from '$lib/i18n.svelte';
-import { sidebar } from '$lib/state.svelte';
+import { sidebar } from '$lib/workspace.svelte';
 import type { SidebarCustomer } from '$lib/types';
 import FavoritesSection from './FavoritesSection.svelte';
 

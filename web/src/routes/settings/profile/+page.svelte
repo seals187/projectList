@@ -3,7 +3,8 @@
   import { goto } from '$app/navigation';
   import { api, errorText } from '$lib/api';
   import { t } from '$lib/i18n.svelte';
-  import { session, toast } from '$lib/state.svelte';
+  import { session } from '$lib/session.svelte';
+  import { toast } from '$lib/toasts.svelte';
   import SettingsShell from '$lib/components/SettingsShell.svelte';
   import SetCard from '$lib/components/SetCard.svelte';
   import SetRow from '$lib/components/SetRow.svelte';

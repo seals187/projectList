@@ -7,7 +7,10 @@
   import { page } from '$app/state';
   import { beforeNavigate, goto } from '$app/navigation';
   import { api, ApiError, errorText } from '$lib/api';
-  import { canWrite, refreshSidebar, saveState, toast } from '$lib/state.svelte';
+  import { canWrite } from '$lib/session.svelte';
+  import { workspace } from '$lib/workspace.svelte';
+  import { toast } from '$lib/toasts.svelte';
+  import { saveState } from '$lib/saveState.svelte';
   import { t } from '$lib/i18n.svelte';
   import { relativeTime } from '$lib/activity';
   import { download, toCsv } from '$lib/reporting';
@@ -120,9 +123,8 @@
 
   // ---- header actions ------------------------------------------------------------------
   async function rename(title: string) {
-    await api.patch(`/tables/${id}`, { title });
+    await workspace.renameTable(id, title);
     if (data) data.table.title = title;
-    refreshSidebar(0);
   }
 
   function exportCsv() {
@@ -166,8 +168,7 @@
     clearTimeout(timer);
     unsaved = null;
     try {
-      await api.del(`/tables/${id}`);
-      refreshSidebar(0);
+      await workspace.deleteTable(id);
       goto(`/projects/${projectId}#tables`);
     } catch (e) {
       toast(errorText(e));

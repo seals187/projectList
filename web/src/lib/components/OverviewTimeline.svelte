@@ -3,10 +3,10 @@
   // creation date) to its due date, grouped by customer. Writers drag a bar to
   // move it, or its ends to change the start / due date.
   import { goto } from '$app/navigation';
-  import { canWrite } from '$lib/state.svelte';
+  import { canWrite } from '$lib/session.svelte';
   import { fmtDate, locale, t } from '$lib/i18n.svelte';
   import { statusColor, statusDotCls, statusDotStyle, statusLabel } from '$lib/projectStatus';
-  import { pct, type OvCustomer, type OvProject } from '$lib/overview';
+  import { pct, timelineRange, timelineRows, type OvCustomer, type OvProject } from '$lib/projectQuery';
   import { patchProject } from '$lib/projectActions';
   import { addMonths, dayOfMonth, fromDay, isoWeek, mondayOf, monthLabel, monthStart, toDay, weekday, weekdayNames } from '$lib/dates';
   import ProjectMenu from './ProjectMenu.svelte';
@@ -61,16 +61,9 @@
   const shift = (dir: -1 | 1) => (from = zoom === 'months' ? addMonths(from, dir * 2) : from + dir * span);
 
   // ---- Bars ------------------------------------------------------------------------
-  const startOf = (p: OvProject) => toDay(p.start_date ?? p.created_at);
-  function range(p: OvProject): [number, number] {
-    const s = startOf(p);
-    const e = p.due_date ? toDay(p.due_date) : s;
-    return s <= e ? [s, e] : [e, s];
-  }
-
-  const rows = $derived(
-    groups.map((g) => ({ customer: g.customer, projects: [...g.projects].sort((a, b) => range(a)[0] - range(b)[0] || a.name.localeCompare(b.name)) }))
-  );
+  // bar range and row order: projectQuery
+  const range = timelineRange;
+  const rows = $derived(timelineRows(groups));
 
   // header: months (and days or calendar weeks)
   const months = $derived.by(() => {
