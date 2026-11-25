@@ -8,6 +8,8 @@ Changes until the next release are collected under **Unreleased**.
 
 ## [Unreleased]
 
+## [0.2.3] – 2026-11-25
+
 ### Fixed
 
 - Moving a project card into another column on the board now records the status change in the project's activity
@@ -646,7 +648,8 @@ First version.
   JetBrains Mono; no external requests
 - Checkbox left or right, square or round; code block background light grey, dark grey or black
 
-[Unreleased]: https://github.com/seals187/projectList/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/seals187/projectList/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/seals187/projectList/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/seals187/projectList/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/seals187/projectList/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/seals187/projectList/compare/v0.1.9...v0.2.0
